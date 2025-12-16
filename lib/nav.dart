@@ -8,6 +8,8 @@ import 'package:fittravel/screens/trips/trips_screen.dart';
 import 'package:fittravel/screens/profile/profile_screen.dart';
 import 'package:fittravel/screens/trips/trip_detail_screen.dart';
 import 'package:fittravel/models/place_model.dart';
+import 'package:fittravel/models/event_model.dart';
+import 'package:fittravel/screens/discover/event_detail_screen.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -39,8 +41,11 @@ class AppRouter {
                 case 'food':
                   initialIndex = 1;
                   break;
-                case 'saved':
+                case 'events':
                   initialIndex = 2;
+                  break;
+                case 'saved':
+                  initialIndex = 3;
                   break;
                 default:
                   initialIndex = 0;
@@ -79,6 +84,14 @@ class AppRouter {
         builder: (context, state) {
           final id = state.pathParameters['id']!;
           return TripDetailScreen(tripId: id);
+        },
+      ),
+      GoRoute(
+        path: '/event-detail',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final event = state.extra as EventModel;
+          return EventDetailScreen(event: event);
         },
       ),
     ],

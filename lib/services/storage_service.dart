@@ -17,7 +17,9 @@ class StorageKeys {
   static const String allChallenges = 'all_challenges';
   static const String tripItineraries = 'trip_itineraries';
   static const String communityPhotos = 'community_photos';
+  static const String quickPhotos = 'quick_photos';
   static const String reviews = 'reviews';
+  static const String events = 'events';
 }
 
 /// Wrapper service for SharedPreferences

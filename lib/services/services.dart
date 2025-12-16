@@ -7,4 +7,6 @@ export 'activity_service.dart';
 export 'gamification_service.dart';
 export 'google_places_service.dart';
 export 'community_photo_service.dart';
+export 'quick_photo_service.dart';
 export 'review_service.dart';
+export 'event_service.dart';

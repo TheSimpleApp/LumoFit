@@ -12,6 +12,7 @@ import 'package:fittravel/models/badge_model.dart';
 import 'package:fittravel/services/community_photo_service.dart';
 import 'package:fittravel/services/review_service.dart';
 import 'package:fittravel/models/review_model.dart';
+import 'package:fittravel/services/quick_photo_service.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -57,6 +58,12 @@ class ProfileScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                 child: _BadgesSection(earnedBadges: gamificationService.getEarnedBadges(), allBadges: gamificationService.allBadges).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                child: _QuickAddedPhotosSection(userId: user.id).animate().fadeIn(delay: 320.ms).slideY(begin: 0.1),
               ),
             ),
           SliverToBoxAdapter(
@@ -483,6 +490,66 @@ class _SettingsTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _QuickAddedPhotosSection extends StatelessWidget {
+  final String userId;
+  const _QuickAddedPhotosSection({required this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textStyles = Theme.of(context).textTheme;
+    final quickSvc = context.watch<QuickPhotoService>();
+    final myQuick = quickSvc.photos.where((p) => p.userId == userId || p.userId == null).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Quick Added Photos', style: textStyles.titleMedium),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.camera_alt_outlined, size: 18, color: colors.primary),
+                  const SizedBox(width: 8),
+                  Text('Unassigned', style: textStyles.labelLarge),
+                  const Spacer(),
+                  Text('${myQuick.length}', style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (myQuick.isEmpty)
+                Text('Nothing yet — use the camera on Home to add.', style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant))
+              else
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 6, crossAxisSpacing: 6),
+                  itemCount: myQuick.length.clamp(0, 12),
+                  itemBuilder: (context, index) => ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: _ProfilePhotoThumb(imageUrl: myQuick[index].imageUrl),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              if (myQuick.isNotEmpty)
+                Text('You can assign these to places later.', style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

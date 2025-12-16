@@ -1,7 +1,8 @@
 # FitTravel Knowledge Base
 
 > **Last Updated:** Current Session
-> **Status:** Active Development — Phase 3 (Local Storage + Trip Management)
+> **Status:** Active Development — Phase 4 (Events Discovery) In Progress
+> **Strategy:** UX-first MVP — hold DB until flows are proven
 
 ---
 
@@ -9,15 +10,20 @@
 
 **Vision:** Create the world's first free, premium fitness travel lifestyle app that eliminates every excuse for staying healthy while traveling.
 
+**Core Value Props:**
+1. Find gyms/food/events → take action (call/directions) → save/add to trip
+2. Mark visited → contribute (photos/menu/review) → light gamification
+3. Works in the field while traveling (mobile-first, buttery UX)
+
 **Target Cities (Seed Data):** Salt Lake City, Utah
 
 ---
 
 ## 2. Backend
 
-The project is connected to Supabase (Dreamflow Supabase panel). The app currently uses local storage (SharedPreferences) for data while we complete MVP flows. Migration will target the schema below.
+The project is connected to Supabase (Dreamflow Supabase panel). The app currently uses **local storage (SharedPreferences)** for all data while we complete MVP flows. Database migration is **deferred to Phase 9** — only after UX is validated with users.
 
-### 2.1 Future Supabase Schema
+### 2.1 Future Supabase Schema (Phase 9)
 
 When transitioning from local storage to Supabase, implement the following database schema:
 
@@ -61,7 +67,7 @@ CREATE TABLE saved_places (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   place_id TEXT NOT NULL, -- Google Places ID
-  place_type TEXT CHECK (place_type IN ('gym', 'restaurant', 'park', 'trail', 'other')),
+  place_type TEXT CHECK (place_type IN ('gym', 'restaurant', 'park', 'trail', 'event', 'other')),
   name TEXT NOT NULL,
   address TEXT,
   latitude DECIMAL(10, 8),
@@ -74,20 +80,78 @@ CREATE TABLE saved_places (
 );
 ```
 
-#### Community Photos Table (New)
+#### Community Photos Table
 ```sql
 CREATE TABLE community_photos (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   place_id TEXT NOT NULL, -- Google Places ID or internal saved_places foreign key
   storage_path TEXT NOT NULL, -- points to Supabase Storage object
-  captions TEXT,
+  photo_type TEXT CHECK (photo_type IN ('general', 'menu', 'interior', 'exterior', 'other')),
+  caption TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   flagged BOOLEAN DEFAULT false,
-  flag_reason TEXT
+  flag_reason TEXT,
+  moderation_status TEXT DEFAULT 'approved' CHECK (moderation_status IN ('pending', 'approved', 'rejected'))
 );
 
 -- Storage bucket recommended: 'community-photos' with public read + write via RLS rules
+```
+
+#### Reviews Table
+```sql
+CREATE TABLE reviews (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  place_id TEXT NOT NULL,
+  rating INT CHECK (rating >= 1 AND rating <= 5),
+  review_text TEXT,
+  helpful_count INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  flagged BOOLEAN DEFAULT false,
+  moderation_status TEXT DEFAULT 'approved' CHECK (moderation_status IN ('pending', 'approved', 'rejected'))
+);
+```
+
+#### Events Table (Phase 4)
+```sql
+CREATE TABLE events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_type TEXT, -- '5k', '10k', 'half-marathon', 'marathon', 'yoga', 'cycling', 'hiking', 'crossfit', 'other'
+  name TEXT NOT NULL,
+  description TEXT,
+  location_name TEXT,
+  address TEXT,
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
+  start_date TIMESTAMPTZ NOT NULL,
+  end_date TIMESTAMPTZ,
+  website_url TEXT,
+  registration_url TEXT,
+  external_id TEXT, -- from event API provider
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+#### Trails/Routes Table (Phase 5)
+```sql
+CREATE TABLE trails (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  description TEXT,
+  difficulty TEXT CHECK (difficulty IN ('easy', 'moderate', 'hard')),
+  distance_km DECIMAL(6, 2),
+  elevation_gain_m INT,
+  location_name TEXT,
+  latitude DECIMAL(10, 8),
+  longitude DECIMAL(11, 8),
+  safety_notes TEXT,
+  lighting_quality TEXT CHECK (lighting_quality IN ('good', 'poor', 'none')),
+  route_type TEXT, -- 'running', 'hiking', 'cycling', 'mixed'
+  external_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 ```
 
 #### Activities Log Table
@@ -96,8 +160,10 @@ CREATE TABLE activities (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   trip_id UUID REFERENCES trips(id) ON DELETE SET NULL,
-  activity_type TEXT NOT NULL, -- 'workout', 'meal', 'walk', 'run', etc.
+  activity_type TEXT NOT NULL, -- 'workout', 'meal', 'walk', 'run', 'event', etc.
   place_id UUID REFERENCES saved_places(id),
+  event_id UUID REFERENCES events(id),
+  trail_id UUID REFERENCES trails(id),
   title TEXT NOT NULL,
   description TEXT,
   duration_minutes INT,
@@ -116,7 +182,7 @@ CREATE TABLE badges (
   description TEXT,
   icon_name TEXT,
   xp_reward INT DEFAULT 0,
-  requirement_type TEXT, -- 'streak', 'visits', 'activities', 'cities'
+  requirement_type TEXT, -- 'streak', 'visits', 'activities', 'cities', 'contributions'
   requirement_value INT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -171,7 +237,7 @@ AIzaSyDReP4tFXyqU6W8PusrlZdFVFLAYwFr6ZA
 - Google Maps SDK
 
 ### Usage Notes
-- Use Places API for gym/restaurant discovery
+- Use Places API for gym/restaurant/park/trail discovery
 - Autocomplete: Use Places Autocomplete for destination city in New Trip
 - Implement proper caching to minimize API calls
 - Store frequently accessed place details locally
@@ -189,35 +255,79 @@ AIzaSyDReP4tFXyqU6W8PusrlZdFVFLAYwFr6ZA
 - Dark luxury aesthetic: near‑black surfaces, warm gold primary, minimal borders
 - Energetic yet minimal; high contrast for readability during workouts
 
+### UX Principles (Phase 3.5 established)
+- **Mobile-first:** Every interaction optimized for thumb reachability
+- **Buttery smooth:** 60fps, haptic feedback, subtle transitions
+- **Field-ready:** Works while traveling with spotty connection (offline-first future)
+- **Clear affordances:** Actions (call, directions, save) always visible and tappable
+- **Haptic feedback:** Success actions get double-tap feel, errors vibrate longer (via HapticUtils)
+
 ---
 
 ## 5. Feature Categories
 
 ### Current Implementation Snapshot (MVP scope)
-1. Discover: Gym and Healthy Eating using Google Places API
-2. Place Detail: Save/Unsave, Directions/Call/Website, Mark Visited (+XP)
-3. Saved Places: Associated to trips, visited state, notes
-4. Trip Management:
+
+1. **Discover:** Gym and Healthy Eating using Google Places API
+   - Search, filters (rating 4.0+, has photos), sorting by community signal
+   - Back navigation to return to previous tab
+   
+2. **Place Detail:** Save/Unsave, Directions/Call/Website, Mark Visited (+XP)
+   - Haptic feedback on all key actions
+   - Community Photos section (URL add for now)
+   
+3. **Saved Places:** Associated to trips, visited state, notes
+
+4. **Trip Management:**
    - Trips list with Active/Upcoming/Past sections
+   - Active Trip card is tappable
    - Create/Edit trip (bottom sheets), set Active, delete
+   - Destination city autocomplete (Google Places Autocomplete)
    - Trip Detail: status pill, date range, stats, saved places list with add/remove
    - Itinerary editor: day chips, add custom/place items, start time/duration, notes, reorder
    - Trip Activity Timeline: read-only visited log grouped by day within trip dates
-5. Place Detail — Community Photos: grid of user photos (local URL add for now)
-6. Create Trip — Destination City Autocomplete (Google Places Autocomplete)
-5. Error Handling: Global handlers to reduce noisy logs and capture errors
 
-### Gamification Features
-1. **XP System** - Earn points for activities
-2. **Streaks** - Maintain daily fitness habits
-3. **Badges** - Achievement unlocks
-4. **Challenges** - Daily/weekly goals
+5. **UX Polish (Phase 3.5 complete):**
+   - Haptic feedback via HapticUtils helper
+   - Improved empty states with tight copy
+   - Standardized IA labels
+   - Action consistency across all screens
 
-### Future Features
-1. **Social** - Connect with other fit travelers
-2. **AI Recommendations** - Personalized suggestions
-3. **Offline Mode** - Download city guides
-4. **Apple Health/Google Fit** - Integration
+6. **Error Handling:** Global handlers to reduce noisy logs and capture errors
+
+7. **Quick Add (Camera-first):**
+   - Home FAB uses camera icon; captures photo (data URL) and stores as QuickPhoto
+   - Profile includes “Quick Added Photos” gallery to manage unassigned shots and assign later to places
+
+### Phase 4 — Events Discovery (In Progress)
+- Events surface with filters (date range, categories: running, yoga, hiking, cycling, CrossFit)
+- Event detail (location, time/date, website/registration, add-to-itinerary)
+- Data source: TBD (Eventbrite, Meetup, sports-specific APIs)
+
+### Phase 5 — Trails/Routes
+- Trails/Routes discovery (distance, elevation, safety/lighting)
+- Save + add to itinerary
+- Data source: Google Places (parks/trails) + trails provider (TBD: AllTrails, TrailLink)
+
+### Phase 6 — Contributions v1 (Photos/Menu/Reviews + AI Moderation)
+- Menu contributions (photo-first) + "last updated" label
+- Reviews (text + rating + quick prompts)
+- AI-gated moderation (nudity/hate/spam rejection, Report action)
+- Store locally for now, design for easy DB migration later
+
+### Phase 7 — Gamification Loop
+- Trip streak (active trip days), contribution XP, visited XP
+- Badges (cities visited, events attended, contributions posted)
+- Lightweight progress UI in Home/Profile
+
+### Phase 8 — Feedback Capture
+- "Feedback" entrypoint accessible globally
+- MVP: text + screenshot attach (optional)
+- Optional: AI clarifier chat to help refine feature requests
+
+### Phase 9 — Database/Supabase Migration
+- Replace local storage with Supabase tables + storage
+- Add admin tooling (web dashboard) after beta demand
 
 ---
 
@@ -235,35 +345,122 @@ static const String kStreak = 'streak_data';
 static const String kLastActiveDate = 'last_active_date';
 static const String kTripItineraries = 'trip_itineraries';
 static const String kCommunityPhotos = 'community_photos';
+static const String kQuickPhotos = 'quick_photos';
 static const String kReviews = 'reviews';
 static const String kHasSeenOnboarding = 'has_seen_onboarding';
 static const String kAllBadges = 'all_badges';
 static const String kAllChallenges = 'all_challenges';
+static const String kEvents = 'events'; // Phase 4
+static const String kTrails = 'trails'; // Phase 5
 ```
 
 ---
 
-## 7. Change Log
+## 7. Product Decisions (from client call)
+
+1. **Events discovery is top priority** after UX polish (5Ks, yoga, hiking groups, cycling, CrossFit drop-ins)
+2. **Menu photos** are high-signal: photo-first, "most recent" matters
+3. **Contributions need AI moderation**: MVP preference is AI gate (not manual review)
+4. **Airport challenges** are low priority for MVP (future idea)
+5. **Strava integration** is longer-term consideration
+6. **Partnerships/affiliate economics** for events (future monetization path)
+7. **Current location** permissions: decide later if required for MVP
+8. **Meal photo logging** (Cal AI-like): keep out of MVP scope
+9. **No database work until UX flows are validated** with users (beta TestFlight)
+
+---
+
+## 8. Change Log
 
 | Date | Change | Phase |
 |------|--------|-------|
 | Session Start | Initial setup, local storage foundation | Phase 1 |
-| Current | Discovery screens, save places, place detail actions | Phase 2 |
-| Current | Trips list + create/edit + detail + set active | Phase 3 |
-| Current | Itinerary editor (day chips, add/reorder, time/duration/notes) | Phase 3 |
-| Current | Active Trip card now tappable | Phase 3 |
-| Current | Trip header overflow fixed (SliverAppBar layout, ellipsis) | Phase 3 |
-| Current | Global error handling added (FlutterError, PlatformDispatcher, runZonedGuarded) | Phase 6 |
-| Current | Typography fallbacks added (Inter + Noto) to reduce missing glyph warnings | Phase 6 |
-| Current | Trip Activity Timeline added (read-only visited log grouped by day) | Phase 3 |
-| Current | Destination Autocomplete in New Trip (Google Places Autocomplete) | Phase 3 |
-| Current | Place Detail: Community Photos section (URL add, local storage) | Phase 3 |
+| Session | Discovery screens, save places, place detail actions | Phase 2 |
+| Session | Trips list + create/edit + detail + set active | Phase 3 |
+| Session | Itinerary editor (day chips, add/reorder, time/duration/notes) | Phase 3 |
+| Session | Active Trip card now tappable | Phase 3 |
+| Session | Trip header overflow fixed (SliverAppBar layout, ellipsis) | Phase 3 |
+| Session | Global error handling added (FlutterError, PlatformDispatcher, runZonedGuarded) | Phase 3 |
+| Session | Typography fallbacks added (Inter + Noto) to reduce missing glyph warnings | Phase 3 |
+| Session | Trip Activity Timeline added (read-only visited log grouped by day) | Phase 3 |
+| Session | Destination Autocomplete in New Trip (Google Places Autocomplete) | Phase 3 |
+| Session | Place Detail: Community Photos section (URL add, local storage) | Phase 3 |
+| Session | Haptic feedback added (HapticUtils helper, all key interactions) | Phase 3.5 |
+| Session | Empty states improved with tighter copy | Phase 3.5 |
+| Session | IA labels standardized, action consistency ensured | Phase 3.5 |
+| Session | Events model + service + Events tab with filters + Event detail | Phase 4 |
+| Session | Home Quick Add redesigned (icon-only FAB) + added bottom content spacing | Phase 4 |
+| Session | QuickPhoto model/service added (local-first) + Profile “Quick Added Photos” gallery | Phase 4 |
+| Session | Home FAB switched to camera-first capture → saved to Quick Photos | Phase 4 |
+| Session | Discover TabBar polished (scrollable, no splash, responsive tabs) | Phase 4 |
+| Current | **Phase 4 IN PROGRESS** — Events surface live; polishing ongoing | Phase 4 🚧 |
 
 ---
 
-## 8. Error Handling Strategy
+## 9. Error Handling Strategy
 
 - FlutterError.onError -> present + debugPrint for Dreamflow Debug Console
 - PlatformDispatcher.instance.onError -> capture platform/async errors, mark handled
 - runZonedGuarded -> capture uncaught zone errors
-- Rationale: reduce devtool/inspector noise (e.g., “Id does not exist” after hot restart) and keep actionable logs
+- Rationale: reduce devtool/inspector noise (e.g., "Id does not exist" after hot restart) and keep actionable logs
+
+---
+
+## 10. Open Questions & Future Research
+
+### Phase 4 (Events)
+- Which event API(s) to use? (Eventbrite, Meetup, sports-specific)
+- Pricing constraints for API usage
+- Do we need current location permissions for MVP?
+
+### Phase 5 (Trails)
+- Which trails API(s) to use? (AllTrails, TrailLink, Google Places)
+- Do we need GPS tracking for routes?
+
+### Phase 6 (Contributions)
+- Which AI moderation service? (OpenAI Moderation API, AWS Rekognition, etc.)
+- Do we need user reputation/trust score to reduce moderation load?
+
+### Phase 9 (Database)
+- Supabase RLS policies design
+- Admin dashboard requirements
+- Data migration strategy from local storage
+
+---
+
+## 11. Architecture Notes
+
+### Service Layer
+- `PlaceService`: Manages saved places, visited state
+- `TripService`: Manages trips, active trip, itinerary
+- `CommunityPhotoService`: Manages community photos (local storage for now)
+- `ReviewService`: Manages reviews (local storage for now)
+- `ActivityService`: Logs activities, XP calculation
+- `GamificationService`: Streaks, badges, challenges, XP system
+- `UserService`: Current user profile, preferences
+- `GooglePlacesService`: Google Places API wrapper
+- `StorageService`: SharedPreferences wrapper, JSON serialization
+- `EventService`: (Phase 4) Manages events discovery and saved events
+- `TrailService`: (Phase 5) Manages trails/routes discovery
+
+### Utilities
+- `HapticUtils`: Centralized haptic feedback patterns (light, medium, heavy, success, error, warning)
+
+### State Management
+- **Provider** for app-wide state (services)
+- Local state for UI-specific state (search query, tab index, etc.)
+
+### Navigation
+- **go_router** for declarative routing
+- Bottom nav for main tabs (Home, Discover, Trips, Profile)
+- Modal routes for detail screens (Place Detail, Trip Detail, Event Detail)
+
+---
+
+## 12. Testing Strategy (Future)
+
+- Unit tests for service layer (data models, business logic)
+- Widget tests for critical flows (save place, mark visited, create trip)
+- Integration tests for end-to-end flows (discover → save → add to trip → mark visited)
+- Manual testing on iOS/Android/Web for cross-platform consistency
+- TestFlight beta for user validation before Phase 9 DB migration

@@ -7,6 +7,7 @@ import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/trip_service.dart';
 import 'package:fittravel/services/google_places_service.dart';
 import 'package:fittravel/models/trip_model.dart';
+import 'package:fittravel/utils/haptic_utils.dart';
 
 class TripsScreen extends StatelessWidget {
   const TripsScreen({super.key});
@@ -61,7 +62,10 @@ class TripsScreen extends StatelessWidget {
                       Text('Active Trip', style: textStyles.titleMedium),
                       const SizedBox(height: 12),
                       GestureDetector(
-                        onTap: () => context.push('/trip/${tripService.activeTrip!.id}'),
+                        onTap: () {
+                          HapticUtils.light();
+                          context.push('/trip/${tripService.activeTrip!.id}');
+                        },
                         behavior: HitTestBehavior.opaque,
                         child: _ActiveTripCard(trip: tripService.activeTrip!),
                       )
@@ -132,6 +136,7 @@ class TripsScreen extends StatelessWidget {
   }
 
   void _showCreateTripSheet(BuildContext context) {
+    HapticUtils.light();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -329,9 +334,9 @@ class _EmptyState extends StatelessWidget {
           children: [
             const Text('🌍', style: TextStyle(fontSize: 64)),
             const SizedBox(height: 24),
-            Text('No trips planned yet', style: textStyles.titleLarge),
+            Text('No trips yet', style: textStyles.titleLarge),
             const SizedBox(height: 8),
-            Text('Start planning your next fitness adventure!', style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant), textAlign: TextAlign.center),
+            Text('Create your first trip and start planning\nyour fitness adventure', style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant), textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton.icon(onPressed: onCreateTrip, icon: const Icon(Icons.add), label: const Text('Create Trip')),
           ],
@@ -465,6 +470,7 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
   }
 
   Future<void> _selectDate(bool isStart) async {
+    await HapticUtils.light();
     final picked = await showDatePicker(
       context: context,
       initialDate: isStart ? _startDate : _endDate,
@@ -472,6 +478,7 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) {
+      await HapticUtils.selection();
       setState(() {
         if (isStart) {
           _startDate = picked;
@@ -485,9 +492,11 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
 
   void _createTrip() {
     if (_cityController.text.isEmpty) {
+      HapticUtils.error();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a destination city'), behavior: SnackBarBehavior.floating));
       return;
     }
+    HapticUtils.success();
     context.read<TripService>().createTrip(
       destinationCity: _cityController.text,
       destinationCountry: _countryController.text.isEmpty ? null : _countryController.text,
@@ -496,7 +505,7 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
     );
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Trip to ${_cityController.text} created!'), behavior: SnackBarBehavior.floating, backgroundColor: Theme.of(context).colorScheme.primary),
+      SnackBar(content: Text('Trip created • ${_cityController.text}! ✈️'), behavior: SnackBarBehavior.floating, backgroundColor: Theme.of(context).colorScheme.primary),
     );
   }
 

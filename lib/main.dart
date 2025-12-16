@@ -66,7 +66,13 @@ class MyApp extends StatelessWidget {
           create: (_) => CommunityPhotoService(storage)..initialize(),
         ),
         ChangeNotifierProvider(
+          create: (_) => QuickPhotoService(storage)..initialize(),
+        ),
+        ChangeNotifierProvider(
           create: (_) => ReviewService(storage)..initialize(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => EventService(storage)..initialize(),
         ),
       ],
       child: MaterialApp.router(

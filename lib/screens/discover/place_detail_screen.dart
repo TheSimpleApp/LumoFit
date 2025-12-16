@@ -15,6 +15,7 @@ import 'package:fittravel/services/community_photo_service.dart';
 import 'package:fittravel/models/community_photo.dart';
 import 'package:fittravel/services/review_service.dart';
 import 'package:fittravel/models/review_model.dart';
+import 'package:fittravel/utils/haptic_utils.dart';
 import 'package:image_picker/image_picker.dart';
 
 class PlaceDetailScreen extends StatefulWidget {
@@ -46,6 +47,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
   }
 
   Future<void> _toggleSave() async {
+    await HapticUtils.medium();
     final placeService = context.read<PlaceService>();
     
     if (_isSaved) {
@@ -58,7 +60,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Removed from saved places'),
+            content: const Text('Removed from your places'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
@@ -66,10 +68,11 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
       }
     } else {
       await placeService.savePlace(_place);
+      await HapticUtils.success();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Saved to your places! 📍'),
+            content: const Text('Saved! 📍'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.primary,
           ),
@@ -81,6 +84,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
   }
 
   Future<void> _markVisited() async {
+    await HapticUtils.medium();
     final placeService = context.read<PlaceService>();
     final userService = context.read<UserService>();
     
@@ -102,6 +106,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
     final xpEarned = _place.type == PlaceType.gym ? 50 : 25;
     await userService.addXp(xpEarned);
     
+    await HapticUtils.success();
     setState(() {
       _place = _place.copyWith(isVisited: true, visitedAt: DateTime.now());
     });
@@ -109,7 +114,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Visit logged! +$xpEarned XP 🎉'),
+          content: Text('+$xpEarned XP • Visit logged! 🎉'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppColors.success,
         ),
@@ -119,6 +124,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
 
   Future<void> _openMaps() async {
     if (_place.latitude == null || _place.longitude == null) return;
+    await HapticUtils.light();
     
     final url = Uri.parse(
       'https://www.google.com/maps/search/?api=1&query=${_place.latitude},${_place.longitude}',
@@ -131,6 +137,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
 
   Future<void> _callPhone() async {
     if (_place.phoneNumber == null) return;
+    await HapticUtils.light();
     
     final url = Uri.parse('tel:${_place.phoneNumber}');
     if (await canLaunchUrl(url)) {
@@ -140,6 +147,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
 
   Future<void> _openWebsite() async {
     if (_place.website == null) return;
+    await HapticUtils.light();
     
     final url = Uri.parse(_place.website!);
     if (await canLaunchUrl(url)) {

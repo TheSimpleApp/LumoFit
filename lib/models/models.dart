@@ -7,4 +7,6 @@ export 'badge_model.dart';
 export 'challenge_model.dart';
 export 'itinerary_item.dart';
 export 'community_photo.dart';
+export 'quick_photo.dart';
 export 'review_model.dart';
+export 'event_model.dart';

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/services.dart';
 import 'package:fittravel/models/place_model.dart';
+import 'package:fittravel/models/event_model.dart';
+import 'package:fittravel/utils/haptic_utils.dart';
 
 class DiscoverScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -20,13 +22,19 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   String _searchQuery = '';
   bool _isSearching = false;
   List<PlaceModel> _searchResults = [];
+  // Events state
+  bool _isSearchingEvents = false;
+  List<EventModel> _eventResults = [];
+  // Event filters
+  final Set<EventCategory> _selectedCategories = {};
+  String _dateFilter = 'this_week';
   bool _filterRating4Plus = false;
   bool _filterHasPhotos = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this, initialIndex: widget.initialTabIndex.clamp(0, 2));
+    _tabController = TabController(length: 4, vsync: this, initialIndex: widget.initialTabIndex.clamp(0, 3));
   }
 
   @override
@@ -41,7 +49,52 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
       setState(() {
         _searchResults = [];
         _isSearching = false;
+        _eventResults = [];
+        _isSearchingEvents = false;
       });
+      return;
+    }
+
+    // Events tab
+    if (_tabController.index == 2) {
+      setState(() => _isSearchingEvents = true);
+      final eventService = context.read<EventService>();
+      final range = _currentDateRange();
+      try {
+        // Prefer external providers via combined edge function
+        final results = await eventService.fetchExternalEvents(
+          query: query,
+          startDate: range.$1,
+          endDate: range.$2,
+          centerLat: 40.7608,
+          centerLng: -111.8910,
+          radiusKm: 50,
+          limit: 60,
+        );
+        if (mounted) {
+          setState(() {
+            _eventResults = results;
+            _isSearchingEvents = false;
+          });
+        }
+      } catch (_) {
+        // Fallback to local search if remote fails
+        final local = eventService.search(
+          query: query,
+          categories: _selectedCategories,
+          startDate: range.$1,
+          endDate: range.$2,
+          centerLat: 40.7608,
+          centerLng: -111.8910,
+          radiusKm: 50,
+        );
+        if (mounted) {
+          setState(() {
+            _eventResults = local;
+            _isSearchingEvents = false;
+          });
+        }
+      }
       return;
     }
 
@@ -103,7 +156,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                       .animate().fadeIn().slideX(begin: -0.1),
                   const SizedBox(height: 4),
                   Text(
-                    'Find gyms & healthy food nearby',
+                    'Find gyms, food & events nearby',
                     style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
                   ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.1),
                 ],
@@ -122,7 +175,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                   _performSearch(value);
                 },
                 decoration: InputDecoration(
-                  hintText: 'Search places...',
+                  hintText: _tabController.index == 2 ? 'Search events...' : 'Search places...',
                   prefixIcon: _isSearching
                       ? Padding(
                           padding: const EdgeInsets.all(12),
@@ -144,6 +197,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                             setState(() {
                               _searchQuery = '';
                               _searchResults = [];
+                              _eventResults = [];
                             });
                           },
                         )
@@ -169,6 +223,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                     _performSearch(_searchQuery);
                   }
                 },
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
                 indicator: BoxDecoration(
                   color: colors.surface,
                   borderRadius: BorderRadius.circular(AppRadius.md),
@@ -177,30 +233,41 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                 dividerColor: Colors.transparent,
                 labelColor: colors.primary,
                 unselectedLabelColor: colors.onSurfaceVariant,
-                labelStyle: textStyles.labelLarge,
+                labelStyle: textStyles.labelMedium,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                splashFactory: NoSplash.splashFactory,
+                overlayColor: const MaterialStatePropertyAll(Colors.transparent),
                 tabs: [
                   Tab(child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.fitness_center, size: 16),
                       const SizedBox(width: 6),
-                      const Text('Gyms'),
+                      const Text('Gyms', overflow: TextOverflow.ellipsis),
                     ],
                   )),
                   Tab(child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.restaurant, size: 16),
                       const SizedBox(width: 6),
-                      const Text('Food'),
+                      const Text('Food', overflow: TextOverflow.ellipsis),
                     ],
                   )),
                   Tab(child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.event, size: 16),
+                      const SizedBox(width: 6),
+                      const Text('Events', overflow: TextOverflow.ellipsis),
+                    ],
+                  )),
+                  Tab(child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.bookmark, size: 16),
                       const SizedBox(width: 6),
-                      const Text('Saved'),
+                      const Text('Saved', overflow: TextOverflow.ellipsis),
                     ],
                   )),
                 ],
@@ -209,26 +276,86 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
             
             const SizedBox(height: 16),
 
-            // Filters
+            // Filters (contextual)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    FilterChip(
-                      selected: _filterRating4Plus,
-                      onSelected: (v) => setState(() => _filterRating4Plus = v),
-                      label: const Text('Rating 4.0+'),
-                      avatar: const Icon(Icons.star, size: 16, color: Colors.amber),
-                    ),
-                    const SizedBox(width: 8),
-                    FilterChip(
-                      selected: _filterHasPhotos,
-                      onSelected: (v) => setState(() => _filterHasPhotos = v),
-                      label: const Text('With photos'),
-                      avatar: const Icon(Icons.photo_library_outlined, size: 16),
-                    ),
+                    if (_tabController.index == 2) ...[
+                      ChoiceChip(
+                        selected: _dateFilter == 'this_week',
+                        onSelected: (_) => setState(() => _dateFilter = 'this_week'),
+                        label: const Text('This week'),
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        selected: _dateFilter == 'weekend',
+                        onSelected: (_) => setState(() => _dateFilter = 'weekend'),
+                        label: const Text('Weekend'),
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        selected: _dateFilter == '30d',
+                        onSelected: (_) => setState(() => _dateFilter = '30d'),
+                        label: const Text('Next 30 days'),
+                      ),
+                      const SizedBox(width: 12),
+                      _CategoryChip(
+                        icon: Icons.directions_run,
+                        label: 'Running',
+                        category: EventCategory.running,
+                        selected: _selectedCategories.contains(EventCategory.running),
+                        onTap: () => setState(() => _toggleCategory(EventCategory.running)),
+                      ),
+                      const SizedBox(width: 8),
+                      _CategoryChip(
+                        icon: Icons.self_improvement,
+                        label: 'Yoga',
+                        category: EventCategory.yoga,
+                        selected: _selectedCategories.contains(EventCategory.yoga),
+                        onTap: () => setState(() => _toggleCategory(EventCategory.yoga)),
+                      ),
+                      const SizedBox(width: 8),
+                      _CategoryChip(
+                        icon: Icons.terrain,
+                        label: 'Hiking',
+                        category: EventCategory.hiking,
+                        selected: _selectedCategories.contains(EventCategory.hiking),
+                        onTap: () => setState(() => _toggleCategory(EventCategory.hiking)),
+                      ),
+                      const SizedBox(width: 8),
+                      _CategoryChip(
+                        icon: Icons.pedal_bike,
+                        label: 'Cycling',
+                        category: EventCategory.cycling,
+                        selected: _selectedCategories.contains(EventCategory.cycling),
+                        onTap: () => setState(() => _toggleCategory(EventCategory.cycling)),
+                      ),
+                      const SizedBox(width: 8),
+                      _CategoryChip(
+                        icon: Icons.fitness_center,
+                        label: 'CrossFit',
+                        category: EventCategory.crossfit,
+                        selected: _selectedCategories.contains(EventCategory.crossfit),
+                        onTap: () => setState(() => _toggleCategory(EventCategory.crossfit)),
+                      ),
+                    ] else ...[
+                      FilterChip(
+                        selected: _filterRating4Plus,
+                        onSelected: (v) => setState(() => _filterRating4Plus = v),
+                        label: const Text('Rating 4.0+'),
+                        avatar: const Icon(Icons.star, size: 16, color: Colors.amber),
+                      ),
+                      const SizedBox(width: 8),
+                      FilterChip(
+                        selected: _filterHasPhotos,
+                        onSelected: (v) => setState(() => _filterHasPhotos = v),
+                        label: const Text('With photos'),
+                        avatar: const Icon(Icons.photo_library_outlined, size: 16),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -256,6 +383,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                     filterRating4Plus: _filterRating4Plus,
                     filterHasPhotos: _filterHasPhotos,
                   ),
+                  _EventsList(
+                    searchQuery: _searchQuery,
+                    isSearching: _isSearchingEvents,
+                    categories: _selectedCategories,
+                    dateFilter: _dateFilter,
+                    eventResults: _eventResults,
+                  ),
                   const _SavedPlacesList(),
                 ],
               ),
@@ -264,6 +398,39 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
         ),
       ),
     );
+  }
+
+  void _toggleCategory(EventCategory c) {
+    if (_selectedCategories.contains(c)) {
+      _selectedCategories.remove(c);
+    } else {
+      _selectedCategories.add(c);
+    }
+    if (_searchQuery.isNotEmpty) {
+      _performSearch(_searchQuery);
+    } else {
+      setState(() {});
+    }
+  }
+
+  // Returns a tuple (start, end) based on UI selection
+  (DateTime, DateTime) _currentDateRange() {
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday % 7));
+    switch (_dateFilter) {
+      case 'weekend':
+        // Next Sat-Sun
+        final nextSat = now.add(Duration(days: (6 - now.weekday + 7) % 7));
+        final nextSun = nextSat.add(const Duration(days: 1));
+        return (DateTime(nextSat.year, nextSat.month, nextSat.day), DateTime(nextSun.year, nextSun.month, nextSun.day, 23, 59));
+      case '30d':
+        final end = now.add(const Duration(days: 30));
+        return (DateTime(now.year, now.month, now.day), DateTime(end.year, end.month, end.day, 23, 59));
+      case 'this_week':
+      default:
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        return (DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day), DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day, 23, 59));
+    }
   }
 }
 
@@ -357,6 +524,206 @@ class _PlacesList extends StatelessWidget {
   }
 }
 
+class _EventsList extends StatelessWidget {
+  final String searchQuery;
+  final bool isSearching;
+  final Set<EventCategory> categories;
+  final String dateFilter;
+  final List<EventModel> eventResults;
+
+  const _EventsList({
+    required this.searchQuery,
+    required this.isSearching,
+    required this.categories,
+    required this.dateFilter,
+    required this.eventResults,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final eventService = context.watch<EventService>();
+    final colors = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+
+    if (isSearching) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // If searching, use provided results; otherwise compute from filters
+    List<EventModel> data;
+    if (searchQuery.isNotEmpty) {
+      data = eventResults;
+    } else {
+      final now = DateTime.now();
+      DateTime start;
+      DateTime end;
+      switch (dateFilter) {
+        case 'weekend':
+          final nextSat = now.add(Duration(days: (6 - now.weekday + 7) % 7));
+          final nextSun = nextSat.add(const Duration(days: 1));
+          start = DateTime(nextSat.year, nextSat.month, nextSat.day);
+          end = DateTime(nextSun.year, nextSun.month, nextSun.day, 23, 59);
+          break;
+        case '30d':
+          final endTmp = now.add(const Duration(days: 30));
+          start = DateTime(now.year, now.month, now.day);
+          end = DateTime(endTmp.year, endTmp.month, endTmp.day, 23, 59);
+          break;
+        case 'this_week':
+        default:
+          final startOfWeek = now.subtract(Duration(days: now.weekday % 7));
+          final endOfWeek = startOfWeek.add(const Duration(days: 6));
+          start = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+          end = DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day, 23, 59);
+      }
+      data = eventService.search(
+        query: '',
+        categories: categories,
+        startDate: start,
+        endDate: end,
+        centerLat: 40.7608,
+        centerLng: -111.8910,
+        radiusKm: 50,
+      );
+    }
+
+    if (data.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.event_busy, size: 48, color: colors.onSurfaceVariant),
+            const SizedBox(height: 12),
+            Text('No events found', style: text.titleMedium),
+            const SizedBox(height: 6),
+            Text('Try a different date window or category', style: text.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: data.length,
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: EventCard(event: data[index])
+            .animate().fadeIn(delay: (index * 60).ms).slideY(begin: 0.06, delay: (index * 60).ms),
+      ),
+    );
+  }
+}
+
+class _CategoryChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final EventCategory category;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CategoryChip({
+    required this.icon,
+    required this.label,
+    required this.category,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.full),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? colors.primary.withValues(alpha: 0.15) : colors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.full),
+          border: Border.all(color: selected ? colors.primary : colors.outline.withValues(alpha: 0.7), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: selected ? colors.primary : colors.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Text(label, style: text.labelMedium?.copyWith(color: selected ? colors.primary : colors.onSurfaceVariant)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class EventCard extends StatelessWidget {
+  final EventModel event;
+  const EventCard({super.key, required this.event});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return GestureDetector(
+      onTap: () {
+        HapticUtils.light();
+        context.push('/event-detail', extra: event);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Center(child: Text(eventCategoryEmoji(event.category), style: const TextStyle(fontSize: 28))),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(event.title, style: text.titleSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 4),
+                      Row(children: [
+                        Icon(Icons.event, size: 14, color: colors.onSurfaceVariant),
+                        const SizedBox(width: 4),
+                        Text('${event.shortDate} • ${event.shortTime}', style: text.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                      ]),
+                      if (event.venueName.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(children: [
+                          Icon(Icons.place, size: 14, color: colors.onSurfaceVariant),
+                          const SizedBox(width: 4),
+                          Expanded(child: Text(event.venueName, style: text.labelSmall?.copyWith(color: colors.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                        ]),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SavedPlacesList extends StatelessWidget {
   const _SavedPlacesList();
 
@@ -374,10 +741,10 @@ class _SavedPlacesList extends StatelessWidget {
           children: [
             const Text('📍', style: TextStyle(fontSize: 48)),
             const SizedBox(height: 16),
-            Text('No saved places yet', style: textStyles.titleMedium),
+            Text('Nothing saved yet', style: textStyles.titleMedium),
             const SizedBox(height: 8),
             Text(
-              'Save gyms and restaurants you want to visit',
+              'Discover places in the tabs above and\nsave your favorites to see them here',
               style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
@@ -482,10 +849,10 @@ class _EmptyState extends StatelessWidget {
         children: [
           Text(type == PlaceType.gym ? '🏋️' : '🥗', style: const TextStyle(fontSize: 48)),
           const SizedBox(height: 16),
-          Text('No ${type == PlaceType.gym ? 'gyms' : 'restaurants'} found', style: textStyles.titleMedium),
+          Text('No ${type == PlaceType.gym ? 'gyms' : 'food spots'} saved yet', style: textStyles.titleMedium),
           const SizedBox(height: 8),
           Text(
-            'Try searching for places nearby',
+            'Search above to discover places nearby',
             style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
           ),
         ],
@@ -550,7 +917,10 @@ class PlaceCard extends StatelessWidget {
     final textStyles = Theme.of(context).textTheme;
 
     return GestureDetector(
-      onTap: () => context.push('/place-detail', extra: place),
+      onTap: () {
+        HapticUtils.light();
+        context.push('/place-detail', extra: place);
+      },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -657,6 +1027,7 @@ class _SaveButton extends StatelessWidget {
 
     return IconButton(
       onPressed: () async {
+        await HapticUtils.medium();
         await placeService.removePlace(place.id);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
