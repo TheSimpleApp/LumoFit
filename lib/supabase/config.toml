@@ -1,7 +1,7 @@
 
 [functions.list_events_eventbrite]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/list_events_eventbrite/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
@@ -12,7 +12,7 @@ entrypoint = "./functions/list_events_eventbrite/index.ts"
 
 [functions.list_events_runsignup]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/list_events_runsignup/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
@@ -23,7 +23,7 @@ entrypoint = "./functions/list_events_runsignup/index.ts"
 
 [functions.list_events_combined]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/list_events_combined/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx

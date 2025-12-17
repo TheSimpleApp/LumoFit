@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter/foundation.dart';
+import 'package:fittravel/supabase/supabase_config.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fittravel/theme.dart';
@@ -456,7 +459,34 @@ class _QuickSettings extends StatelessWidget {
               Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
               _SettingsTile(icon: Icons.restaurant_menu, title: 'Dietary Preferences', onTap: () {}),
               Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
+              _SettingsTile(
+                icon: Icons.feedback_outlined,
+                title: 'Send Feedback',
+                onTap: () {
+                  // Use push so the user can navigate back to Profile
+                  context.push('/feedback');
+                },
+              ),
+              Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
               _SettingsTile(icon: Icons.help_outline, title: 'Help & Support', onTap: () {}),
+              Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
+              _SettingsTile(
+                icon: Icons.logout,
+                title: 'Sign Out',
+                color: colors.error,
+                onTap: () async {
+                  try {
+                    // Using Supabase directly avoids needing an injected AuthManager here
+                    await SupabaseConfig.auth.signOut();
+                  } catch (e) {
+                    debugPrint('Sign out error: $e');
+                  } finally {
+                    if (context.mounted) {
+                      context.go('/login');
+                    }
+                  }
+                },
+              ),
             ],
           ),
         ),
@@ -469,8 +499,9 @@ class _SettingsTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final VoidCallback onTap;
+  final Color? color;
 
-  const _SettingsTile({required this.icon, required this.title, required this.onTap});
+  const _SettingsTile({required this.icon, required this.title, required this.onTap, this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -483,9 +514,9 @@ class _SettingsTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Icon(icon, color: colors.onSurfaceVariant, size: 22),
+            Icon(icon, color: color ?? colors.onSurfaceVariant, size: 22),
             const SizedBox(width: 12),
-            Expanded(child: Text(title, style: textStyles.bodyMedium)),
+            Expanded(child: Text(title, style: textStyles.bodyMedium?.copyWith(color: color))),
             Icon(Icons.chevron_right, color: colors.outline, size: 20),
           ],
         ),

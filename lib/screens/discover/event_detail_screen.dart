@@ -7,6 +7,7 @@ import 'package:fittravel/services/trip_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:fittravel/models/itinerary_item.dart';
 import 'package:fittravel/utils/haptic_utils.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class EventDetailScreen extends StatelessWidget {
   final EventModel event;
@@ -29,11 +30,11 @@ class EventDetailScreen extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.public),
               tooltip: 'Website',
-              onPressed: () {
-                // Web-only placeholder: open in new tab via url_launcher in future
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Open website: ${event.websiteUrl}')),
-                );
+              onPressed: () async {
+                final url = Uri.tryParse(event.websiteUrl!);
+                if (url != null) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
               },
             ),
         ],
@@ -41,6 +42,13 @@ class EventDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          if (event.imageUrl != null && event.imageUrl!.isNotEmpty) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              child: Image.network(event.imageUrl!, height: 180, width: double.infinity, fit: BoxFit.cover),
+            ),
+            const SizedBox(height: 12),
+          ],
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -73,6 +81,17 @@ class EventDetailScreen extends StatelessWidget {
                         Expanded(child: Text(event.venueName, style: text.bodySmall?.copyWith(color: colors.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis)),
                       ]),
                     ],
+                    if ((event.source ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: colors.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(AppRadius.full),
+                        ),
+                        child: Text((event.source!).toUpperCase(), style: text.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                      ),
+                    ],
                   ],
                 ),
               )
@@ -104,6 +123,19 @@ class EventDetailScreen extends StatelessWidget {
           ],
 
           const SizedBox(height: 20),
+          if (event.registrationUrl != null && event.registrationUrl!.isNotEmpty) ...[
+            ElevatedButton.icon(
+              icon: const Icon(Icons.app_registration, color: Colors.black),
+              label: const Text('Register'),
+              onPressed: () async {
+                final url = Uri.tryParse(event.registrationUrl!);
+                if (url != null) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
           ElevatedButton.icon(
             icon: const Icon(Icons.add, color: Colors.black),
             label: const Text('Add to Trip'),

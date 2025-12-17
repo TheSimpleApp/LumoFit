@@ -58,6 +58,10 @@ class EventModel {
   final double? longitude;
   final String? websiteUrl;
   final String? registrationUrl;
+  /// Optional image thumbnail (from provider if available)
+  final String? imageUrl;
+  /// Optional source/provider label (e.g., "eventbrite", "runsignup")
+  final String? source;
 
   const EventModel({
     required this.id,
@@ -72,6 +76,8 @@ class EventModel {
     this.longitude,
     this.websiteUrl,
     this.registrationUrl,
+    this.imageUrl,
+    this.source,
   });
 
   String get shortDate => '${start.month}/${start.day}/${start.year}';
@@ -90,6 +96,8 @@ class EventModel {
         'longitude': longitude,
         'websiteUrl': websiteUrl,
         'registrationUrl': registrationUrl,
+        'imageUrl': imageUrl,
+        'source': source,
       };
 
   factory EventModel.fromJson(Map<String, dynamic> json) {
@@ -106,6 +114,8 @@ class EventModel {
       longitude: (json['longitude'] as num?)?.toDouble(),
       websiteUrl: json['websiteUrl'] as String?,
       registrationUrl: json['registrationUrl'] as String?,
+      imageUrl: json['imageUrl'] as String?,
+      source: json['source'] as String?,
     );
   }
 

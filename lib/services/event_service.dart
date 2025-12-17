@@ -6,6 +6,7 @@ import 'package:fittravel/services/storage_service.dart';
 import 'package:fittravel/config/app_config.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:fittravel/supabase/supabase_config.dart';
 
 /// Local-first EventService. Seeds a few SLC demo events.
 /// Later in Phase 9, replace storage with Supabase tables.
@@ -155,8 +156,9 @@ class EventService extends ChangeNotifier {
   }
 
   /// Fetch events via the Combined Supabase Edge Function.
-  /// Requires SUPABASE_FUNCTIONS_BASE_URL (and typically SUPABASE_ANON_KEY if verify_jwt=true).
-  /// Gracefully returns [] if not configured or on error.
+  /// Prefer Supabase Edge Functions via Supabase client (with auth) when available.
+  /// Falls back to direct HTTP using SUPABASE_FUNCTIONS_BASE_URL if provided.
+  /// Always returns [] on error and logs details via debugPrint.
   Future<List<EventModel>> fetchExternalEvents({
     String query = '',
     DateTime? startDate,
@@ -166,13 +168,7 @@ class EventService extends ChangeNotifier {
     double? radiusKm,
     int limit = 50,
   }) async {
-    final base = AppConfig.supabaseFunctionsBaseUrl;
-    if (base.isEmpty) {
-      debugPrint('fetchExternalEvents skipped: SUPABASE_FUNCTIONS_BASE_URL not set');
-      return [];
-    }
-
-    Uri make(String fn) => Uri.parse('${base.endsWith('/') ? base.substring(0, base.length - 1) : base}/$fn');
+    Uri make(String base, String fn) => Uri.parse('${base.endsWith('/') ? base.substring(0, base.length - 1) : base}/$fn');
 
     // Match combined function parameter names
     final payload = <String, dynamic>{
@@ -187,73 +183,94 @@ class EventService extends ChangeNotifier {
       'providers': ['eventbrite', 'runsignup'],
     };
 
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      if (AppConfig.supabaseAnonKey.isNotEmpty) 'Authorization': 'Bearer ${AppConfig.supabaseAnonKey}',
-      if (AppConfig.supabaseAnonKey.isNotEmpty) 'apikey': AppConfig.supabaseAnonKey,
-    };
-
     try {
+      // 1) Try via Supabase client (adds user/session auth for verify_jwt=true)
+      try {
+        final response = await SupabaseConfig.client.functions.invoke(
+          'list_events_combined',
+          body: payload,
+        );
+        final data = (response.data is Map<String, dynamic>)
+            ? response.data as Map<String, dynamic>
+            : jsonDecode(jsonEncode(response.data)) as Map<String, dynamic>;
+        return _mapNormalizedEvents(data);
+      } catch (e) {
+        debugPrint('fetchExternalEvents: functions.invoke failed, trying HTTP fallback. Error: $e');
+      }
+
+      // 2) Fallback to direct HTTP if functions base is provided (for dev/no-auth cases)
+      final base = AppConfig.supabaseFunctionsBaseUrl;
+      if (base.isEmpty) {
+        debugPrint('fetchExternalEvents skipped: no Supabase Functions base URL and invoke failed');
+        return [];
+      }
       final res = await http.post(
-        make('list_events_combined'),
-        headers: headers,
+        make(base, 'list_events_combined'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: jsonEncode(payload),
       );
       if (res.statusCode < 200 || res.statusCode >= 300) {
-        debugPrint('fetchExternalEvents/combined error: ${res.statusCode} ${res.body}');
+        debugPrint('fetchExternalEvents/combined HTTP error: ${res.statusCode} ${res.body}');
         return [];
       }
       final data = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-      final list = (data['events'] as List?) ?? const [];
-
-      final out = <EventModel>[];
-      for (final item in list) {
-        if (item is! Map<String, dynamic>) continue;
-        try {
-          final id = (item['id'] ?? '').toString();
-          final title = (item['title'] ?? '').toString();
-          final startStr = item['start']?.toString();
-          if (id.isEmpty || title.isEmpty || startStr == null) continue;
-          final start = DateTime.tryParse(startStr);
-          if (start == null) continue;
-          final categoryStr = (item['category']?.toString().toLowerCase() ?? 'other');
-          final category = eventCategoryFromString(categoryStr);
-          final venueName = (item['venue'] ?? '').toString();
-          final address = item['address']?.toString();
-          final lat = (item['lat'] is num) ? (item['lat'] as num).toDouble() : null;
-          final lon = (item['lon'] is num) ? (item['lon'] as num).toDouble() : null;
-          final websiteUrl = item['url']?.toString();
-          final registrationUrl = item['registrationUrl']?.toString();
-          final endStr = item['end']?.toString();
-          final end = endStr != null ? DateTime.tryParse(endStr) : null;
-
-          out.add(EventModel(
-            id: id,
-            title: title,
-            category: category,
-            start: start,
-            end: end,
-            description: null,
-            venueName: venueName,
-            address: address,
-            latitude: lat,
-            longitude: lon,
-            websiteUrl: websiteUrl,
-            registrationUrl: registrationUrl,
-          ));
-        } catch (e) {
-          debugPrint('fetchExternalEvents mapping error: $e');
-          continue;
-        }
-      }
-
-      // Sort soonest first
-      out.sort((a, b) => a.start.compareTo(b.start));
-      return out;
+      return _mapNormalizedEvents(data);
     } catch (e) {
       debugPrint('fetchExternalEvents/combined exception: $e');
       return [];
     }
+  }
+
+  List<EventModel> _mapNormalizedEvents(Map<String, dynamic> data) {
+    final list = (data['events'] as List?) ?? const [];
+    final out = <EventModel>[];
+    for (final item in list) {
+      if (item is! Map<String, dynamic>) continue;
+      try {
+        final id = (item['id'] ?? '').toString();
+        final title = (item['title'] ?? '').toString();
+        final startStr = item['start']?.toString();
+        if (id.isEmpty || title.isEmpty || startStr == null) continue;
+        final start = DateTime.tryParse(startStr);
+        if (start == null) continue;
+        final categoryStr = (item['category']?.toString().toLowerCase() ?? 'other');
+        final category = eventCategoryFromString(categoryStr);
+        final venueName = (item['venue'] ?? '').toString();
+        final address = item['address']?.toString();
+        final lat = (item['lat'] is num) ? (item['lat'] as num).toDouble() : null;
+        final lon = (item['lon'] is num) ? (item['lon'] as num).toDouble() : null;
+        final websiteUrl = item['url']?.toString();
+        final registrationUrl = item['registrationUrl']?.toString();
+        final endStr = item['end']?.toString();
+        final end = endStr != null ? DateTime.tryParse(endStr) : null;
+        final imageUrl = item['imageUrl']?.toString();
+        final source = (item['source'] ?? item['provider'])?.toString();
+
+        out.add(EventModel(
+          id: id,
+          title: title,
+          category: category,
+          start: start,
+          end: end,
+          description: null,
+          venueName: venueName,
+          address: address,
+          latitude: lat,
+          longitude: lon,
+          websiteUrl: websiteUrl,
+          registrationUrl: registrationUrl,
+          imageUrl: imageUrl,
+          source: source,
+        ));
+      } catch (e) {
+        debugPrint('fetchExternalEvents mapping error: $e');
+        continue;
+      }
+    }
+    out.sort((a, b) => a.start.compareTo(b.start));
+    return out;
   }
 
   // Simple haversine distance in km

@@ -342,6 +342,34 @@ class GamificationService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Check XP milestone badges against the provided total XP and award any missed ones.
+  Future<void> checkXpBadges(int totalXp) async {
+    try {
+      final xpBadges = _allBadges.where((b) => b.requirementType == BadgeRequirementType.xp);
+      for (final b in xpBadges) {
+        if (totalXp >= b.requirementValue && !hasBadge(b.id)) {
+          await awardBadge(b.id);
+        }
+      }
+    } catch (e) {
+      debugPrint('GamificationService.checkXpBadges error: $e');
+    }
+  }
+
+  /// Check visit-count badges and award if thresholds are met.
+  Future<void> checkVisitBadges(int visitedCount) async {
+    try {
+      final visitBadges = _allBadges.where((b) => b.requirementType == BadgeRequirementType.visits);
+      for (final b in visitBadges) {
+        if (visitedCount >= b.requirementValue && !hasBadge(b.id)) {
+          await awardBadge(b.id);
+        }
+      }
+    } catch (e) {
+      debugPrint('GamificationService.checkVisitBadges error: $e');
+    }
+  }
+
   Future<void> updateChallengeProgress(String challengeId, int progress) async {
     final index = _userChallenges.indexWhere((uc) => uc.challengeId == challengeId);
     if (index >= 0) {

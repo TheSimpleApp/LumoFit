@@ -7,6 +7,7 @@ import 'package:fittravel/services/services.dart';
 import 'package:fittravel/models/place_model.dart';
 import 'package:fittravel/models/event_model.dart';
 import 'package:fittravel/utils/haptic_utils.dart';
+import 'package:geolocator/geolocator.dart';
 
 class DiscoverScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -30,11 +31,15 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   String _dateFilter = 'this_week';
   bool _filterRating4Plus = false;
   bool _filterHasPhotos = false;
+    // Location (defaults to SLC center)
+    double _centerLat = 40.7608;
+    double _centerLng = -111.8910;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this, initialIndex: widget.initialTabIndex.clamp(0, 3));
+    _tabController = TabController(length: 5, vsync: this, initialIndex: widget.initialTabIndex.clamp(0, 4));
+      _initLocation();
   }
 
   @override
@@ -66,8 +71,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
           query: query,
           startDate: range.$1,
           endDate: range.$2,
-          centerLat: 40.7608,
-          centerLng: -111.8910,
+          centerLat: _centerLat,
+          centerLng: _centerLng,
           radiusKm: 50,
           limit: 60,
         );
@@ -84,8 +89,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
           categories: _selectedCategories,
           startDate: range.$1,
           endDate: range.$2,
-          centerLat: 40.7608,
-          centerLng: -111.8910,
+          centerLat: _centerLat,
+          centerLng: _centerLng,
           radiusKm: 50,
         );
         if (mounted) {
@@ -105,16 +110,18 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
         ? PlaceType.gym 
         : _tabController.index == 1 
             ? PlaceType.restaurant 
-            : null;
+            : _tabController.index == 3
+                ? PlaceType.trail
+                : null;
 
     if (placeType != null) {
       // Search via Google Places API
       final results = await googlePlaces.searchPlacesByText(
         query: query,
         placeType: placeType,
-        // Salt Lake City coordinates as default
-        latitude: 40.7608,
-        longitude: -111.8910,
+        // Use current location if available
+        latitude: _centerLat,
+        longitude: _centerLng,
       );
       
       if (mounted) {
@@ -134,6 +141,26 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
           _isSearching = false;
         });
       }
+    }
+  }
+
+  Future<void> _initLocation() async {
+    try {
+      // Avoid prompting repeatedly; ask once when screen mounts
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) return;
+      final pos = await Geolocator.getCurrentPosition();
+      if (!mounted) return;
+      setState(() {
+        _centerLat = pos.latitude;
+        _centerLng = pos.longitude;
+      });
+    } catch (e) {
+      // Non-fatal: keep defaults
     }
   }
 
@@ -175,7 +202,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                   _performSearch(value);
                 },
                 decoration: InputDecoration(
-                  hintText: _tabController.index == 2 ? 'Search events...' : 'Search places...',
+                  hintText: _tabController.index == 2
+                      ? 'Search events...'
+                      : _tabController.index == 3
+                          ? 'Search trails...'
+                          : 'Search places...',
                   prefixIcon: _isSearching
                       ? Padding(
                           padding: const EdgeInsets.all(12),
@@ -260,6 +291,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                       Icon(Icons.event, size: 16),
                       const SizedBox(width: 6),
                       const Text('Events', overflow: TextOverflow.ellipsis),
+                    ],
+                  )),
+                  Tab(child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.terrain, size: 16),
+                      const SizedBox(width: 6),
+                      const Text('Trails', overflow: TextOverflow.ellipsis),
                     ],
                   )),
                   Tab(child: Row(
@@ -389,6 +428,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                     categories: _selectedCategories,
                     dateFilter: _dateFilter,
                     eventResults: _eventResults,
+                  ),
+                  _PlacesList(
+                    type: PlaceType.trail,
+                    searchQuery: _searchQuery,
+                    searchResults: _searchResults,
+                    isSearching: _isSearching,
+                    filterRating4Plus: _filterRating4Plus,
+                    filterHasPhotos: _filterHasPhotos,
                   ),
                   const _SavedPlacesList(),
                 ],
@@ -682,14 +729,18 @@ class EventCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  child: SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: event.imageUrl != null && event.imageUrl!.isNotEmpty
+                        ? Image.network(event.imageUrl!, fit: BoxFit.cover)
+                        : Container(
+                            color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                            child: Center(child: Text(eventCategoryEmoji(event.category), style: const TextStyle(fontSize: 28))),
+                          ),
                   ),
-                  child: Center(child: Text(eventCategoryEmoji(event.category), style: const TextStyle(fontSize: 28))),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -717,6 +768,24 @@ class EventCard extends StatelessWidget {
                 Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
               ],
             ),
+            if ((event.source ?? '').isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                    ),
+                    child: Text(
+                      (event.source!).toUpperCase(),
+                      style: text.labelSmall?.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

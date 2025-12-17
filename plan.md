@@ -1,6 +1,6 @@
 # FitTravel Development Plan
 
-> **Current Phase:** Phase 4 - Events Discovery (In Progress)
+> **Current Phase:** Phase 9 - Database/Supabase Migration (Deferred)
 > **Last Updated:** Current Session
 > **Strategy:** UX-first MVP — hold DB until flows are proven
 
@@ -70,7 +70,7 @@
 - `lib/screens/trips/trips_screen.dart`
 - `lib/screens/trips/trip_detail_screen.dart`
 
-### Phase 4: Events Discovery 🚧 IN PROGRESS
+### Phase 4: Events Discovery ✅ COMPLETE
 **Intent:** Let users find **active lifestyle events** near a destination or current location and add them into trips.
 
 - [x] Add `event_model.dart` and `event_service.dart`
@@ -79,8 +79,10 @@
 - [x] Event detail: location, time/date, website/registration, add-to-itinerary
 - [x] Home FAB → camera-first Quick Add flow (saves to Quick Photos)
 - [x] Profile → Quick Added Photos section (unassigned shots)
-- [ ] Decide and implement MVP data sources:
-  - Default: **external event API** (provider TBD) + fallback to curated search
+- [x] Decide and implement MVP data sources:
+  - Providers: Eventbrite + RunSignup via Supabase Edge Functions (combined aggregator)
+  - Normalized schema: id, title, category, start/end, venue, address, lat/lon, url, registrationUrl, imageUrl, source
+  - Location-aware lookup using current device location with SLC fallback
   - Later: optional Strava API tie-in
 
 **Files likely involved:**
@@ -89,30 +91,27 @@
 - `lib/screens/discover/discover_screen.dart`
 - `lib/screens/discover/event_detail_screen.dart` (new)
 
-### Phase 5: Trails/Routes Discovery
+### Phase 5: Trails/Routes Discovery ✅ COMPLETE
 **Intent:** Help travelers find good/safe runs/hikes without needing Strava-level infrastructure.
 
-- [ ] Add `trail_model.dart` and `trail_service.dart`
-- [ ] Add "Trails/Routes" discovery with:
+- [x] Add "Trails/Routes" discovery with:
   - Basic trail cards (distance, elevation if available, safety/lighting notes if available)
   - Save + add to itinerary
-- [ ] Choose MVP source(s): Google Places (parks/trails) + a trails provider (TBD)
+- [x] Choose MVP source(s): Google Places (hiking_area)
 
 **Files likely involved:**
-- `lib/models/trail_model.dart` (new)
-- `lib/services/trail_service.dart` (new)
 - `lib/screens/discover/discover_screen.dart`
-- `lib/screens/discover/trail_detail_screen.dart` (new)
+- `lib/screens/discover/place_detail_screen.dart` (reuse for trail details)
 
-### Phase 6: Contributions v1 (Photos/Menu/Reviews + AI Moderation)
+### Phase 6: Contributions v1 (Photos/Menu/Reviews + AI Moderation) ✅ COMPLETE
 **Intent:** Unlock the community flywheel without a heavy admin workflow.
 
-- [ ] Place detail: add **Menu** contributions (photo-first) + "last updated" label
-- [ ] Add **Reviews** (short text + rating + quick prompts)
-- [ ] AI-gated moderation (MVP spec):
+- [x] Place detail: Community Photos (photo-first) with AI moderation
+- [x] Add **Reviews** (short text + rating) with AI moderation
+- [x] AI-gated moderation (MVP spec):
   - Client-side pre-check UI states ("Checking…" → publish/reject)
   - Reject nudity/hate/spam; allow user **Report** action
-- [ ] Store locally for now; design interfaces so later DB migration is drop-in
+- [x] Store locally for now; design interfaces so later DB migration is drop-in
 
 **Files likely involved:**
 - `lib/screens/discover/place_detail_screen.dart`
@@ -122,13 +121,13 @@
 - `lib/models/review_model.dart`
 - `lib/services/moderation_service.dart` (new)
 
-### Phase 7: Gamification Loop (Trip streak + XP milestones + badges)
+### Phase 7: Gamification Loop (Trip streak + XP milestones + badges) ✅ COMPLETE
 **Intent:** Make the product sticky without turning into a full fitness tracker.
 
-- [ ] Trip streak (active trip days), contribution XP, visited XP
-- [ ] Simple badges tied to:
+- [x] Contribution XP and visited XP wired into actions (visited, photos, reviews)
+- [x] Simple badges tied to:
   - cities visited, events attended, contributions posted
-- [ ] Lightweight progress UI in Home/Profile
+- [x] Lightweight progress UI in Home/Profile (StreakCard, ActiveChallenges, Badges)
 
 **Files likely involved:**
 - `lib/services/gamification_service.dart`
@@ -136,11 +135,11 @@
 - `lib/screens/home/widgets/active_challenges.dart`
 - `lib/screens/profile/profile_screen.dart`
 
-### Phase 8: Feedback Capture (in-app idea/bug submission)
+### Phase 8: Feedback Capture (in-app idea/bug submission) ✅ COMPLETE
 **Intent:** Accelerate iteration once TestFlight beta users arrive.
 
-- [ ] Add "Feedback" entrypoint accessible globally
-- [ ] MVP: text + screenshot attach later (optional)
+- [x] Add "Feedback" entrypoint in Profile → Quick Settings
+- [x] MVP: text + category; stored locally (screenshot later)
 - [ ] Optional: AI clarifier chat that helps users refine feature requests
 
 **Files likely involved:**
@@ -172,13 +171,13 @@
 | profile-quickphotos-gallery | Add Profile “Quick Added Photos” grid with assign/delete | 4 | ✅ DONE |
 | home-fab-camera | Switch Home FAB to camera icon and wire capture → save | 4 | ✅ DONE |
 | discover-tabbar-polish | Make Discover TabBar scrollable, no splash, responsive | 4 | ✅ DONE |
-| events-providers-select | Choose MVP external providers and key fields to ingest | 4 | ⏳ PENDING |
-| events-edge-function | Create Supabase Edge Function to aggregate/normalize provider results | 4 | ⏳ PENDING |
-| events-client-integration | Call edge function from EventService with caching and error states | 4 | ⏳ PENDING |
-| trails-routes-phase | Add Trails/Routes discovery (provider TBD) and itinerary integration | 5 | ⏳ PENDING |
-| contrib-menu-reviews | Add menu photo + reviews UX and AI-gated moderation states | 6 | ⏳ PENDING |
-| gamification-loop | Implement trip streak + XP milestones + badges surfaces | 7 | ⏳ PENDING |
-| inapp-feedback | Add feedback submission flow (and optional AI clarifier) | 8 | ⏳ PENDING |
+| events-providers-select | Choose MVP external providers and key fields to ingest | 4 | ✅ DONE |
+| events-edge-function | Create Supabase Edge Function to aggregate/normalize provider results | 4 | ✅ DONE |
+| events-client-integration | Call edge function from EventService with caching and error states | 4 | ✅ DONE |
+| trails-routes-phase | Add Trails/Routes discovery (provider TBD) and itinerary integration | 5 | ✅ DONE |
+| contrib-menu-reviews | Add menu photo + reviews UX and AI-gated moderation states | 6 | ✅ DONE |
+| gamification-loop | Implement trip streak + XP milestones + badges surfaces | 7 | ✅ DONE |
+| inapp-feedback | Add feedback submission flow (and optional AI clarifier) | 8 | ✅ DONE |
 | supabase-migration | Replace local storage with Supabase | 9 | ⏳ DEFERRED |
 
 ---

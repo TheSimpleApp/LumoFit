@@ -20,6 +20,7 @@ class StorageKeys {
   static const String quickPhotos = 'quick_photos';
   static const String reviews = 'reviews';
   static const String events = 'events';
+  static const String feedbackItems = 'feedback_items';
 }
 
 /// Wrapper service for SharedPreferences

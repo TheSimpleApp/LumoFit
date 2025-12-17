@@ -24,7 +24,8 @@ class TodayActivities extends StatelessWidget {
             Text('Today\'s Activity', style: textStyles.titleMedium),
             if (todayActivities.isNotEmpty)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: colors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppRadius.full),
@@ -66,6 +67,7 @@ class _EmptyState extends StatelessWidget {
         color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
+      alignment: Alignment.center,
       child: Column(
         children: [
           const Text('🎯', style: TextStyle(fontSize: 40)),
@@ -74,7 +76,8 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Log your first activity to keep your streak!',
-            style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+            style:
+                textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
         ],
@@ -99,7 +102,8 @@ class _ActivityTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+        border:
+            Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
       ),
       child: Row(
         children: [
@@ -111,7 +115,8 @@ class _ActivityTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Center(
-              child: Text(activity.typeEmoji, style: const TextStyle(fontSize: 22)),
+              child: Text(activity.typeEmoji,
+                  style: const TextStyle(fontSize: 22)),
             ),
           ),
           const SizedBox(width: 12),
@@ -128,7 +133,8 @@ class _ActivityTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   timeFormat.format(activity.completedAt),
-                  style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                  style: textStyles.bodySmall
+                      ?.copyWith(color: colors.onSurfaceVariant),
                 ),
               ],
             ),

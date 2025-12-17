@@ -17,12 +17,12 @@ todos:
       - events-model-service
   - id: trails-routes-phase
     content: Add Trails/Routes discovery and itinerary integration (data source TBD).
-    status: pending
+    status: completed
     dependencies:
       - events-discover-ui
   - id: contrib-menu-reviews
     content: Add menu photo + reviews UX on Place Detail with AI-gated moderation states; design for later DB migration.
-    status: pending
+    status: completed
     dependencies:
       - phase3-ux-polish
   - id: gamification-loop

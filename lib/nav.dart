@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:go_router/go_router.dart';
 import 'package:fittravel/screens/main_shell.dart';
 import 'package:fittravel/screens/home/home_screen.dart';
@@ -10,14 +11,40 @@ import 'package:fittravel/screens/trips/trip_detail_screen.dart';
 import 'package:fittravel/models/place_model.dart';
 import 'package:fittravel/models/event_model.dart';
 import 'package:fittravel/screens/discover/event_detail_screen.dart';
+import 'package:fittravel/screens/auth/login_screen.dart';
+import 'package:fittravel/screens/auth/signup_screen.dart';
+import 'package:fittravel/screens/auth/forgot_password_screen.dart';
+import 'package:fittravel/supabase/supabase_config.dart';
+import 'package:fittravel/screens/feedback/feedback_screen.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
   static final _shellNavigatorKey = GlobalKey<NavigatorState>();
+  static final _refreshListenable =
+      GoRouterRefreshStream(SupabaseConfig.auth.onAuthStateChange);
 
   static final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/home',
+    refreshListenable: _refreshListenable,
+    redirect: (context, state) {
+      final isLoggedIn = SupabaseConfig.auth.currentUser != null;
+      final isAuthRoute = state.matchedLocation.startsWith('/login') ||
+          state.matchedLocation.startsWith('/signup') ||
+          state.matchedLocation.startsWith('/forgot-password');
+
+      // If not logged in and not on auth route, redirect to login
+      if (!isLoggedIn && !isAuthRoute) {
+        return '/login';
+      }
+
+      // If logged in and on auth route, redirect to home
+      if (isLoggedIn && isAuthRoute) {
+        return '/home';
+      }
+
+      return null;
+    },
     routes: [
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
@@ -44,8 +71,11 @@ class AppRouter {
                 case 'events':
                   initialIndex = 2;
                   break;
-                case 'saved':
+                case 'trails':
                   initialIndex = 3;
+                  break;
+                case 'saved':
+                  initialIndex = 4;
                   break;
                 default:
                   initialIndex = 0;
@@ -94,6 +124,27 @@ class AppRouter {
           return EventDetailScreen(event: event);
         },
       ),
+      GoRoute(
+        path: '/feedback',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const FeedbackScreen(),
+      ),
+      // Auth routes
+      GoRoute(
+        path: '/login',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/signup',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const SignupScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
     ],
   );
 
@@ -118,5 +169,23 @@ class AppRouter {
       default:
         return '/home';
     }
+  }
+}
+
+/// A simple ChangeNotifier that triggers GoRouter to refresh when the provided
+/// stream emits an event. This lets us react to Supabase auth state changes
+/// (login/logout) and run redirect logic automatically.
+class GoRouterRefreshStream extends ChangeNotifier {
+  late final StreamSubscription<dynamic> _subscription;
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    _subscription = stream.asBroadcastStream().listen((_) {
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
   }
 }

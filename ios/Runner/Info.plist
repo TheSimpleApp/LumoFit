@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Dreamflow</string>
+	<string>LumoFit</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>dreamflow</string>
+	<string>LumoFit</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -47,7 +47,11 @@
 	<true/>
   <key>NSCameraUsageDescription</key>
   <string>We use the camera so you can quickly capture photos for your trips.</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>We access your photo library so you can choose images for your trips.</string>
   <key>NSPhotoLibraryAddUsageDescription</key>
   <string>We save captured photos to your library when requested.</string>
+  <key>NSLocationWhenInUseUsageDescription</key>
+  <string>We use your location to show nearby places, events, and improve recommendations.</string>
 </dict>
 </plist>

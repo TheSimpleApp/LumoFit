@@ -9,7 +9,7 @@
 // 3. Implement all abstract methods with your auth provider logic
 
 import 'package:flutter/material.dart';
-// TODO: Import User data model. It should already exist in the project. Don't try to rename or re-create it.
+import 'package:fittravel/models/user_model.dart' as app;
 
 // Core authentication operations that all auth implementations must provide
 abstract class AuthManager {
@@ -17,20 +17,19 @@ abstract class AuthManager {
   Future deleteUser(BuildContext context);
   Future updateEmail({required String email, required BuildContext context});
   Future resetPassword({required String email, required BuildContext context});
-  Future sendEmailVerification({required User user}) async =>
-      user.sendEmailVerification();
-  Future refreshUser({required User user}) async => user.refreshUser();
+  Stream<app.UserModel?> get authStateChanges;
+  app.UserModel? get currentUser;
 }
 
 // Email/password authentication mixin
 mixin EmailSignInManager on AuthManager {
-  Future<User?> signInWithEmail(
+  Future<app.UserModel?> signInWithEmail(
     BuildContext context,
     String email,
     String password,
   );
 
-  Future<User?> createAccountWithEmail(
+  Future<app.UserModel?> createAccountWithEmail(
     BuildContext context,
     String email,
     String password,
@@ -39,22 +38,22 @@ mixin EmailSignInManager on AuthManager {
 
 // Anonymous authentication for guest users
 mixin AnonymousSignInManager on AuthManager {
-  Future<User?> signInAnonymously(BuildContext context);
+  Future<app.UserModel?> signInAnonymously(BuildContext context);
 }
 
 // Apple Sign-In authentication (iOS/web)
 mixin AppleSignInManager on AuthManager {
-  Future<User?> signInWithApple(BuildContext context);
+  Future<app.UserModel?> signInWithApple(BuildContext context);
 }
 
 // Google Sign-In authentication (all platforms)
 mixin GoogleSignInManager on AuthManager {
-  Future<User?> signInWithGoogle(BuildContext context);
+  Future<app.UserModel?> signInWithGoogle(BuildContext context);
 }
 
 // JWT token authentication for custom backends
 mixin JwtSignInManager on AuthManager {
-  Future<User?> signInWithJwtToken(
+  Future<app.UserModel?> signInWithJwtToken(
     BuildContext context,
     String jwtToken,
   );
@@ -76,12 +75,12 @@ mixin PhoneSignInManager on AuthManager {
 
 // Facebook Sign-In authentication
 mixin FacebookSignInManager on AuthManager {
-  Future<User?> signInWithFacebook(BuildContext context);
+  Future<app.UserModel?> signInWithFacebook(BuildContext context);
 }
 
 // Microsoft Sign-In authentication (Azure AD)
 mixin MicrosoftSignInManager on AuthManager {
-  Future<User?> signInWithMicrosoft(
+  Future<app.UserModel?> signInWithMicrosoft(
     BuildContext context,
     List<String> scopes,
     String tenantId,
@@ -90,5 +89,5 @@ mixin MicrosoftSignInManager on AuthManager {
 
 // GitHub Sign-In authentication (OAuth)
 mixin GithubSignInManager on AuthManager {
-  Future<User?> signInWithGithub(BuildContext context);
+  Future<app.UserModel?> signInWithGithub(BuildContext context);
 }

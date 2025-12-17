@@ -15,8 +15,10 @@ import 'package:fittravel/services/community_photo_service.dart';
 import 'package:fittravel/models/community_photo.dart';
 import 'package:fittravel/services/review_service.dart';
 import 'package:fittravel/models/review_model.dart';
+import 'package:fittravel/services/gamification_service.dart';
 import 'package:fittravel/utils/haptic_utils.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:fittravel/openai/openai_config.dart';
 
 class PlaceDetailScreen extends StatefulWidget {
   final PlaceModel place;
@@ -102,9 +104,16 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
     
     await placeService.markVisited(saved.id);
     
-    // Award XP
+    // Award XP and check badges
     final xpEarned = _place.type == PlaceType.gym ? 50 : 25;
     await userService.addXp(xpEarned);
+    final gsvc = context.read<GamificationService>();
+    final psvc = context.read<PlaceService>();
+    final totalXp = context.read<UserService>().currentUser?.totalXp ?? 0;
+    // visits count
+    final visitedCount = psvc.savedPlaces.where((p) => p.isVisited).length;
+    await gsvc.checkXpBadges(totalXp);
+    await gsvc.checkVisitBadges(visitedCount);
     
     await HapticUtils.success();
     setState(() {
@@ -1120,7 +1129,19 @@ class _ReviewTile extends StatelessWidget {
           if ((review.text ?? '').isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(review.text!, style: textStyles.bodyMedium),
-          ]
+          ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Thanks for the report. We\'ll review this.'), behavior: SnackBarBehavior.floating),
+                );
+              },
+              icon: Icon(Icons.flag_outlined, size: 16, color: colors.onSurfaceVariant),
+              label: Text('Report', style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+            ),
+          ),
         ],
       ),
     );
@@ -1139,6 +1160,7 @@ class _AddReviewSheetState extends State<_AddReviewSheet> {
   int _rating = 5;
   final _controller = TextEditingController();
   bool _isSubmitting = false;
+  bool _isModerating = false;
 
   @override
   void dispose() {
@@ -1215,8 +1237,26 @@ class _AddReviewSheetState extends State<_AddReviewSheet> {
   }
 
   Future<void> _submit(BuildContext context) async {
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _isModerating = true;
+    });
     try {
+      // AI moderation on text
+      final text = _controller.text.trim();
+      if (text.isNotEmpty) {
+        final openai = OpenAIClient();
+        final mod = await openai.moderateText(text: text, context: 'FitTravel place review: ${widget.placeId}');
+        if (!mod.allowed) {
+          if (mounted) {
+            await _showModerationRejectSheet(context, mod);
+          }
+          return;
+        }
+      }
+      _isModerating = false;
+      if (mounted) setState(() {});
+
       final userId = context.read<UserService>().currentUser?.id;
       await context.read<ReviewService>().addReview(
             placeId: widget.placeId,
@@ -1224,6 +1264,10 @@ class _AddReviewSheetState extends State<_AddReviewSheet> {
             text: _controller.text.trim().isEmpty ? null : _controller.text.trim(),
             userId: userId,
           );
+      // Award XP for contribution and check XP badges
+      await context.read<UserService>().addXp(20);
+      final totalXp = context.read<UserService>().currentUser?.totalXp ?? 0;
+      await context.read<GamificationService>().checkXpBadges(totalXp);
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review added!'), behavior: SnackBarBehavior.floating));
@@ -1237,6 +1281,52 @@ class _AddReviewSheetState extends State<_AddReviewSheet> {
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  Future<void> _showModerationRejectSheet(BuildContext context, ModerationResult mod) async {
+    final colors = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: BoxDecoration(color: colors.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: colors.outline.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)) )),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Icon(Icons.shield, color: colors.error),
+                  const SizedBox(width: 8),
+                  Text('Content flagged', style: text.titleLarge?.copyWith(color: colors.error)),
+                ]),
+                const SizedBox(height: 8),
+                if ((mod.reason ?? '').isNotEmpty)
+                  Text(mod.reason!, style: text.bodyMedium),
+                if (mod.categories.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, runSpacing: 8, children: mod.categories.map((c) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
+                    child: Text(c, style: text.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                  )).toList()),
+                ],
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))),
+                ])
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1252,6 +1342,7 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
   final _controller = TextEditingController();
   bool _isSubmitting = false;
   String? _pickedDataUrl;
+  bool _isModerating = false;
 
   @override
   void dispose() {
@@ -1341,14 +1432,36 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
       );
       return;
     }
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _isModerating = true;
+    });
     try {
+      // AI image moderation
+      final openai = OpenAIClient();
+      final mod = await openai.moderateImage(
+        imageUrlOrData: hasPicked ? _pickedDataUrl! : url,
+        context: 'FitTravel place photo: ${widget.placeId}',
+      );
+      if (!mod.allowed) {
+        if (mounted) {
+          await _showModerationRejectSheet(context, mod);
+        }
+        return;
+      }
+      _isModerating = false;
+      if (mounted) setState(() {});
+
       final svc = context.read<CommunityPhotoService>();
       if (hasHttpUrl) {
         await svc.addPhotoUrl(placeId: widget.placeId, imageUrl: url);
       } else if (hasPicked) {
         await svc.addPhotoUrl(placeId: widget.placeId, imageUrl: _pickedDataUrl!);
       }
+      // Award XP for contribution and check XP badges
+      await context.read<UserService>().addXp(10);
+      final totalXp = context.read<UserService>().currentUser?.totalXp ?? 0;
+      await context.read<GamificationService>().checkXpBadges(totalXp);
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1366,6 +1479,52 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  Future<void> _showModerationRejectSheet(BuildContext context, ModerationResult mod) async {
+    final colors = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: BoxDecoration(color: colors.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: colors.outline.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)) )),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Icon(Icons.shield, color: colors.error),
+                  const SizedBox(width: 8),
+                  Text('Photo rejected', style: text.titleLarge?.copyWith(color: colors.error)),
+                ]),
+                const SizedBox(height: 8),
+                if ((mod.reason ?? '').isNotEmpty)
+                  Text(mod.reason!, style: text.bodyMedium),
+                if (mod.categories.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, runSpacing: 8, children: mod.categories.map((c) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
+                    child: Text(c, style: text.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                  )).toList()),
+                ],
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))),
+                ])
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _pickImage(BuildContext context) async {
@@ -1471,6 +1630,19 @@ class _PhotoLightboxState extends State<_PhotoLightbox> {
                 ),
               );
             },
+          ),
+          Positioned(
+            top: 40,
+            left: 16,
+            child: IconButton(
+              tooltip: 'Report',
+              icon: Icon(Icons.flag_outlined, color: colors.onInverseSurface),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Thanks for the report. We\'ll review this.'), behavior: SnackBarBehavior.floating),
+                );
+              },
+            ),
           ),
           Positioned(
             top: 40,

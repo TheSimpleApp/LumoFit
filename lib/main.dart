@@ -5,9 +5,13 @@ import 'package:provider/provider.dart';
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/nav.dart';
 import 'package:fittravel/services/services.dart';
+import 'package:fittravel/supabase/supabase_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Supabase
+  await SupabaseConfig.initialize();
   
   // Initialize storage service
   final storage = await StorageService.getInstance();
@@ -74,9 +78,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => EventService(storage)..initialize(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => FeedbackService(storage)..initialize(),
+        ),
       ],
       child: MaterialApp.router(
-        title: 'FitTravel',
+        title: 'LumoFit',
         debugShowCheckedModeBanner: false,
         theme: appTheme,
         darkTheme: appTheme,
