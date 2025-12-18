@@ -53,5 +53,7 @@
   <string>We save captured photos to your library when requested.</string>
   <key>NSLocationWhenInUseUsageDescription</key>
   <string>We use your location to show nearby places, events, and improve recommendations.</string>
+  <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+  <string>We use your location to track your activities during trips, show nearby places and events, and provide location-based recommendations even when the app is in the background.</string>
 </dict>
 </plist>

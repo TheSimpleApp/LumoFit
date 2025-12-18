@@ -15,7 +15,7 @@
 2. Mark visited → contribute (photos/menu/review) → light gamification
 3. Works in the field while traveling (mobile-first, buttery UX)
 
-**Target Cities (Seed Data):** Salt Lake City, Utah
+**Target Cities (Seed Data):** Cairo, Egypt (primary beta testing location)
 
 ---
 
@@ -249,6 +249,34 @@ AIzaSyDReP4tFXyqU6W8PusrlZdFVFLAYwFr6ZA
 - Implement proper caching to minimize API calls
 - Store frequently accessed place details locally
 
+## 3.1 Gemini API Configuration (Phase 11)
+
+### Gemini API Key
+
+```
+AIzaSyBZ9OgP8A0CZhYa1u_XILJihBUXg3Ps-xM
+```
+
+### Gemini Enabled Services
+
+- Gemini 1.5 Flash (generative AI)
+
+### AI Cairo Guide Usage
+
+- **AI Cairo Guide:** Provides personalized fitness recommendations for Cairo
+- **System prompt:** Cairo fitness travel expert with knowledge of local gyms, restaurants, events, and activities
+- **Features:**
+  - Chat-based interface with quick question suggestions
+  - Context-aware responses based on user location and preferences
+  - Specific place name recommendations with neighborhoods
+  - Practical tips (opening hours, price ranges, what to bring)
+
+### Gemini Configuration Notes
+
+- Temperature: 0.7 for balanced creativity and accuracy
+- Max output tokens: 1024 (concise 2-3 paragraph responses)
+- Cost: ~$0.01-0.03 per query (~$10 for 500 queries during beta)
+
 ---
 
 ## 4. Design System
@@ -425,7 +453,15 @@ static const String kTrails = 'trails'; // Phase 5
 | Session | Seeded 14 badges and 5 challenges into Supabase database | Phase 9 |
 | Session | Removed StorageService, updated main.dart | Phase 9 |
 | Session | Created feedback table in Supabase | Phase 9 |
-| Current | **Phase 10 IN PROGRESS** — Beta testing & QA | Phase 10 🚧 |
+| Session | Phase 10 COMPLETE — Beta testing & QA | Phase 10 ✅ |
+| Session | Changed default location from SLC to Cairo (30.0444, 31.2357) | Phase 11 |
+| Session | Replaced 5 SLC demo events with Cairo fitness events | Phase 11 |
+| Session | Integrated Gemini API for AI Cairo Guide | Phase 11 |
+| Session | Created AI guide service and Cairo Guide UI screen | Phase 11 |
+| Session | Added "Ask Cairo Guide" card to Home screen | Phase 11 |
+| Session | Created 7 Cairo-specific challenges in Supabase | Phase 11 |
+| Session | Updated empty states with Cairo venue suggestions | Phase 11 |
+| Current | **Phase 11 IN PROGRESS** — Cairo Experience Optimization | Phase 11 🚧 |
 
 ---
 

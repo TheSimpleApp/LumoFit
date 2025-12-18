@@ -28,4 +28,11 @@ class AppConfig {
     'SUPABASE_ANON_KEY',
     defaultValue: '',
   );
+
+  /// Gemini API Key for AI Cairo Guide
+  /// Provide via: --dart-define=GEMINI_API_KEY=...
+  static const String geminiApiKey = String.fromEnvironment(
+    'GEMINI_API_KEY',
+    defaultValue: 'AIzaSyBZ9OgP8A0CZhYa1u_XILJihBUXg3Ps-xM',
+  );
 }

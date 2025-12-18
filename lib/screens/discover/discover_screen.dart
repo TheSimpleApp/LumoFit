@@ -31,9 +31,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   String _dateFilter = 'this_week';
   bool _filterRating4Plus = false;
   bool _filterHasPhotos = false;
-    // Location (defaults to SLC center)
-    double _centerLat = 40.7608;
-    double _centerLng = -111.8910;
+    // Location (defaults to Cairo center)
+    double _centerLat = 30.0444;
+    double _centerLng = 31.2357;
 
   @override
   void initState() {
@@ -76,11 +76,31 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
           radiusKm: 50,
           limit: 60,
         );
-        if (mounted) {
-          setState(() {
-            _eventResults = results;
-            _isSearchingEvents = false;
-          });
+
+        // Fallback if external API returns empty
+        if (results.isEmpty) {
+          final local = eventService.search(
+            query: query,
+            categories: _selectedCategories,
+            startDate: range.$1,
+            endDate: range.$2,
+            centerLat: _centerLat,
+            centerLng: _centerLng,
+            radiusKm: 50,
+          );
+          if (mounted) {
+            setState(() {
+              _eventResults = local;
+              _isSearchingEvents = false;
+            });
+          }
+        } else {
+          if (mounted) {
+            setState(() {
+              _eventResults = results;
+              _isSearchingEvents = false;
+            });
+          }
         }
       } catch (_) {
         // Fallback to local search if remote fails
@@ -428,6 +448,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                     categories: _selectedCategories,
                     dateFilter: _dateFilter,
                     eventResults: _eventResults,
+                    centerLat: _centerLat,
+                    centerLng: _centerLng,
                   ),
                   _PlacesList(
                     type: PlaceType.trail,
@@ -577,6 +599,8 @@ class _EventsList extends StatelessWidget {
   final Set<EventCategory> categories;
   final String dateFilter;
   final List<EventModel> eventResults;
+  final double centerLat;
+  final double centerLng;
 
   const _EventsList({
     required this.searchQuery,
@@ -584,6 +608,8 @@ class _EventsList extends StatelessWidget {
     required this.categories,
     required this.dateFilter,
     required this.eventResults,
+    required this.centerLat,
+    required this.centerLng,
   });
 
   @override
@@ -628,8 +654,8 @@ class _EventsList extends StatelessWidget {
         categories: categories,
         startDate: start,
         endDate: end,
-        centerLat: 40.7608,
-        centerLng: -111.8910,
+        centerLat: centerLat,
+        centerLng: centerLng,
         radiusKm: 50,
       );
     }
@@ -643,7 +669,7 @@ class _EventsList extends StatelessWidget {
             const SizedBox(height: 12),
             Text('No events found', style: text.titleMedium),
             const SizedBox(height: 6),
-            Text('Try a different date window or category', style: text.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
+            Text('Cairo has weekly Parkruns at Al-Azhar Park every Saturday at 7 AM. Check back soon for more events!', textAlign: TextAlign.center, style: text.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
           ],
         ),
       );
@@ -916,12 +942,27 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(type == PlaceType.gym ? '🏋️' : '🥗', style: const TextStyle(fontSize: 48)),
+          Text(
+            type == PlaceType.gym ? '🏋️' : type == PlaceType.trail ? '🥾' : '🥗',
+            style: const TextStyle(fontSize: 48),
+          ),
           const SizedBox(height: 16),
-          Text('No ${type == PlaceType.gym ? 'gyms' : 'food spots'} saved yet', style: textStyles.titleMedium),
+          Text(
+            type == PlaceType.gym
+              ? 'No gyms saved yet'
+              : type == PlaceType.trail
+                ? 'No trails saved yet'
+                : 'No food spots saved yet',
+            style: textStyles.titleMedium,
+          ),
           const SizedBox(height: 8),
           Text(
-            'Search above to discover places nearby',
+            type == PlaceType.gym
+              ? 'Try searching for "Gold\'s Gym Maadi" or "CrossFit Cairo" to get started!'
+              : type == PlaceType.trail
+                ? 'Try the Nile Corniche for running/walking, or visit Wadi Degla Protectorate for desert hiking!'
+                : 'Check out "Zooba" in Zamalek or "The Gym Café" for healthy options!',
+            textAlign: TextAlign.center,
             style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
           ),
         ],

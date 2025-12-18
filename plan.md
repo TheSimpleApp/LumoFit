@@ -171,17 +171,56 @@
 - `lib/main.dart` (removed StorageService)
 - `lib/supabase/supabase_config.dart` (Supabase client + helper methods)
 
-### Phase 10: Beta Testing & QA (CURRENT)
+### Phase 10: Beta Testing & QA ✅ COMPLETE
+
 **Intent:** Validate app with real users and ensure production readiness.
 
-- [ ] Enable leaked password protection in Supabase Dashboard
-- [ ] End-to-end testing of auth flow (signup → login → logout)
-- [ ] End-to-end testing of trip creation and place saving
-- [ ] End-to-end testing of gamification (badge earning, XP)
-- [ ] Test on iOS simulator and Android emulator
-- [ ] TestFlight deployment for beta testers
-- [ ] Monitor Supabase logs for errors
-- [ ] Collect and address user feedback
+- [x] Enable leaked password protection in Supabase Dashboard
+- [x] End-to-end testing of auth flow (signup → login → logout)
+- [x] End-to-end testing of trip creation and place saving
+- [x] End-to-end testing of gamification (badge earning, XP)
+- [x] Test on iOS simulator and Android emulator
+- [x] TestFlight deployment for beta testers
+- [x] Monitor Supabase logs for errors
+- [x] Collect and address user feedback
+
+### Phase 11: Cairo Experience Optimization (CURRENT)
+
+**Intent:** Optimize app for Cairo, Egypt beta testing with AI-powered recommendations and Cairo-specific content.
+
+- [x] Change default location from Salt Lake City to Cairo (30.0444, 31.2357)
+- [x] Add event fetching fallback logic to ensure events always display
+- [x] Replace 5 SLC demo events with real Cairo fitness events:
+  - Cairo Runners 5K at Al-Azhar Park
+  - Sunrise Yoga by the Nile (Zamalek)
+  - Wadi Degla Desert Hike (Maadi)
+  - Nile Corniche Cycle Ride
+  - CrossFit Hustle Drop-In WOD (Maadi)
+- [x] Integrate Gemini API for AI Cairo Guide
+- [x] Create AI guide service with Cairo fitness expertise
+- [x] Build Cairo Guide UI screen with chat interface
+- [x] Add "Ask Cairo Guide" card to Home screen
+- [x] Create 7 Cairo-specific challenges in Supabase:
+  - Cairo Fitness Pioneer (100 XP)
+  - Nile Runner (75 XP)
+  - Pyramid Power (150 XP)
+  - Cairo Food Explorer (50 XP)
+  - Neighborhood Hopper (125 XP)
+  - Cairo Streak Master (200 XP)
+  - Cairo Morning Warrior (25 XP daily)
+- [x] Update empty states with Cairo venue suggestions
+
+**Files modified:**
+
+- `lib/screens/discover/discover_screen.dart` - Cairo coordinates, event fallback, empty states
+- `lib/services/event_service.dart` - Cairo demo events
+- `lib/config/app_config.dart` - Gemini API key
+- `lib/services/ai_guide_service.dart` (new) - Gemini API integration
+- `lib/screens/home/cairo_guide_screen.dart` (new) - AI guide UI
+- `lib/screens/home/home_screen.dart` - Cairo Guide button
+- `lib/nav.dart` - Cairo Guide route
+- `lib/services/services.dart` - Export ai_guide_service
+- Supabase migration: `add_cairo_challenges.sql`
 
 ---
 

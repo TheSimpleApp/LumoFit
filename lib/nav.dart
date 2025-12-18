@@ -16,6 +16,7 @@ import 'package:fittravel/screens/auth/signup_screen.dart';
 import 'package:fittravel/screens/auth/forgot_password_screen.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
 import 'package:fittravel/screens/feedback/feedback_screen.dart';
+import 'package:fittravel/screens/home/cairo_guide_screen.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -123,6 +124,11 @@ class AppRouter {
           final event = state.extra as EventModel;
           return EventDetailScreen(event: event);
         },
+      ),
+      GoRoute(
+        path: '/cairo-guide',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const CairoGuideScreen(),
       ),
       GoRoute(
         path: '/feedback',

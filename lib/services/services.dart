@@ -11,3 +11,4 @@ export 'quick_photo_service.dart';
 export 'review_service.dart';
 export 'event_service.dart';
 export 'feedback_service.dart';
+export 'ai_guide_service.dart';
