@@ -12,9 +12,14 @@ workflows:
       app_store_connect: Simple
     
     environment:
+      # Team Key signing configuration
+      # With Team Key signing enabled in Xcode, Codemagic will automatically
+      # manage certificates and provisioning profiles via App Store Connect API
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.simple.LumoFit
+        # Automatic certificate management - Codemagic will create/manage certificates
+        # using the Team Key from your App Store Connect integration
       vars:
         # Set this to your App Store Apple ID (the numeric ID from App Store Connect)
         # You can find this in App Store Connect > App Information > Apple ID
@@ -36,11 +41,25 @@ workflows:
           source: true
     
     scripts:
-      # Set up code signing - Codemagic will automatically create certificates and profiles
-      # if they don't exist via App Store Connect API
-      - name: Set up code signing settings on Xcode project
+      # Set up code signing for Team Key signing (Automatic signing)
+      # With Team Key signing, Codemagic automatically manages certificates via App Store Connect API
+      - name: Set up Team Key signing
         script: | 
-          xcode-project use-profiles
+          # Team Key signing uses Automatic signing - no manual profile management needed
+          # Codemagic will automatically create/manage certificates using the Team Key
+          # from your App Store Connect integration (configured as "Simple")
+          echo "Using Team Key signing with Automatic certificate management"
+          echo "Team ID: 2QJTN3CT3K"
+          echo "Bundle ID: com.simple.LumoFit"
+          echo "Distribution: App Store"
+          
+          # Verify Xcode project is configured for Automatic signing
+          # The project should already have CODE_SIGN_STYLE = Automatic
+          if grep -q "CODE_SIGN_STYLE = Automatic" ios/Runner.xcodeproj/project.pbxproj; then
+            echo "✅ Automatic signing is configured in Xcode project"
+          else
+            echo "⚠️  Warning: Automatic signing may not be configured"
+          fi
 
       # Get Flutter dependencies
       - name: Get Flutter packages
