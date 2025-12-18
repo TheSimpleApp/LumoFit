@@ -225,15 +225,19 @@ class GooglePlacesService {
   List<String> _getIncludedTypes(PlaceType type) {
     switch (type) {
       case PlaceType.gym:
-        return ['gym', 'fitness_center'];
+        // Places v1 supported types: use primary type 'gym' only
+        return ['gym'];
       case PlaceType.restaurant:
-        return ['restaurant', 'health_food_store', 'vegetarian_restaurant', 'vegan_restaurant'];
+        // Restrict to supported primary types. Filter healthy via textQuery if needed.
+        return ['restaurant', 'cafe'];
       case PlaceType.park:
         return ['park'];
       case PlaceType.trail:
-        return ['hiking_area'];
+        // 'hiking_area' is not a supported type in Places v1; map to parks.
+        return ['park'];
       case PlaceType.other:
-        return ['point_of_interest'];
+        // Use a broad but supported primary type
+        return ['tourist_attraction'];
     }
   }
 

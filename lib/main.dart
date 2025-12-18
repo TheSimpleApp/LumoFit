@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:fittravel/theme.dart';
@@ -35,12 +34,8 @@ void main() async {
     return true; // mark as handled to avoid duplicate noisy logs
   };
 
-  runZonedGuarded(() {
-    runApp(const MyApp());
-  }, (Object error, StackTrace stack) {
-    debugPrint('[ZoneError] $error');
-    debugPrint(stack.toString());
-  });
+  // Important: runApp in the same zone where bindings were initialized.
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

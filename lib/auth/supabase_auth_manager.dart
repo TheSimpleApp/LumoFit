@@ -244,7 +244,8 @@ class SupabaseAuthManager extends AuthManager with EmailSignInManager {
       );
 
       if (userData != null) {
-        return app.UserModel.fromJson(userData);
+        // Map snake_case columns from Supabase to our app model
+        return app.UserModel.fromSupabaseJson(userData);
       }
       return null;
     } catch (e) {

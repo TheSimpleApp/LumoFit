@@ -64,6 +64,50 @@ class OpenAIClient {
     return last ?? http.Response('{"error":"request_failed"}', 500);
   }
 
+  /// Generic text generation for assistant answers (gpt-4o family)
+  /// Returns the assistant message content, or a friendly fallback on failure.
+  Future<String> generateText({
+    required String systemPrompt,
+    required String userText,
+    String model = 'gpt-4o',
+  }) async {
+    if (apiKey.isEmpty || endpoint.isEmpty) {
+      debugPrint('OpenAI env vars missing; cannot call generateText');
+      return 'Sorry, the AI is temporarily unavailable.';
+    }
+
+    final body = {
+      'model': model,
+      'messages': [
+        {'role': 'system', 'content': systemPrompt},
+        {
+          'role': 'user',
+          'content': [
+            {'type': 'text', 'text': userText.trim()},
+          ]
+        }
+      ]
+    };
+
+    final res = await _postWithRetry(body);
+    if (res.statusCode != 200) {
+      debugPrint('OpenAI generateText failed: ${res.statusCode} ${res.body}');
+      return 'Sorry, the AI is busy. Please try again in a moment.';
+    }
+
+    try {
+      final data = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      final content = ((data['choices'] as List).first as Map)['message']['content'] as String?;
+      if (content == null || content.trim().isEmpty) {
+        return 'I couldn\'t generate a response. Please try again.';
+      }
+      return content.trim();
+    } catch (e) {
+      debugPrint('OpenAI generateText parse error: $e');
+      return 'Sorry, something went wrong parsing the AI response.';
+    }
+  }
+
   /// Moderate user-submitted text (reviews, captions, etc.)
   /// Returns [ModerationResult] indicating allow/reject and categories triggered.
   Future<ModerationResult> moderateText({required String text, String context = ''}) async {

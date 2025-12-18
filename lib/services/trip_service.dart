@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:fittravel/models/models.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
@@ -8,6 +9,7 @@ class TripService extends ChangeNotifier {
   String? _error;
   // tripId -> itinerary items (cached locally)
   final Map<String, List<ItineraryItem>> _itineraries = {};
+  StreamSubscription? _authSub;
 
   TripService();
 
@@ -40,6 +42,12 @@ class TripService extends ChangeNotifier {
   String? get _currentUserId => SupabaseConfig.auth.currentUser?.id;
 
   Future<void> initialize() async {
+    // Ensure we listen to auth changes exactly once
+    _authSub ??= SupabaseConfig.auth.onAuthStateChange.listen((event) async {
+      debugPrint('TripService: auth state changed, reloading trips');
+      await initialize();
+    });
+
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -47,6 +55,7 @@ class TripService extends ChangeNotifier {
     try {
       final userId = _currentUserId;
       if (userId == null) {
+        debugPrint('TripService.initialize: no auth user, clearing trips');
         _trips = [];
         _itineraries.clear();
         _isLoading = false;
@@ -140,8 +149,22 @@ class TripService extends ChangeNotifier {
         _error = null;
         notifyListeners();
         return trip;
+      } else {
+        // Some RLS setups allow insert but deny select on returning rows.
+        // As a resilient fallback, reload trips from backend and try to find the new one.
+        debugPrint('TripService.createTrip: insert returned empty, attempting fallback reload');
+        await initialize();
+        try {
+          final maybe = _trips.firstWhere((t) =>
+              t.userId == userId &&
+              t.destinationCity.toLowerCase() == destinationCity.toLowerCase() &&
+              t.startDate.year == startDate.year && t.startDate.month == startDate.month && t.startDate.day == startDate.day &&
+              t.endDate.year == endDate.year && t.endDate.month == endDate.month && t.endDate.day == endDate.day);
+          return maybe;
+        } catch (_) {
+          throw Exception('Trip created but could not load it due to RLS');
+        }
       }
-      throw Exception('Failed to create trip');
     } catch (e) {
       _error = 'Failed to create trip';
       debugPrint('TripService.createTrip error: $e');
@@ -382,5 +405,11 @@ class TripService extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 }

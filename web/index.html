@@ -24,6 +24,10 @@
   <!-- Note: This is a development key. Replace with your own restricted key when deploying. -->
   <meta name="google_maps_api_key" content="AIzaSyBCkxTR7keDd_gXjXOrj8pptvboMUfg-3Q">
 
+  <!-- Explicitly load Google Maps JS on web to avoid window.google undefined errors -->
+  <!-- google_maps_flutter_web will detect this and reuse it. -->
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBCkxTR7keDd_gXjXOrj8pptvboMUfg-3Q&v=weekly"></script>
+
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">

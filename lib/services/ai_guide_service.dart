@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
 import 'package:fittravel/models/ai_models.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+// We stick to Gemini via Supabase Edge Functions. No OpenAI fallback.
 
 /// AI Guide Service for Egypt-wide fitness recommendations
 ///
@@ -42,6 +43,8 @@ class AiGuideService {
         _cairoGuideFn,
         body: {
           'question': question,
+          // Prefer Gemini 2.5 Flash if the function supports model override
+          'model': 'gemini-2.5-flash',
           if (userLocation != null) 'userLocation': userLocation,
           if (fitnessLevel != null) 'fitnessLevel': fitnessLevel,
           if (dietaryPreferences != null && dietaryPreferences.isNotEmpty)
@@ -58,12 +61,14 @@ class AiGuideService {
 
       // If we reach here, either parsing failed or text is empty
       debugPrint('AiGuideService: Empty or invalid response from edge function: ${invokeRes.data}');
-      return 'Sorry, I couldn\'t generate a response. Please try again.';
+      return 'Sorry, I couldn\'t get a response right now. Please try again in a moment.';
     } catch (e) {
       debugPrint('AiGuideService.askCairoGuide error: $e');
       return 'Sorry, something went wrong. Please check your connection and try again.';
     }
   }
+
+  // OpenAI fallback removed per product decision – Gemini only.
 
   /// Get quick suggestion responses for common questions
   List<String> getQuickQuestions() {
@@ -134,7 +139,7 @@ class AiGuideService {
 
       debugPrint('AiGuideService: Invalid response from egypt_fitness_guide: ${invokeRes.data}');
       return const EgyptGuideResponse(
-        text: 'Sorry, I couldn\'t generate a response. Please try again.',
+        text: 'Sorry, I couldn\'t get a response right now. Please try again shortly.',
       );
     } catch (e) {
       debugPrint('AiGuideService.askEgyptGuide error: $e');

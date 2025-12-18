@@ -490,23 +490,33 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
     }
   }
 
-  void _createTrip() {
+  Future<void> _createTrip() async {
     if (_cityController.text.isEmpty) {
       HapticUtils.error();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a destination city'), behavior: SnackBarBehavior.floating));
       return;
     }
-    HapticUtils.success();
-    context.read<TripService>().createTrip(
-      destinationCity: _cityController.text,
-      destinationCountry: _countryController.text.isEmpty ? null : _countryController.text,
-      startDate: _startDate,
-      endDate: _endDate,
-    );
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Trip created • ${_cityController.text}! ✈️'), behavior: SnackBarBehavior.floating, backgroundColor: Theme.of(context).colorScheme.primary),
-    );
+    try {
+      final city = _cityController.text;
+      await context.read<TripService>().createTrip(
+            destinationCity: city,
+            destinationCountry: _countryController.text.isEmpty ? null : _countryController.text,
+            startDate: _startDate,
+            endDate: _endDate,
+          );
+      if (!mounted) return;
+      HapticUtils.success();
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Trip created • $city! ✈️'), behavior: SnackBarBehavior.floating, backgroundColor: Theme.of(context).colorScheme.primary),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      HapticUtils.error();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to create trip: $e'), behavior: SnackBarBehavior.floating, backgroundColor: Theme.of(context).colorScheme.error),
+      );
+    }
   }
 
   void _onCityChanged(String value) async {

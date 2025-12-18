@@ -27,6 +27,7 @@ dependencies:
   supabase_flutter: '>=1.10.0'
   # Map integration
   google_maps_flutter: ^2.5.3
+  google_maps_flutter_web: any
   google_maps_cluster_manager: ^3.0.0+1
   flutter_polyline_points: ^2.0.0
 
