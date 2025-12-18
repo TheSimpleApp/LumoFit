@@ -46,3 +46,7 @@ app.*.map.json
 
 .prompt_attachments
 *.hologram.dart
+
+# Local tool configs
+.config/
+.claude/
