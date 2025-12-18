@@ -38,11 +38,6 @@ class AiGuideService {
           if (dietaryPreferences != null && dietaryPreferences.isNotEmpty)
             'dietaryPreferences': dietaryPreferences,
         },
-        headers: {
-          // Ensure function works even when user isn't authenticated
-          'Authorization': 'Bearer ${SupabaseConfig.anonKey}',
-          'x-client-info': 'fittravel-cairo-guide'
-        },
       );
 
       // The edge function returns JSON { text: string }
