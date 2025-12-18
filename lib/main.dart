@@ -6,9 +6,13 @@ import 'package:fittravel/theme.dart';
 import 'package:fittravel/nav.dart';
 import 'package:fittravel/services/services.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
+import 'package:fittravel/config/app_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Validate app configuration (API keys, etc.)
+  AppConfig.validate();
 
   // Initialize Supabase
   await SupabaseConfig.initialize();
