@@ -102,6 +102,48 @@ class TripModel {
   factory TripModel.fromJsonString(String source) =>
       TripModel.fromJson(jsonDecode(source) as Map<String, dynamic>);
 
+  /// Create from Supabase JSON (snake_case keys)
+  /// savedPlaceIds comes from join with trip_places table
+  factory TripModel.fromSupabaseJson(
+    Map<String, dynamic> json, {
+    List<String>? savedPlaceIds,
+  }) {
+    return TripModel(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      destinationCity: json['destination_city'] as String,
+      destinationCountry: json['destination_country'] as String?,
+      startDate: DateTime.parse(json['start_date'] as String),
+      endDate: DateTime.parse(json['end_date'] as String),
+      isActive: json['is_active'] as bool? ?? false,
+      notes: json['notes'] as String?,
+      imageUrl: json['image_url'] as String?,
+      savedPlaceIds: savedPlaceIds ?? [],
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : DateTime.now(),
+    );
+  }
+
+  /// Convert to Supabase JSON (snake_case keys)
+  /// Note: savedPlaceIds are stored in trip_places junction table, not here
+  Map<String, dynamic> toSupabaseJson(String userId) {
+    return {
+      'user_id': userId,
+      'destination_city': destinationCity,
+      'destination_country': destinationCountry,
+      'start_date': startDate.toIso8601String().split('T')[0],
+      'end_date': endDate.toIso8601String().split('T')[0],
+      'is_active': isActive,
+      'notes': notes,
+      'image_url': imageUrl,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+  }
+
   int get durationDays => endDate.difference(startDate).inDays + 1;
 
   bool get isUpcoming => startDate.isAfter(DateTime.now());

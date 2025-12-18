@@ -1,59 +1,78 @@
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 import 'package:fittravel/models/models.dart';
-import 'package:fittravel/services/storage_service.dart';
+import 'package:fittravel/supabase/supabase_config.dart';
 
 class UserService extends ChangeNotifier {
-  final StorageService _storage;
   UserModel? _currentUser;
   bool _isLoading = false;
+  String? _error;
 
-  UserService(this._storage);
+  UserService();
 
   UserModel? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   bool get hasUser => _currentUser != null;
+  String? get error => _error;
 
-  /// Initialize the service - load user from storage or create default
+  /// Get current authenticated user ID
+  String? get _currentUserId => SupabaseConfig.auth.currentUser?.id;
+
+  /// Initialize the service - load user from Supabase
   Future<void> initialize() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
-      final json = _storage.getJson(StorageKeys.userProfile);
-      if (json != null) {
-        _currentUser = UserModel.fromJson(json);
+      final userId = _currentUserId;
+      if (userId == null) {
+        // No authenticated user
+        _currentUser = null;
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      // Fetch user profile from Supabase
+      final userData = await SupabaseService.selectSingle(
+        'users',
+        filters: {'id': userId},
+      );
+
+      if (userData != null) {
+        _currentUser = UserModel.fromSupabaseJson(userData);
       } else {
-        // Create default sample user
-        await _createSampleUser();
+        // User authenticated but no profile - this shouldn't happen
+        // as SupabaseAuthManager creates profile on signup
+        debugPrint('UserService: No profile found for user $userId');
+        _currentUser = null;
       }
     } catch (e) {
+      _error = 'Failed to load user profile';
       debugPrint('UserService.initialize error: $e');
-      await _createSampleUser();
+      _currentUser = null;
     }
 
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<void> _createSampleUser() async {
-    _currentUser = UserModel(
-      id: const Uuid().v4(),
-      displayName: 'Fit Traveler',
-      email: 'traveler@fittravel.app',
-      homeCity: 'Salt Lake City, UT',
-      fitnessLevel: FitnessLevel.intermediate,
-      dietaryPreferences: ['High Protein', 'Low Carb'],
-      currentStreak: 7,
-      longestStreak: 14,
-      totalXp: 2450,
-    );
-    await _saveUser();
-  }
-
+  /// Save user profile to Supabase
   Future<void> _saveUser() async {
-    if (_currentUser == null) return;
-    await _storage.setJson(StorageKeys.userProfile, _currentUser!.toJson());
+    if (_currentUser == null || _currentUserId == null) return;
+
+    try {
+      await SupabaseService.update(
+        'users',
+        _currentUser!.toSupabaseJson(),
+        filters: {'id': _currentUserId!},
+      );
+      _error = null;
+    } catch (e) {
+      _error = 'Failed to save user profile';
+      debugPrint('UserService._saveUser error: $e');
+      notifyListeners();
+    }
   }
 
   Future<void> updateUser(UserModel user) async {
@@ -124,9 +143,16 @@ class UserService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> clearUser() async {
-    await _storage.remove(StorageKeys.userProfile);
+  /// Clear local user state (called on logout)
+  void clearUser() {
     _currentUser = null;
+    _error = null;
+    notifyListeners();
+  }
+
+  /// Clear any error state
+  void clearError() {
+    _error = null;
     notifyListeners();
   }
 }

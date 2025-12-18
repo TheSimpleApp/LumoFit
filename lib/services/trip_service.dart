@@ -1,16 +1,15 @@
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 import 'package:fittravel/models/models.dart';
-import 'package:fittravel/services/storage_service.dart';
+import 'package:fittravel/supabase/supabase_config.dart';
 
 class TripService extends ChangeNotifier {
-  final StorageService _storage;
   List<TripModel> _trips = [];
   bool _isLoading = false;
-  // tripId -> itinerary items
+  String? _error;
+  // tripId -> itinerary items (cached locally)
   final Map<String, List<ItineraryItem>> _itineraries = {};
 
-  TripService(this._storage);
+  TripService();
 
   List<TripModel> get trips => _trips;
   List<TripModel> get upcomingTrips => _trips.where((t) => t.isUpcoming).toList();
@@ -24,89 +23,75 @@ class TripService extends ChangeNotifier {
     }
   }
   bool get isLoading => _isLoading;
+  String? get error => _error;
+
+  /// Get current authenticated user ID
+  String? get _currentUserId => SupabaseConfig.auth.currentUser?.id;
 
   Future<void> initialize() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
-      final jsonList = _storage.getJsonList(StorageKeys.trips);
-      if (jsonList != null && jsonList.isNotEmpty) {
-        _trips = jsonList.map((j) => TripModel.fromJson(j)).toList();
-      } else {
-        await _loadSampleData();
+      final userId = _currentUserId;
+      if (userId == null) {
+        _trips = [];
+        _itineraries.clear();
+        _isLoading = false;
+        notifyListeners();
+        return;
       }
 
-      // Load itineraries map
-      final map = _storage.getJson(StorageKeys.tripItineraries);
-      if (map != null) {
-        _itineraries.clear();
-        map.forEach((key, value) {
-          try {
-            final list = (value as List<dynamic>)
-                .map((e) => ItineraryItem.fromJson(e as Map<String, dynamic>))
-                .toList();
-            _itineraries[key] = list;
-          } catch (e) {
-            debugPrint('TripService.initialize itinerary parse error for $key: $e');
-          }
-        });
-      }
+      // Fetch trips with joined trip_places for savedPlaceIds
+      final tripsData = await SupabaseConfig.client
+          .from('trips')
+          .select('*, trip_places(place_id)')
+          .eq('user_id', userId)
+          .order('start_date', ascending: false);
+
+      _trips = (tripsData as List).map((json) {
+        final placeIds = (json['trip_places'] as List?)
+                ?.map((tp) => tp['place_id'] as String)
+                .toList() ??
+            [];
+        return TripModel.fromSupabaseJson(json, savedPlaceIds: placeIds);
+      }).toList();
+
+      // Load all itineraries for user's trips
+      await _loadAllItineraries();
     } catch (e) {
+      _error = 'Failed to load trips';
       debugPrint('TripService.initialize error: $e');
-      await _loadSampleData();
+      _trips = [];
     }
 
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<void> _loadSampleData() async {
-    final now = DateTime.now();
-    _trips = [
-      TripModel(
-        id: const Uuid().v4(),
-        userId: 'sample-user',
-        destinationCity: 'Salt Lake City',
-        destinationCountry: 'USA',
-        startDate: now.subtract(const Duration(days: 2)),
-        endDate: now.add(const Duration(days: 5)),
-        isActive: true,
-        notes: 'Exploring the fitness scene in SLC!',
-      ),
-      TripModel(
-        id: const Uuid().v4(),
-        userId: 'sample-user',
-        destinationCity: 'Denver',
-        destinationCountry: 'USA',
-        startDate: now.add(const Duration(days: 14)),
-        endDate: now.add(const Duration(days: 21)),
-        notes: 'Mountain fitness adventure',
-      ),
-      TripModel(
-        id: const Uuid().v4(),
-        userId: 'sample-user',
-        destinationCity: 'San Diego',
-        destinationCountry: 'USA',
-        startDate: now.subtract(const Duration(days: 30)),
-        endDate: now.subtract(const Duration(days: 25)),
-        notes: 'Beach workouts completed!',
-      ),
-    ];
-    await _saveTrips();
-  }
+  Future<void> _loadAllItineraries() async {
+    if (_trips.isEmpty) return;
 
-  Future<void> _saveTrips() async {
-    final jsonList = _trips.map((t) => t.toJson()).toList();
-    await _storage.setJsonList(StorageKeys.trips, jsonList);
-  }
+    final tripIds = _trips.map((t) => t.id).toList();
 
-  Future<void> _saveItineraries() async {
-    final map = <String, dynamic>{};
-    _itineraries.forEach((tripId, items) {
-      map[tripId] = items.map((e) => e.toJson()).toList();
-    });
-    await _storage.setJson(StorageKeys.tripItineraries, map);
+    try {
+      final items = await SupabaseConfig.client
+          .from('itinerary_items')
+          .select()
+          .inFilter('trip_id', tripIds)
+          .order('date')
+          .order('start_time');
+
+      _itineraries.clear();
+      for (final item in items) {
+        final tripId = item['trip_id'] as String;
+        _itineraries.putIfAbsent(tripId, () => []);
+        _itineraries[tripId]!.add(ItineraryItem.fromSupabaseJson(item));
+      }
+    } catch (e) {
+      debugPrint('TripService._loadAllItineraries error: $e');
+    }
   }
 
   Future<TripModel> createTrip({
@@ -116,68 +101,162 @@ class TripService extends ChangeNotifier {
     required DateTime endDate,
     String? notes,
   }) async {
-    final trip = TripModel(
-      id: const Uuid().v4(),
-      userId: 'sample-user',
-      destinationCity: destinationCity,
-      destinationCountry: destinationCountry,
-      startDate: startDate,
-      endDate: endDate,
-      notes: notes,
-    );
-    _trips.add(trip);
-    await _saveTrips();
-    notifyListeners();
-    return trip;
+    final userId = _currentUserId;
+    if (userId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      final data = {
+        'user_id': userId,
+        'destination_city': destinationCity,
+        'destination_country': destinationCountry,
+        'start_date': startDate.toIso8601String().split('T')[0],
+        'end_date': endDate.toIso8601String().split('T')[0],
+        'notes': notes,
+        'is_active': false,
+      };
+
+      final result = await SupabaseService.insert('trips', data);
+
+      if (result.isNotEmpty) {
+        final trip = TripModel.fromSupabaseJson(result.first, savedPlaceIds: []);
+        _trips.insert(0, trip);
+        _error = null;
+        notifyListeners();
+        return trip;
+      }
+      throw Exception('Failed to create trip');
+    } catch (e) {
+      _error = 'Failed to create trip';
+      debugPrint('TripService.createTrip error: $e');
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> updateTrip(TripModel trip) async {
-    final index = _trips.indexWhere((t) => t.id == trip.id);
-    if (index >= 0) {
-      _trips[index] = trip.copyWith(updatedAt: DateTime.now());
-      await _saveTrips();
+    final userId = _currentUserId;
+    if (userId == null) return;
+
+    try {
+      await SupabaseService.update(
+        'trips',
+        trip.toSupabaseJson(userId),
+        filters: {'id': trip.id},
+      );
+
+      final index = _trips.indexWhere((t) => t.id == trip.id);
+      if (index >= 0) {
+        _trips[index] = trip.copyWith(updatedAt: DateTime.now());
+        _error = null;
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = 'Failed to update trip';
+      debugPrint('TripService.updateTrip error: $e');
       notifyListeners();
     }
   }
 
   Future<void> deleteTrip(String tripId) async {
-    _trips.removeWhere((t) => t.id == tripId);
-    _itineraries.remove(tripId);
-    await _saveTrips();
-    await _saveItineraries();
-    notifyListeners();
+    try {
+      // Delete trip (cascade will handle trip_places and itinerary_items)
+      await SupabaseService.delete('trips', filters: {'id': tripId});
+
+      _trips.removeWhere((t) => t.id == tripId);
+      _itineraries.remove(tripId);
+      _error = null;
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to delete trip';
+      debugPrint('TripService.deleteTrip error: $e');
+      notifyListeners();
+    }
   }
 
   Future<void> setActiveTrip(String tripId) async {
-    for (int i = 0; i < _trips.length; i++) {
-      _trips[i] = _trips[i].copyWith(isActive: _trips[i].id == tripId);
+    final userId = _currentUserId;
+    if (userId == null) return;
+
+    try {
+      // First, deactivate all trips for this user
+      await SupabaseConfig.client
+          .from('trips')
+          .update({'is_active': false})
+          .eq('user_id', userId);
+
+      // Then activate the selected trip
+      await SupabaseConfig.client
+          .from('trips')
+          .update({'is_active': true})
+          .eq('id', tripId);
+
+      // Update local state
+      for (int i = 0; i < _trips.length; i++) {
+        _trips[i] = _trips[i].copyWith(isActive: _trips[i].id == tripId);
+      }
+      _error = null;
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to set active trip';
+      debugPrint('TripService.setActiveTrip error: $e');
+      notifyListeners();
     }
-    await _saveTrips();
-    notifyListeners();
   }
 
   Future<void> addPlaceToTrip(String tripId, String placeId) async {
-    final index = _trips.indexWhere((t) => t.id == tripId);
-    if (index >= 0) {
-      final trip = _trips[index];
-      if (!trip.savedPlaceIds.contains(placeId)) {
-        _trips[index] = trip.copyWith(
-          savedPlaceIds: [...trip.savedPlaceIds, placeId],
+    try {
+      // Check if already exists
+      final existing = await SupabaseService.selectSingle(
+        'trip_places',
+        filters: {'trip_id': tripId, 'place_id': placeId},
+      );
+
+      if (existing != null) return;
+
+      // Insert into junction table
+      await SupabaseService.insert('trip_places', {
+        'trip_id': tripId,
+        'place_id': placeId,
+      });
+
+      // Update local state
+      final index = _trips.indexWhere((t) => t.id == tripId);
+      if (index >= 0 && !_trips[index].savedPlaceIds.contains(placeId)) {
+        _trips[index] = _trips[index].copyWith(
+          savedPlaceIds: [..._trips[index].savedPlaceIds, placeId],
         );
-        await _saveTrips();
+        _error = null;
         notifyListeners();
       }
+    } catch (e) {
+      _error = 'Failed to add place to trip';
+      debugPrint('TripService.addPlaceToTrip error: $e');
+      notifyListeners();
     }
   }
 
   Future<void> removePlaceFromTrip(String tripId, String placeId) async {
-    final index = _trips.indexWhere((t) => t.id == tripId);
-    if (index >= 0) {
-      final trip = _trips[index];
-      _trips[index] = trip.copyWith(
-        savedPlaceIds: trip.savedPlaceIds.where((id) => id != placeId).toList(),
-      );
-      await _saveTrips();
+    try {
+      await SupabaseConfig.client
+          .from('trip_places')
+          .delete()
+          .eq('trip_id', tripId)
+          .eq('place_id', placeId);
+
+      // Update local state
+      final index = _trips.indexWhere((t) => t.id == tripId);
+      if (index >= 0) {
+        _trips[index] = _trips[index].copyWith(
+          savedPlaceIds: _trips[index].savedPlaceIds.where((id) => id != placeId).toList(),
+        );
+        _error = null;
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = 'Failed to remove place from trip';
+      debugPrint('TripService.removePlaceFromTrip error: $e');
       notifyListeners();
     }
   }
@@ -202,32 +281,66 @@ class TripService extends ChangeNotifier {
   }
 
   Future<void> addItineraryItem(String tripId, ItineraryItem item) async {
-    final list = _itineraries.putIfAbsent(tripId, () => []);
-    list.add(item);
-    await _saveItineraries();
-    notifyListeners();
+    try {
+      final data = item.toSupabaseJson(tripId);
+      final result = await SupabaseService.insert('itinerary_items', data);
+
+      if (result.isNotEmpty) {
+        final newItem = ItineraryItem.fromSupabaseJson(result.first);
+        final list = _itineraries.putIfAbsent(tripId, () => []);
+        list.add(newItem);
+        _error = null;
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = 'Failed to add itinerary item';
+      debugPrint('TripService.addItineraryItem error: $e');
+      notifyListeners();
+    }
   }
 
   Future<void> updateItineraryItem(String tripId, ItineraryItem item) async {
-    final list = _itineraries[tripId];
-    if (list == null) return;
-    final idx = list.indexWhere((e) => e.id == item.id);
-    if (idx >= 0) list[idx] = item;
-    await _saveItineraries();
-    notifyListeners();
+    try {
+      await SupabaseService.update(
+        'itinerary_items',
+        item.toSupabaseJson(tripId),
+        filters: {'id': item.id},
+      );
+
+      final list = _itineraries[tripId];
+      if (list != null) {
+        final idx = list.indexWhere((e) => e.id == item.id);
+        if (idx >= 0) list[idx] = item;
+        _error = null;
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = 'Failed to update itinerary item';
+      debugPrint('TripService.updateItineraryItem error: $e');
+      notifyListeners();
+    }
   }
 
   Future<void> removeItineraryItem(String tripId, String itemId) async {
-    final list = _itineraries[tripId];
-    if (list == null) return;
-    list.removeWhere((e) => e.id == itemId);
-    await _saveItineraries();
-    notifyListeners();
+    try {
+      await SupabaseService.delete('itinerary_items', filters: {'id': itemId});
+
+      final list = _itineraries[tripId];
+      if (list != null) {
+        list.removeWhere((e) => e.id == itemId);
+        _error = null;
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = 'Failed to remove itinerary item';
+      debugPrint('TripService.removeItineraryItem error: $e');
+      notifyListeners();
+    }
   }
 
   Future<void> reorderItinerary(String tripId, List<ItineraryItem> newOrder) async {
+    // For now, just update local state - full reorder would need order column in DB
     _itineraries[tripId] = List<ItineraryItem>.from(newOrder);
-    await _saveItineraries();
     notifyListeners();
   }
 
@@ -241,4 +354,18 @@ class TripService extends ChangeNotifier {
 
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
+
+  /// Clear local state (called on logout)
+  void clearTrips() {
+    _trips = [];
+    _itineraries.clear();
+    _error = null;
+    notifyListeners();
+  }
+
+  /// Clear any error state
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
 }

@@ -104,6 +104,47 @@ class ActivityModel {
   factory ActivityModel.fromJsonString(String source) =>
       ActivityModel.fromJson(jsonDecode(source) as Map<String, dynamic>);
 
+  /// Create from Supabase JSON (snake_case keys)
+  factory ActivityModel.fromSupabaseJson(Map<String, dynamic> json) {
+    return ActivityModel(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      tripId: json['trip_id'] as String?,
+      type: ActivityType.values.firstWhere(
+        (e) => e.name == json['activity_type'],
+        orElse: () => ActivityType.other,
+      ),
+      placeId: json['place_id'] as String?,
+      title: json['title'] as String,
+      description: json['description'] as String?,
+      durationMinutes: json['duration_minutes'] as int?,
+      caloriesBurned: json['calories_burned'] as int?,
+      xpEarned: json['xp_earned'] as int? ?? 0,
+      completedAt: json['completed_at'] != null
+          ? DateTime.parse(json['completed_at'] as String)
+          : DateTime.now(),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+    );
+  }
+
+  /// Convert to Supabase JSON (snake_case keys) for insert/update
+  Map<String, dynamic> toSupabaseJson(String userId) {
+    return {
+      'user_id': userId,
+      'trip_id': tripId,
+      'activity_type': type.name,
+      'place_id': placeId,
+      'title': title,
+      'description': description,
+      'duration_minutes': durationMinutes,
+      'calories_burned': caloriesBurned,
+      'xp_earned': xpEarned,
+      'completed_at': completedAt.toIso8601String(),
+    };
+  }
+
   String get typeEmoji {
     switch (type) {
       case ActivityType.workout:

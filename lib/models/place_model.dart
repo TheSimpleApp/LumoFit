@@ -150,6 +150,64 @@ class PlaceModel {
   factory PlaceModel.fromJsonString(String source) =>
       PlaceModel.fromJson(jsonDecode(source) as Map<String, dynamic>);
 
+  /// Create from Supabase JSON (snake_case keys)
+  factory PlaceModel.fromSupabaseJson(Map<String, dynamic> json) {
+    return PlaceModel(
+      id: json['id'] as String,
+      googlePlaceId: json['google_place_id'] as String?,
+      type: PlaceType.values.firstWhere(
+        (e) => e.name == json['place_type'],
+        orElse: () => PlaceType.other,
+      ),
+      name: json['name'] as String,
+      address: json['address'] as String?,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      rating: (json['rating'] as num?)?.toDouble(),
+      userRatingsTotal: json['user_ratings_total'] as int?,
+      photoReference: json['photo_reference'] as String?,
+      phoneNumber: json['phone_number'] as String?,
+      website: json['website'] as String?,
+      openingHours: (json['opening_hours'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      priceLevel: json['price_level'] as String?,
+      notes: json['notes'] as String?,
+      isVisited: json['is_visited'] as bool? ?? false,
+      visitedAt: json['visited_at'] != null
+          ? DateTime.parse(json['visited_at'] as String)
+          : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+      userId: json['user_id'] as String?,
+    );
+  }
+
+  /// Convert to Supabase JSON (snake_case keys) for insert/update
+  Map<String, dynamic> toSupabaseJson(String userId) {
+    return {
+      'user_id': userId,
+      'google_place_id': googlePlaceId,
+      'place_type': type.name,
+      'name': name,
+      'address': address,
+      'latitude': latitude,
+      'longitude': longitude,
+      'rating': rating,
+      'user_ratings_total': userRatingsTotal,
+      'photo_reference': photoReference,
+      'phone_number': phoneNumber,
+      'website': website,
+      'opening_hours': openingHours,
+      'price_level': priceLevel,
+      'notes': notes,
+      'is_visited': isVisited,
+      'visited_at': visitedAt?.toIso8601String(),
+    };
+  }
+
   String get typeEmoji {
     switch (type) {
       case PlaceType.gym:

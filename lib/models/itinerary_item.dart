@@ -69,4 +69,30 @@ class ItineraryItem {
 
   factory ItineraryItem.fromJsonString(String source) =>
       ItineraryItem.fromJson(jsonDecode(source) as Map<String, dynamic>);
+
+  /// Create from Supabase JSON (snake_case keys)
+  factory ItineraryItem.fromSupabaseJson(Map<String, dynamic> json) {
+    return ItineraryItem(
+      id: json['id'] as String,
+      date: DateTime.parse(json['date'] as String),
+      startTime: json['start_time'] as String?,
+      durationMinutes: json['duration_minutes'] as int?,
+      placeId: json['place_id'] as String?,
+      title: json['title'] as String? ?? '',
+      notes: json['notes'] as String?,
+    );
+  }
+
+  /// Convert to Supabase JSON (snake_case keys) for insert/update
+  Map<String, dynamic> toSupabaseJson(String tripId) {
+    return {
+      'trip_id': tripId,
+      'date': DateTime(date.year, date.month, date.day).toIso8601String().split('T')[0],
+      'start_time': startTime,
+      'duration_minutes': durationMinutes,
+      'place_id': placeId,
+      'title': title,
+      'notes': notes,
+    };
+  }
 }
