@@ -1,76 +1,136 @@
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
-import 'package:fittravel/services/storage_service.dart';
 import 'package:fittravel/models/quick_photo.dart';
+import 'package:fittravel/supabase/supabase_config.dart';
 
-/// Manages quick-added photos captured from the camera before assignment
+/// Manages quick-added photos captured from the camera before assignment via Supabase.
 class QuickPhotoService extends ChangeNotifier {
-  final StorageService _storage;
   List<QuickPhoto> _photos = [];
   bool _isLoading = false;
+  String? _error;
 
-  QuickPhotoService(this._storage);
+  QuickPhotoService();
 
   bool get isLoading => _isLoading;
   List<QuickPhoto> get photos => _photos;
+  String? get error => _error;
+
+  /// Get current authenticated user ID
+  String? get _currentUserId => SupabaseConfig.auth.currentUser?.id;
 
   Future<void> initialize() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
+
     try {
-      final jsonList = _storage.getJsonList(StorageKeys.quickPhotos);
-      if (jsonList != null) {
-        _photos = jsonList.map((j) => QuickPhoto.fromJson(j)).toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      } else {
+      final userId = _currentUserId;
+      if (userId == null) {
         _photos = [];
+        _isLoading = false;
+        notifyListeners();
+        return;
       }
+
+      // Load user's quick photos from Supabase
+      final photosData = await SupabaseConfig.client
+          .from('quick_photos')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+
+      _photos = (photosData as List)
+          .map((json) => QuickPhoto.fromSupabaseJson(json))
+          .toList();
     } catch (e) {
+      _error = 'Failed to load quick photos';
       debugPrint('QuickPhotoService.initialize error: $e');
       _photos = [];
     }
+
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<void> _saveAll() async {
-    try {
-      final jsonList = _photos.map((p) => p.toJson()).toList();
-      await _storage.setJsonList(StorageKeys.quickPhotos, jsonList);
-    } catch (e) {
-      debugPrint('QuickPhotoService._saveAll error: $e');
-    }
-  }
-
   Future<QuickPhoto> addPhotoDataUrl({
     required String dataUrl,
-    String? userId,
   }) async {
-    final photo = QuickPhoto(
-      id: const Uuid().v4(),
-      imageUrl: dataUrl,
-      userId: userId,
-    );
-    _photos.insert(0, photo);
-    await _saveAll();
-    notifyListeners();
-    return photo;
+    final userId = _currentUserId;
+    if (userId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      final data = {
+        'user_id': userId,
+        'image_url': dataUrl,
+        'place_id': null,
+      };
+
+      final result = await SupabaseService.insert('quick_photos', data);
+
+      if (result.isNotEmpty) {
+        final photo = QuickPhoto.fromSupabaseJson(result.first);
+        _photos.insert(0, photo);
+        _error = null;
+        notifyListeners();
+        return photo;
+      }
+      throw Exception('Failed to add quick photo');
+    } catch (e) {
+      _error = 'Failed to add quick photo';
+      debugPrint('QuickPhotoService.addPhotoDataUrl error: $e');
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> assignToPlace({
     required String photoId,
     required String placeId,
   }) async {
-    final index = _photos.indexWhere((p) => p.id == photoId);
-    if (index == -1) return;
-    _photos[index] = _photos[index].copyWith(placeId: placeId);
-    await _saveAll();
-    notifyListeners();
+    try {
+      await SupabaseConfig.client
+          .from('quick_photos')
+          .update({'place_id': placeId})
+          .eq('id', photoId);
+
+      final index = _photos.indexWhere((p) => p.id == photoId);
+      if (index >= 0) {
+        _photos[index] = _photos[index].copyWith(placeId: placeId);
+        _error = null;
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = 'Failed to assign photo to place';
+      debugPrint('QuickPhotoService.assignToPlace error: $e');
+      notifyListeners();
+    }
   }
 
   Future<void> delete(String photoId) async {
-    _photos.removeWhere((p) => p.id == photoId);
-    await _saveAll();
+    try {
+      await SupabaseService.delete('quick_photos', filters: {'id': photoId});
+
+      _photos.removeWhere((p) => p.id == photoId);
+      _error = null;
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to delete quick photo';
+      debugPrint('QuickPhotoService.delete error: $e');
+      notifyListeners();
+    }
+  }
+
+  /// Clear local state (called on logout)
+  void clearPhotos() {
+    _photos = [];
+    _error = null;
+    notifyListeners();
+  }
+
+  /// Clear any error state
+  void clearError() {
+    _error = null;
     notifyListeners();
   }
 }

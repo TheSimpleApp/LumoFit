@@ -51,4 +51,23 @@ class CommunityPhoto {
   String toJsonString() => jsonEncode(toJson());
   factory CommunityPhoto.fromJsonString(String source) =>
       CommunityPhoto.fromJson(jsonDecode(source) as Map<String, dynamic>);
+
+  /// Create from Supabase JSON (snake_case keys)
+  factory CommunityPhoto.fromSupabaseJson(Map<String, dynamic> json) =>
+      CommunityPhoto(
+        id: json['id'] as String,
+        placeId: json['place_id'] as String,
+        userId: json['user_id'] as String?,
+        imageUrl: json['image_url'] as String,
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'] as String)
+            : DateTime.now(),
+      );
+
+  /// Convert to Supabase JSON (snake_case keys) for insert/update
+  Map<String, dynamic> toSupabaseJson(String userId) => {
+        'place_id': placeId,
+        'user_id': userId,
+        'image_url': imageUrl,
+      };
 }

@@ -57,4 +57,25 @@ class ReviewModel {
   String toJsonString() => jsonEncode(toJson());
   factory ReviewModel.fromJsonString(String source) =>
       ReviewModel.fromJson(jsonDecode(source) as Map<String, dynamic>);
+
+  /// Create from Supabase JSON (snake_case keys)
+  factory ReviewModel.fromSupabaseJson(Map<String, dynamic> json) =>
+      ReviewModel(
+        id: json['id'] as String,
+        placeId: json['place_id'] as String,
+        userId: json['user_id'] as String?,
+        rating: json['rating'] as int,
+        text: json['text'] as String?,
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'] as String)
+            : DateTime.now(),
+      );
+
+  /// Convert to Supabase JSON (snake_case keys) for insert/update
+  Map<String, dynamic> toSupabaseJson(String userId) => {
+        'place_id': placeId,
+        'user_id': userId,
+        'rating': rating,
+        'text': text,
+      };
 }

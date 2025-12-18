@@ -13,6 +13,10 @@ workflows:
     
     environment:
       ios_signing:
+        # Use manual code signing with the 'vibe' certificate that has accessible private key
+        certificates:
+          - reference_name: vibe
+        # Let Codemagic automatically create/find the profile for this bundle ID
         distribution_type: app_store
         bundle_identifier: com.simple.LumoFit
       vars:

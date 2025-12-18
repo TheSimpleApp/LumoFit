@@ -1,8 +1,8 @@
 # FitTravel Development Plan
 
-> **Current Phase:** Phase 9 - Database/Supabase Migration (Deferred)
-> **Last Updated:** Current Session
-> **Strategy:** UX-first MVP — hold DB until flows are proven
+> **Current Phase:** Phase 10 - Beta Testing & QA
+> **Last Updated:** December 2024
+> **Strategy:** Cloud-synced MVP ready for live beta testing
 
 ---
 
@@ -147,15 +147,41 @@
 - `lib/services/feedback_service.dart` (new)
 - `lib/nav.dart` (add route)
 
-### Phase 9: Database/Supabase Migration (Deferred)
-**Intent:** Migrate only after flows are validated.
+### Phase 9: Database/Supabase Migration ✅ COMPLETE
+**Intent:** Migrate all services from local storage to Supabase cloud database.
 
-- [ ] Replace local storage with Supabase tables + storage
-- [ ] Add admin tooling (web dashboard) after beta demand
+- [x] Supabase project setup with 15 tables and RLS policies
+- [x] Authentication integration (email/password signup/login)
+- [x] UserService → Supabase `users` table
+- [x] PlaceService → Supabase `saved_places` table
+- [x] TripService → Supabase `trips`, `trip_places`, `itinerary_items` tables
+- [x] ActivityService → Supabase `activities` table
+- [x] GamificationService → Supabase `badges`, `challenges`, `user_badges`, `user_challenges` tables
+- [x] ReviewService → Supabase `reviews` table
+- [x] CommunityPhotoService → Supabase `community_photos` table
+- [x] QuickPhotoService → Supabase `quick_photos` table
+- [x] FeedbackService → Supabase `feedback` table
+- [x] EventService → Edge Functions for external event aggregation
+- [x] Seed 14 badges and 5 challenges into database
+- [x] Remove StorageService dependency from all services and main.dart
 
-**Files likely involved:**
-- All service files (swap local storage for Supabase)
-- `lib/config/supabase_config.dart` (new)
+**Files modified:**
+- All service files in `lib/services/`
+- All model files in `lib/models/` (added Supabase JSON methods)
+- `lib/main.dart` (removed StorageService)
+- `lib/supabase/supabase_config.dart` (Supabase client + helper methods)
+
+### Phase 10: Beta Testing & QA (CURRENT)
+**Intent:** Validate app with real users and ensure production readiness.
+
+- [ ] Enable leaked password protection in Supabase Dashboard
+- [ ] End-to-end testing of auth flow (signup → login → logout)
+- [ ] End-to-end testing of trip creation and place saving
+- [ ] End-to-end testing of gamification (badge earning, XP)
+- [ ] Test on iOS simulator and Android emulator
+- [ ] TestFlight deployment for beta testers
+- [ ] Monitor Supabase logs for errors
+- [ ] Collect and address user feedback
 
 ---
 
@@ -178,7 +204,8 @@
 | contrib-menu-reviews | Add menu photo + reviews UX and AI-gated moderation states | 6 | ✅ DONE |
 | gamification-loop | Implement trip streak + XP milestones + badges surfaces | 7 | ✅ DONE |
 | inapp-feedback | Add feedback submission flow (and optional AI clarifier) | 8 | ✅ DONE |
-| supabase-migration | Replace local storage with Supabase | 9 | ⏳ DEFERRED |
+| supabase-migration | Replace local storage with Supabase | 9 | ✅ DONE |
+| beta-testing | End-to-end testing and TestFlight deployment | 10 | ⏳ IN PROGRESS |
 
 ---
 
@@ -212,8 +239,9 @@
 - Local state for UI-specific state
 
 ### Data Storage
-- **Current:** SharedPreferences for local storage (JSON serialization)
-- **Future (Phase 9):** Supabase (schema documented in knowledge.md)
+- **Current:** Supabase PostgreSQL database with Row-Level Security
+- **Authentication:** Supabase Auth (email/password)
+- **Schema:** 15 tables with RLS policies (documented in knowledge.md)
 
 ### APIs
 - **Google Places API** for location discovery (gyms, food, parks, trails)

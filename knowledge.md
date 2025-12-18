@@ -1,8 +1,8 @@
 # FitTravel Knowledge Base
 
-> **Last Updated:** Current Session
-> **Status:** Active Development — Phase 4 (Events Discovery) In Progress
-> **Strategy:** UX-first MVP — hold DB until flows are proven
+> **Last Updated:** December 2024
+> **Status:** Beta Ready — Phase 10 (Beta Testing & QA) In Progress
+> **Strategy:** Cloud-synced MVP with Supabase backend, ready for live beta testing
 
 ---
 
@@ -21,11 +21,18 @@
 
 ## 2. Backend
 
-The project is connected to Supabase (Dreamflow Supabase panel). The app currently uses **local storage (SharedPreferences)** for all data while we complete MVP flows. Database migration is **deferred to Phase 9** — only after UX is validated with users.
+The project is connected to Supabase (Dreamflow Supabase panel). **All data services now use Supabase** for cloud storage and sync. Phase 9 (Database Migration) was completed in December 2024.
 
-### 2.1 Future Supabase Schema (Phase 9)
+### Current Architecture
 
-When transitioning from local storage to Supabase, implement the following database schema:
+- **Database:** Supabase PostgreSQL with Row-Level Security (RLS)
+- **Authentication:** Supabase Auth (email/password)
+- **Storage:** Supabase Storage for community photos (planned)
+- **Edge Functions:** Event aggregation from Eventbrite + RunSignup APIs
+
+### 2.1 Current Supabase Schema
+
+The following database schema is **live and active**:
 
 #### Users Table
 ```sql
@@ -325,16 +332,35 @@ AIzaSyDReP4tFXyqU6W8PusrlZdFVFLAYwFr6ZA
 - MVP: text + screenshot attach (optional)
 - Optional: AI clarifier chat to help refine feature requests
 
-### Phase 9 — Database/Supabase Migration
-- Replace local storage with Supabase tables + storage
-- Add admin tooling (web dashboard) after beta demand
+### Phase 9 — Database/Supabase Migration ✅ COMPLETE
+
+- [x] Supabase project setup with 15 tables and RLS policies
+- [x] Authentication integration (email/password signup/login)
+- [x] All 8 data services migrated from SharedPreferences to Supabase
+- [x] Seeded 14 badges and 5 challenges into database
+- [x] Removed StorageService dependency from all services
+- [x] Created feedback table for user feedback collection
+- [ ] Add admin tooling (web dashboard) after beta demand
+
+### Phase 10 — Beta Testing & QA (CURRENT)
+
+- [ ] Enable leaked password protection in Supabase Dashboard
+- [ ] End-to-end testing of auth flow
+- [ ] End-to-end testing of trip creation and place saving
+- [ ] TestFlight deployment for beta testers
+- [ ] Critical path automated tests
 
 ---
 
-## 6. Local Storage Keys
+## 6. Data Storage
+
+**Current:** All user data is stored in Supabase PostgreSQL database with Row-Level Security ensuring data isolation between users.
+
+**Legacy (Deprecated):** The following SharedPreferences keys were used before Phase 9 migration and are no longer active:
 
 ```dart
-// SharedPreferences keys for local storage
+// DEPRECATED - No longer used after Phase 9 Supabase migration
+// Kept for reference only
 static const String kUserProfile = 'user_profile';
 static const String kSavedPlaces = 'saved_places';
 static const String kTrips = 'trips';
@@ -347,7 +373,7 @@ static const String kTripItineraries = 'trip_itineraries';
 static const String kCommunityPhotos = 'community_photos';
 static const String kQuickPhotos = 'quick_photos';
 static const String kReviews = 'reviews';
-static const String kHasSeenOnboarding = 'has_seen_onboarding';
+static const String kHasSeenOnboarding = 'has_seen_onboarding'; // Still used for onboarding state
 static const String kAllBadges = 'all_badges';
 static const String kAllChallenges = 'all_challenges';
 static const String kEvents = 'events'; // Phase 4
@@ -366,7 +392,7 @@ static const String kTrails = 'trails'; // Phase 5
 6. **Partnerships/affiliate economics** for events (future monetization path)
 7. **Current location** permissions: decide later if required for MVP
 8. **Meal photo logging** (Cal AI-like): keep out of MVP scope
-9. **No database work until UX flows are validated** with users (beta TestFlight)
+9. ~~**No database work until UX flows are validated**~~ → **COMPLETED:** Supabase migration done in Phase 9
 
 ---
 
@@ -393,7 +419,13 @@ static const String kTrails = 'trails'; // Phase 5
 | Session | QuickPhoto model/service added (local-first) + Profile “Quick Added Photos” gallery | Phase 4 |
 | Session | Home FAB switched to camera-first capture → saved to Quick Photos | Phase 4 |
 | Session | Discover TabBar polished (scrollable, no splash, responsive tabs) | Phase 4 |
-| Current | **Phase 4 IN PROGRESS** — Events surface live; polishing ongoing | Phase 4 🚧 |
+| Session | Events Edge Function deployed (Eventbrite + RunSignup aggregation) | Phase 4 |
+| Session | Supabase Auth integrated (email/password login/signup) | Phase 9 |
+| Session | All 8 data services migrated from SharedPreferences to Supabase | Phase 9 |
+| Session | Seeded 14 badges and 5 challenges into Supabase database | Phase 9 |
+| Session | Removed StorageService, updated main.dart | Phase 9 |
+| Session | Created feedback table in Supabase | Phase 9 |
+| Current | **Phase 10 IN PROGRESS** — Beta testing & QA | Phase 10 🚧 |
 
 ---
 
@@ -421,46 +453,96 @@ static const String kTrails = 'trails'; // Phase 5
 - Which AI moderation service? (OpenAI Moderation API, AWS Rekognition, etc.)
 - Do we need user reputation/trust score to reduce moderation load?
 
-### Phase 9 (Database)
-- Supabase RLS policies design
-- Admin dashboard requirements
-- Data migration strategy from local storage
+### Phase 9 (Database) ✅ RESOLVED
+
+- [x] Supabase RLS policies design → Implemented with user-based isolation
+- [x] Data migration strategy → All services migrated from SharedPreferences to Supabase
+- [ ] Admin dashboard requirements → Deferred until post-beta demand
 
 ---
 
 ## 11. Architecture Notes
 
-### Service Layer
-- `PlaceService`: Manages saved places, visited state
-- `TripService`: Manages trips, active trip, itinerary
-- `CommunityPhotoService`: Manages community photos (local storage for now)
-- `ReviewService`: Manages reviews (local storage for now)
-- `ActivityService`: Logs activities, XP calculation
-- `GamificationService`: Streaks, badges, challenges, XP system
-- `UserService`: Current user profile, preferences
-- `GooglePlacesService`: Google Places API wrapper
-- `StorageService`: SharedPreferences wrapper, JSON serialization
-- `EventService`: (Phase 4) Manages events discovery and saved events
-- `TrailService`: (Phase 5) Manages trails/routes discovery
+### Service Layer (All Supabase-Backed)
+
+- `UserService`: User profile, preferences → `users` table
+- `PlaceService`: Saved places, visited state → `saved_places` table
+- `TripService`: Trips, active trip, itinerary → `trips`, `trip_places`, `itinerary_items` tables
+- `ActivityService`: Activity logging, XP calculation → `activities` table
+- `GamificationService`: Streaks, badges, challenges → `badges`, `user_badges`, `challenges`, `user_challenges` tables
+- `ReviewService`: Place reviews → `reviews` table
+- `CommunityPhotoService`: Community photos → `community_photos` table
+- `QuickPhotoService`: Quick capture photos → `quick_photos` table
+- `FeedbackService`: User feedback → `feedback` table
+- `EventService`: Events discovery (Edge Function API)
+- `GooglePlacesService`: Google Places API wrapper (external API)
+- `TrailService`: (Phase 5) Trails/routes discovery
+
+### Supabase Integration
+
+- `SupabaseConfig`: Client initialization and auth access
+- `SupabaseService`: CRUD helper methods (select, insert, update, delete)
+- `SupabaseAuthManager`: Authentication state management
 
 ### Utilities
+
 - `HapticUtils`: Centralized haptic feedback patterns (light, medium, heavy, success, error, warning)
 
 ### State Management
+
 - **Provider** for app-wide state (services)
 - Local state for UI-specific state (search query, tab index, etc.)
+- Services use `ChangeNotifier` pattern with `notifyListeners()`
 
 ### Navigation
+
 - **go_router** for declarative routing
+- Auth guard redirects unauthenticated users to login
 - Bottom nav for main tabs (Home, Discover, Trips, Profile)
 - Modal routes for detail screens (Place Detail, Trip Detail, Event Detail)
 
 ---
 
-## 12. Testing Strategy (Future)
+## 12. Testing Strategy
 
-- Unit tests for service layer (data models, business logic)
-- Widget tests for critical flows (save place, mark visited, create trip)
-- Integration tests for end-to-end flows (discover → save → add to trip → mark visited)
-- Manual testing on iOS/Android/Web for cross-platform consistency
-- TestFlight beta for user validation before Phase 9 DB migration
+### Current Status
+
+Manual testing has been performed for core flows. Automated testing infrastructure is planned for Phase 10.
+
+### Planned Test Infrastructure
+
+**Unit Tests:**
+
+- Model serialization tests (JSON roundtrip for all models)
+- Service unit tests (TripService, PlaceService, UserService, GamificationService)
+- Business logic tests (XP calculation, streak tracking)
+
+**Widget Tests:**
+
+- LoginScreen form validation
+- Critical UI flows (save place, mark visited, create trip)
+- Empty state displays
+
+**Integration Tests:**
+
+- Auth flow (signup → login → redirect to home)
+- Trip creation flow (create trip → add place → view trip detail)
+- Place interaction flow (discover → save → add to trip → mark visited)
+
+**Manual Testing:**
+
+- iOS simulator testing
+- Android emulator testing
+- Cross-platform consistency verification
+- TestFlight beta deployment for real user validation
+
+### Test Dependencies (to add)
+
+```yaml
+dev_dependencies:
+  mocktail: ^1.0.3
+  build_runner: ^2.4.8
+  network_image_mock: ^2.1.1
+  integration_test:
+    sdk: flutter
+```

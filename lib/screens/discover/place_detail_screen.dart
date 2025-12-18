@@ -1257,12 +1257,10 @@ class _AddReviewSheetState extends State<_AddReviewSheet> {
       _isModerating = false;
       if (mounted) setState(() {});
 
-      final userId = context.read<UserService>().currentUser?.id;
       await context.read<ReviewService>().addReview(
             placeId: widget.placeId,
             rating: _rating,
             text: _controller.text.trim().isEmpty ? null : _controller.text.trim(),
-            userId: userId,
           );
       // Award XP for contribution and check XP badges
       await context.read<UserService>().addXp(20);

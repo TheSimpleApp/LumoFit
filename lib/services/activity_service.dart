@@ -1,14 +1,13 @@
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 import 'package:fittravel/models/models.dart';
-import 'package:fittravel/services/storage_service.dart';
+import 'package:fittravel/supabase/supabase_config.dart';
 
 class ActivityService extends ChangeNotifier {
-  final StorageService _storage;
   List<ActivityModel> _activities = [];
   bool _isLoading = false;
+  String? _error;
 
-  ActivityService(this._storage);
+  ActivityService();
 
   List<ActivityModel> get activities => _activities;
   List<ActivityModel> get todayActivities {
@@ -19,96 +18,51 @@ class ActivityService extends ChangeNotifier {
           a.completedAt.day == today.day;
     }).toList();
   }
+
   List<ActivityModel> get thisWeekActivities {
     final now = DateTime.now();
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
     return _activities.where((a) => a.completedAt.isAfter(weekStart)).toList();
   }
+
   bool get isLoading => _isLoading;
+  String? get error => _error;
+
+  /// Get current authenticated user ID
+  String? get _currentUserId => SupabaseConfig.auth.currentUser?.id;
 
   Future<void> initialize() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
-      final jsonList = _storage.getJsonList(StorageKeys.activities);
-      if (jsonList != null && jsonList.isNotEmpty) {
-        _activities = jsonList.map((j) => ActivityModel.fromJson(j)).toList();
-      } else {
-        await _loadSampleData();
+      final userId = _currentUserId;
+      if (userId == null) {
+        _activities = [];
+        _isLoading = false;
+        notifyListeners();
+        return;
       }
+
+      // Fetch user's activities from Supabase
+      final activitiesData = await SupabaseConfig.client
+          .from('activities')
+          .select()
+          .eq('user_id', userId)
+          .order('completed_at', ascending: false);
+
+      _activities = (activitiesData as List)
+          .map((json) => ActivityModel.fromSupabaseJson(json))
+          .toList();
     } catch (e) {
+      _error = 'Failed to load activities';
       debugPrint('ActivityService.initialize error: $e');
-      await _loadSampleData();
+      _activities = [];
     }
 
     _isLoading = false;
     notifyListeners();
-  }
-
-  Future<void> _loadSampleData() async {
-    final now = DateTime.now();
-    _activities = [
-      ActivityModel(
-        id: const Uuid().v4(),
-        userId: 'sample-user',
-        type: ActivityType.workout,
-        title: 'Morning Gym Session',
-        description: 'Full body workout at Vasa Fitness',
-        durationMinutes: 60,
-        caloriesBurned: 450,
-        xpEarned: 80,
-        completedAt: now.subtract(const Duration(hours: 4)),
-      ),
-      ActivityModel(
-        id: const Uuid().v4(),
-        userId: 'sample-user',
-        type: ActivityType.meal,
-        title: 'Healthy Lunch',
-        description: 'Grilled chicken salad at Cafe Zupas',
-        xpEarned: 20,
-        completedAt: now.subtract(const Duration(hours: 2)),
-      ),
-      ActivityModel(
-        id: const Uuid().v4(),
-        userId: 'sample-user',
-        type: ActivityType.walk,
-        title: 'Evening Walk',
-        description: 'Walk around Liberty Park',
-        durationMinutes: 30,
-        caloriesBurned: 150,
-        xpEarned: 25,
-        completedAt: now.subtract(const Duration(days: 1)),
-      ),
-      ActivityModel(
-        id: const Uuid().v4(),
-        userId: 'sample-user',
-        type: ActivityType.hike,
-        title: 'Ensign Peak Hike',
-        description: 'Morning hike with city views',
-        durationMinutes: 90,
-        caloriesBurned: 600,
-        xpEarned: 110,
-        completedAt: now.subtract(const Duration(days: 2)),
-      ),
-      ActivityModel(
-        id: const Uuid().v4(),
-        userId: 'sample-user',
-        type: ActivityType.yoga,
-        title: 'Hotel Room Yoga',
-        description: '20 min morning stretch',
-        durationMinutes: 20,
-        caloriesBurned: 80,
-        xpEarned: 35,
-        completedAt: now.subtract(const Duration(days: 2, hours: 10)),
-      ),
-    ];
-    await _saveActivities();
-  }
-
-  Future<void> _saveActivities() async {
-    final jsonList = _activities.map((a) => a.toJson()).toList();
-    await _storage.setJsonList(StorageKeys.activities, jsonList);
   }
 
   Future<ActivityModel> logActivity({
@@ -120,30 +74,57 @@ class ActivityService extends ChangeNotifier {
     int? durationMinutes,
     int? caloriesBurned,
   }) async {
+    final userId = _currentUserId;
+    if (userId == null) {
+      throw Exception('User not authenticated');
+    }
+
     final xp = ActivityModel.calculateXp(type, durationMinutes);
-    final activity = ActivityModel(
-      id: const Uuid().v4(),
-      userId: 'sample-user',
-      tripId: tripId,
-      type: type,
-      placeId: placeId,
-      title: title,
-      description: description,
-      durationMinutes: durationMinutes,
-      caloriesBurned: caloriesBurned,
-      xpEarned: xp,
-    );
-    
-    _activities.insert(0, activity);
-    await _saveActivities();
-    notifyListeners();
-    return activity;
+
+    try {
+      final data = {
+        'user_id': userId,
+        'trip_id': tripId,
+        'activity_type': type.name,
+        'place_id': placeId,
+        'title': title,
+        'description': description,
+        'duration_minutes': durationMinutes,
+        'calories_burned': caloriesBurned,
+        'xp_earned': xp,
+        'completed_at': DateTime.now().toIso8601String(),
+      };
+
+      final result = await SupabaseService.insert('activities', data);
+
+      if (result.isNotEmpty) {
+        final activity = ActivityModel.fromSupabaseJson(result.first);
+        _activities.insert(0, activity);
+        _error = null;
+        notifyListeners();
+        return activity;
+      }
+      throw Exception('Failed to log activity');
+    } catch (e) {
+      _error = 'Failed to log activity';
+      debugPrint('ActivityService.logActivity error: $e');
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> deleteActivity(String activityId) async {
-    _activities.removeWhere((a) => a.id == activityId);
-    await _saveActivities();
-    notifyListeners();
+    try {
+      await SupabaseService.delete('activities', filters: {'id': activityId});
+
+      _activities.removeWhere((a) => a.id == activityId);
+      _error = null;
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to delete activity';
+      debugPrint('ActivityService.deleteActivity error: $e');
+      notifyListeners();
+    }
   }
 
   List<ActivityModel> getActivitiesByTrip(String tripId) {
@@ -172,5 +153,18 @@ class ActivityService extends ChangeNotifier {
       counts[a.type] = (counts[a.type] ?? 0) + 1;
     }
     return counts;
+  }
+
+  /// Clear local state (called on logout)
+  void clearActivities() {
+    _activities = [];
+    _error = null;
+    notifyListeners();
+  }
+
+  /// Clear any error state
+  void clearError() {
+    _error = null;
+    notifyListeners();
   }
 }

@@ -1,295 +1,92 @@
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 import 'package:fittravel/models/models.dart';
-import 'package:fittravel/services/storage_service.dart';
+import 'package:fittravel/supabase/supabase_config.dart';
 
 class GamificationService extends ChangeNotifier {
-  final StorageService _storage;
   List<BadgeModel> _allBadges = [];
   List<UserBadgeModel> _userBadges = [];
   List<ChallengeModel> _allChallenges = [];
   List<UserChallengeModel> _userChallenges = [];
   bool _isLoading = false;
+  String? _error;
 
-  GamificationService(this._storage);
+  GamificationService();
 
   List<BadgeModel> get allBadges => _allBadges;
   List<UserBadgeModel> get userBadges => _userBadges;
   List<ChallengeModel> get allChallenges => _allChallenges;
-  List<ChallengeModel> get activeChallenges => _allChallenges.where((c) => c.isActive).toList();
+  List<ChallengeModel> get activeChallenges =>
+      _allChallenges.where((c) => c.isActive).toList();
   List<UserChallengeModel> get userChallenges => _userChallenges;
   bool get isLoading => _isLoading;
+  String? get error => _error;
+
+  /// Get current authenticated user ID
+  String? get _currentUserId => SupabaseConfig.auth.currentUser?.id;
 
   Future<void> initialize() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
-      // Load badges
-      final badgesJson = _storage.getJsonList(StorageKeys.allBadges);
-      if (badgesJson != null && badgesJson.isNotEmpty) {
-        _allBadges = badgesJson.map((j) => BadgeModel.fromJson(j)).toList();
+      // Load global badges (public read)
+      final badgesData = await SupabaseConfig.client
+          .from('badges')
+          .select()
+          .order('requirement_value');
+
+      _allBadges = (badgesData as List)
+          .map((json) => BadgeModel.fromSupabaseJson(json))
+          .toList();
+
+      // Load global challenges (public read)
+      final challengesData = await SupabaseConfig.client
+          .from('challenges')
+          .select()
+          .order('created_at');
+
+      _allChallenges = (challengesData as List)
+          .map((json) => ChallengeModel.fromSupabaseJson(json))
+          .toList();
+
+      // Load user-specific data if authenticated
+      final userId = _currentUserId;
+      if (userId != null) {
+        // Load user badges
+        final userBadgesData = await SupabaseConfig.client
+            .from('user_badges')
+            .select()
+            .eq('user_id', userId);
+
+        _userBadges = (userBadgesData as List)
+            .map((json) => UserBadgeModel.fromSupabaseJson(json))
+            .toList();
+
+        // Load user challenges
+        final userChallengesData = await SupabaseConfig.client
+            .from('user_challenges')
+            .select()
+            .eq('user_id', userId);
+
+        _userChallenges = (userChallengesData as List)
+            .map((json) => UserChallengeModel.fromSupabaseJson(json))
+            .toList();
       } else {
-        _loadDefaultBadges();
+        _userBadges = [];
+        _userChallenges = [];
       }
-
-      // Load user badges
-      final userBadgesJson = _storage.getJsonList(StorageKeys.userBadges);
-      if (userBadgesJson != null) {
-        _userBadges = userBadgesJson.map((j) => UserBadgeModel.fromJson(j)).toList();
-      }
-
-      // Load challenges
-      final challengesJson = _storage.getJsonList(StorageKeys.allChallenges);
-      if (challengesJson != null && challengesJson.isNotEmpty) {
-        _allChallenges = challengesJson.map((j) => ChallengeModel.fromJson(j)).toList();
-      } else {
-        _loadDefaultChallenges();
-      }
-
-      // Load user challenges
-      final userChallengesJson = _storage.getJsonList(StorageKeys.userChallenges);
-      if (userChallengesJson != null) {
-        _userChallenges = userChallengesJson.map((j) => UserChallengeModel.fromJson(j)).toList();
-      } else {
-        _assignDefaultChallenges();
-      }
-
-      await _saveAll();
     } catch (e) {
+      _error = 'Failed to load gamification data';
       debugPrint('GamificationService.initialize error: $e');
-      _loadDefaultBadges();
-      _loadDefaultChallenges();
-      _assignDefaultChallenges();
-      await _saveAll();
+      _allBadges = [];
+      _allChallenges = [];
+      _userBadges = [];
+      _userChallenges = [];
     }
 
     _isLoading = false;
     notifyListeners();
-  }
-
-  void _loadDefaultBadges() {
-    _allBadges = [
-      // Streak badges
-      BadgeModel(
-        id: 'badge-streak-3',
-        name: 'Getting Started',
-        description: 'Maintain a 3-day activity streak',
-        iconName: 'local_fire_department',
-        xpReward: 50,
-        requirementType: BadgeRequirementType.streak,
-        requirementValue: 3,
-        tier: 'bronze',
-      ),
-      BadgeModel(
-        id: 'badge-streak-7',
-        name: 'Week Warrior',
-        description: 'Maintain a 7-day activity streak',
-        iconName: 'local_fire_department',
-        xpReward: 150,
-        requirementType: BadgeRequirementType.streak,
-        requirementValue: 7,
-        tier: 'silver',
-      ),
-      BadgeModel(
-        id: 'badge-streak-30',
-        name: 'Monthly Master',
-        description: 'Maintain a 30-day activity streak',
-        iconName: 'local_fire_department',
-        xpReward: 500,
-        requirementType: BadgeRequirementType.streak,
-        requirementValue: 30,
-        tier: 'gold',
-      ),
-      // Activity badges
-      BadgeModel(
-        id: 'badge-activities-10',
-        name: 'Active Explorer',
-        description: 'Complete 10 activities',
-        iconName: 'fitness_center',
-        xpReward: 100,
-        requirementType: BadgeRequirementType.activities,
-        requirementValue: 10,
-        tier: 'bronze',
-      ),
-      BadgeModel(
-        id: 'badge-activities-50',
-        name: 'Fitness Enthusiast',
-        description: 'Complete 50 activities',
-        iconName: 'fitness_center',
-        xpReward: 300,
-        requirementType: BadgeRequirementType.activities,
-        requirementValue: 50,
-        tier: 'silver',
-      ),
-      BadgeModel(
-        id: 'badge-activities-100',
-        name: 'Fitness Champion',
-        description: 'Complete 100 activities',
-        iconName: 'fitness_center',
-        xpReward: 750,
-        requirementType: BadgeRequirementType.activities,
-        requirementValue: 100,
-        tier: 'gold',
-      ),
-      // Visit badges
-      BadgeModel(
-        id: 'badge-visits-5',
-        name: 'Gym Hopper',
-        description: 'Visit 5 different gyms',
-        iconName: 'place',
-        xpReward: 100,
-        requirementType: BadgeRequirementType.visits,
-        requirementValue: 5,
-        tier: 'bronze',
-      ),
-      BadgeModel(
-        id: 'badge-visits-15',
-        name: 'Place Explorer',
-        description: 'Visit 15 fitness spots',
-        iconName: 'place',
-        xpReward: 250,
-        requirementType: BadgeRequirementType.visits,
-        requirementValue: 15,
-        tier: 'silver',
-      ),
-      // XP badges
-      BadgeModel(
-        id: 'badge-xp-1000',
-        name: 'Rising Star',
-        description: 'Earn 1,000 XP',
-        iconName: 'star',
-        xpReward: 100,
-        requirementType: BadgeRequirementType.xp,
-        requirementValue: 1000,
-        tier: 'bronze',
-      ),
-      BadgeModel(
-        id: 'badge-xp-5000',
-        name: 'XP Hunter',
-        description: 'Earn 5,000 XP',
-        iconName: 'star',
-        xpReward: 300,
-        requirementType: BadgeRequirementType.xp,
-        requirementValue: 5000,
-        tier: 'silver',
-      ),
-      BadgeModel(
-        id: 'badge-xp-10000',
-        name: 'Legend',
-        description: 'Earn 10,000 XP',
-        iconName: 'star',
-        xpReward: 1000,
-        requirementType: BadgeRequirementType.xp,
-        requirementValue: 10000,
-        tier: 'gold',
-      ),
-    ];
-  }
-
-  void _loadDefaultChallenges() {
-    _allChallenges = [
-      ChallengeModel(
-        id: 'challenge-daily-workout',
-        title: 'Daily Workout',
-        description: 'Complete at least one workout today',
-        type: ChallengeType.daily,
-        xpReward: 30,
-        requirementType: 'workouts',
-        requirementValue: 1,
-        iconName: 'fitness_center',
-      ),
-      ChallengeModel(
-        id: 'challenge-daily-meal',
-        title: 'Eat Clean',
-        description: 'Log a healthy meal today',
-        type: ChallengeType.daily,
-        xpReward: 15,
-        requirementType: 'meals',
-        requirementValue: 1,
-        iconName: 'restaurant',
-      ),
-      ChallengeModel(
-        id: 'challenge-weekly-5workouts',
-        title: 'Weekly Warrior',
-        description: 'Complete 5 workouts this week',
-        type: ChallengeType.weekly,
-        xpReward: 150,
-        requirementType: 'workouts',
-        requirementValue: 5,
-        iconName: 'emoji_events',
-      ),
-      ChallengeModel(
-        id: 'challenge-weekly-explore',
-        title: 'Explorer',
-        description: 'Visit 3 different fitness locations this week',
-        type: ChallengeType.weekly,
-        xpReward: 100,
-        requirementType: 'visits',
-        requirementValue: 3,
-        iconName: 'explore',
-      ),
-      ChallengeModel(
-        id: 'challenge-trip-gym',
-        title: 'Trip Gym Finder',
-        description: 'Visit a gym during your trip',
-        type: ChallengeType.trip,
-        xpReward: 75,
-        requirementType: 'gym_visits',
-        requirementValue: 1,
-        iconName: 'fitness_center',
-      ),
-    ];
-  }
-
-  void _assignDefaultChallenges() {
-    _userChallenges = [
-      UserChallengeModel(
-        id: const Uuid().v4(),
-        odId: 'sample-user',
-        challengeId: 'challenge-daily-workout',
-        progress: 1,
-        isCompleted: true,
-        completedAt: DateTime.now(),
-      ),
-      UserChallengeModel(
-        id: const Uuid().v4(),
-        odId: 'sample-user',
-        challengeId: 'challenge-daily-meal',
-        progress: 0,
-      ),
-      UserChallengeModel(
-        id: const Uuid().v4(),
-        odId: 'sample-user',
-        challengeId: 'challenge-weekly-5workouts',
-        progress: 3,
-      ),
-      UserChallengeModel(
-        id: const Uuid().v4(),
-        odId: 'sample-user',
-        challengeId: 'challenge-weekly-explore',
-        progress: 1,
-      ),
-    ];
-  }
-
-  Future<void> _saveAll() async {
-    await _storage.setJsonList(
-      StorageKeys.allBadges,
-      _allBadges.map((b) => b.toJson()).toList(),
-    );
-    await _storage.setJsonList(
-      StorageKeys.userBadges,
-      _userBadges.map((b) => b.toJson()).toList(),
-    );
-    await _storage.setJsonList(
-      StorageKeys.allChallenges,
-      _allChallenges.map((c) => c.toJson()).toList(),
-    );
-    await _storage.setJsonList(
-      StorageKeys.userChallenges,
-      _userChallenges.map((c) => c.toJson()).toList(),
-    );
   }
 
   bool hasBadge(String badgeId) {
@@ -321,7 +118,10 @@ class GamificationService extends ChangeNotifier {
   }
 
   List<BadgeModel> getEarnedBadges() {
-    return _userBadges.map((ub) => getBadgeById(ub.badgeId)).whereType<BadgeModel>().toList();
+    return _userBadges
+        .map((ub) => getBadgeById(ub.badgeId))
+        .whereType<BadgeModel>()
+        .toList();
   }
 
   List<BadgeModel> getUnearnedBadges() {
@@ -331,21 +131,37 @@ class GamificationService extends ChangeNotifier {
 
   Future<void> awardBadge(String badgeId) async {
     if (hasBadge(badgeId)) return;
-    
-    final userBadge = UserBadgeModel(
-      id: const Uuid().v4(),
-      odId: 'sample-user',
-      badgeId: badgeId,
-    );
-    _userBadges.add(userBadge);
-    await _saveAll();
-    notifyListeners();
+
+    final userId = _currentUserId;
+    if (userId == null) return;
+
+    try {
+      final data = {
+        'user_id': userId,
+        'badge_id': badgeId,
+        'earned_at': DateTime.now().toIso8601String(),
+      };
+
+      final result = await SupabaseService.insert('user_badges', data);
+
+      if (result.isNotEmpty) {
+        final userBadge = UserBadgeModel.fromSupabaseJson(result.first);
+        _userBadges.add(userBadge);
+        _error = null;
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = 'Failed to award badge';
+      debugPrint('GamificationService.awardBadge error: $e');
+      notifyListeners();
+    }
   }
 
   /// Check XP milestone badges against the provided total XP and award any missed ones.
   Future<void> checkXpBadges(int totalXp) async {
     try {
-      final xpBadges = _allBadges.where((b) => b.requirementType == BadgeRequirementType.xp);
+      final xpBadges =
+          _allBadges.where((b) => b.requirementType == BadgeRequirementType.xp);
       for (final b in xpBadges) {
         if (totalXp >= b.requirementValue && !hasBadge(b.id)) {
           await awardBadge(b.id);
@@ -359,7 +175,8 @@ class GamificationService extends ChangeNotifier {
   /// Check visit-count badges and award if thresholds are met.
   Future<void> checkVisitBadges(int visitedCount) async {
     try {
-      final visitBadges = _allBadges.where((b) => b.requirementType == BadgeRequirementType.visits);
+      final visitBadges = _allBadges
+          .where((b) => b.requirementType == BadgeRequirementType.visits);
       for (final b in visitBadges) {
         if (visitedCount >= b.requirementValue && !hasBadge(b.id)) {
           await awardBadge(b.id);
@@ -370,19 +187,97 @@ class GamificationService extends ChangeNotifier {
     }
   }
 
+  /// Check streak badges and award if thresholds are met.
+  Future<void> checkStreakBadges(int currentStreak) async {
+    try {
+      final streakBadges = _allBadges
+          .where((b) => b.requirementType == BadgeRequirementType.streak);
+      for (final b in streakBadges) {
+        if (currentStreak >= b.requirementValue && !hasBadge(b.id)) {
+          await awardBadge(b.id);
+        }
+      }
+    } catch (e) {
+      debugPrint('GamificationService.checkStreakBadges error: $e');
+    }
+  }
+
+  /// Check activity count badges and award if thresholds are met.
+  Future<void> checkActivityBadges(int activityCount) async {
+    try {
+      final activityBadges = _allBadges
+          .where((b) => b.requirementType == BadgeRequirementType.activities);
+      for (final b in activityBadges) {
+        if (activityCount >= b.requirementValue && !hasBadge(b.id)) {
+          await awardBadge(b.id);
+        }
+      }
+    } catch (e) {
+      debugPrint('GamificationService.checkActivityBadges error: $e');
+    }
+  }
+
   Future<void> updateChallengeProgress(String challengeId, int progress) async {
-    final index = _userChallenges.indexWhere((uc) => uc.challengeId == challengeId);
+    final userId = _currentUserId;
+    if (userId == null) return;
+
+    final index =
+        _userChallenges.indexWhere((uc) => uc.challengeId == challengeId);
+
     if (index >= 0) {
+      // Update existing user challenge
       final challenge = getChallengeById(challengeId);
-      final isCompleted = challenge != null && progress >= challenge.requirementValue;
-      
-      _userChallenges[index] = _userChallenges[index].copyWith(
-        progress: progress,
-        isCompleted: isCompleted,
-        completedAt: isCompleted ? DateTime.now() : null,
-      );
-      await _saveAll();
-      notifyListeners();
+      final isCompleted =
+          challenge != null && progress >= challenge.requirementValue;
+
+      try {
+        await SupabaseConfig.client.from('user_challenges').update({
+          'progress': progress,
+          'is_completed': isCompleted,
+          'completed_at': isCompleted ? DateTime.now().toIso8601String() : null,
+        }).eq('id', _userChallenges[index].id);
+
+        _userChallenges[index] = _userChallenges[index].copyWith(
+          progress: progress,
+          isCompleted: isCompleted,
+          completedAt: isCompleted ? DateTime.now() : null,
+        );
+        _error = null;
+        notifyListeners();
+      } catch (e) {
+        _error = 'Failed to update challenge progress';
+        debugPrint('GamificationService.updateChallengeProgress error: $e');
+        notifyListeners();
+      }
+    } else {
+      // Create new user challenge entry
+      final challenge = getChallengeById(challengeId);
+      final isCompleted =
+          challenge != null && progress >= challenge.requirementValue;
+
+      try {
+        final data = {
+          'user_id': userId,
+          'challenge_id': challengeId,
+          'progress': progress,
+          'is_completed': isCompleted,
+          'completed_at': isCompleted ? DateTime.now().toIso8601String() : null,
+        };
+
+        final result = await SupabaseService.insert('user_challenges', data);
+
+        if (result.isNotEmpty) {
+          final userChallenge =
+              UserChallengeModel.fromSupabaseJson(result.first);
+          _userChallenges.add(userChallenge);
+          _error = null;
+          notifyListeners();
+        }
+      } catch (e) {
+        _error = 'Failed to create challenge progress';
+        debugPrint('GamificationService.updateChallengeProgress error: $e');
+        notifyListeners();
+      }
     }
   }
 
@@ -391,5 +286,19 @@ class GamificationService extends ChangeNotifier {
     final challenge = getChallengeById(challengeId);
     if (userChallenge == null || challenge == null) return 0;
     return (userChallenge.progress / challenge.requirementValue).clamp(0.0, 1.0);
+  }
+
+  /// Clear local state (called on logout)
+  void clearGamification() {
+    _userBadges = [];
+    _userChallenges = [];
+    _error = null;
+    notifyListeners();
+  }
+
+  /// Clear any error state
+  void clearError() {
+    _error = null;
+    notifyListeners();
   }
 }

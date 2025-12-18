@@ -1,41 +1,45 @@
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 import 'package:fittravel/models/models.dart';
-import 'package:fittravel/services/storage_service.dart';
+import 'package:fittravel/supabase/supabase_config.dart';
 
-/// Manages community photos for places. Currently uses local storage.
-/// Later, this can be swapped to Supabase storage + table with minimal changes.
+/// Manages community photos for places via Supabase.
 class CommunityPhotoService extends ChangeNotifier {
-  final StorageService _storage;
   List<CommunityPhoto> _photos = [];
   bool _isLoading = false;
+  String? _error;
 
-  CommunityPhotoService(this._storage);
+  CommunityPhotoService();
 
   bool get isLoading => _isLoading;
   List<CommunityPhoto> get photos => _photos;
+  String? get error => _error;
+
+  /// Get current authenticated user ID
+  String? get _currentUserId => SupabaseConfig.auth.currentUser?.id;
 
   Future<void> initialize() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
+
     try {
-      final jsonList = _storage.getJsonList(StorageKeys.communityPhotos);
-      if (jsonList != null) {
-        _photos = jsonList.map((j) => CommunityPhoto.fromJson(j)).toList();
-      } else {
-        _photos = [];
-      }
+      // Load all community photos (public read access)
+      final photosData = await SupabaseConfig.client
+          .from('community_photos')
+          .select()
+          .order('created_at', ascending: false);
+
+      _photos = (photosData as List)
+          .map((json) => CommunityPhoto.fromSupabaseJson(json))
+          .toList();
     } catch (e) {
+      _error = 'Failed to load community photos';
       debugPrint('CommunityPhotoService.initialize error: $e');
       _photos = [];
     }
+
     _isLoading = false;
     notifyListeners();
-  }
-
-  Future<void> _saveAll() async {
-    final jsonList = _photos.map((p) => p.toJson()).toList();
-    await _storage.setJsonList(StorageKeys.communityPhotos, jsonList);
   }
 
   List<CommunityPhoto> getPhotosForPlace(String placeId) {
@@ -48,23 +52,61 @@ class CommunityPhotoService extends ChangeNotifier {
   Future<CommunityPhoto> addPhotoUrl({
     required String placeId,
     required String imageUrl,
-    String? userId,
   }) async {
-    final photo = CommunityPhoto(
-      id: const Uuid().v4(),
-      placeId: placeId,
-      imageUrl: imageUrl,
-      userId: userId,
-    );
-    _photos.insert(0, photo);
-    await _saveAll();
-    notifyListeners();
-    return photo;
+    final userId = _currentUserId;
+    if (userId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      final data = {
+        'place_id': placeId,
+        'user_id': userId,
+        'image_url': imageUrl,
+      };
+
+      final result = await SupabaseService.insert('community_photos', data);
+
+      if (result.isNotEmpty) {
+        final photo = CommunityPhoto.fromSupabaseJson(result.first);
+        _photos.insert(0, photo);
+        _error = null;
+        notifyListeners();
+        return photo;
+      }
+      throw Exception('Failed to add photo');
+    } catch (e) {
+      _error = 'Failed to add photo';
+      debugPrint('CommunityPhotoService.addPhotoUrl error: $e');
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> deletePhoto(String photoId) async {
-    _photos.removeWhere((p) => p.id == photoId);
-    await _saveAll();
+    try {
+      await SupabaseService.delete('community_photos', filters: {'id': photoId});
+
+      _photos.removeWhere((p) => p.id == photoId);
+      _error = null;
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to delete photo';
+      debugPrint('CommunityPhotoService.deletePhoto error: $e');
+      notifyListeners();
+    }
+  }
+
+  /// Clear local state (called on logout)
+  void clearPhotos() {
+    _photos = [];
+    _error = null;
+    notifyListeners();
+  }
+
+  /// Clear any error state
+  void clearError() {
+    _error = null;
     notifyListeners();
   }
 }

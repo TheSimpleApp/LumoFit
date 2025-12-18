@@ -51,4 +51,22 @@ class QuickPhoto {
   String toJsonString() => jsonEncode(toJson());
   factory QuickPhoto.fromJsonString(String source) =>
       QuickPhoto.fromJson(jsonDecode(source) as Map<String, dynamic>);
+
+  /// Create from Supabase JSON (snake_case keys)
+  factory QuickPhoto.fromSupabaseJson(Map<String, dynamic> json) => QuickPhoto(
+        id: json['id'] as String,
+        userId: json['user_id'] as String?,
+        placeId: json['place_id'] as String?,
+        imageUrl: json['image_url'] as String,
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'] as String)
+            : DateTime.now(),
+      );
+
+  /// Convert to Supabase JSON (snake_case keys) for insert/update
+  Map<String, dynamic> toSupabaseJson(String userId) => {
+        'user_id': userId,
+        'place_id': placeId,
+        'image_url': imageUrl,
+      };
 }

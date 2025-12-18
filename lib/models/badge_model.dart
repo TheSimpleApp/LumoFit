@@ -55,6 +55,26 @@ class BadgeModel {
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
   }
+
+  /// Create from Supabase JSON (snake_case keys)
+  factory BadgeModel.fromSupabaseJson(Map<String, dynamic> json) {
+    return BadgeModel(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String,
+      iconName: json['icon_name'] as String,
+      xpReward: json['xp_reward'] as int? ?? 0,
+      requirementType: BadgeRequirementType.values.firstWhere(
+        (e) => e.name == json['requirement_type'],
+        orElse: () => BadgeRequirementType.activities,
+      ),
+      requirementValue: json['requirement_value'] as int,
+      tier: json['tier'] as String? ?? 'bronze',
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+    );
+  }
 }
 
 class UserBadgeModel {
@@ -92,4 +112,25 @@ class UserBadgeModel {
 
   factory UserBadgeModel.fromJsonString(String source) =>
       UserBadgeModel.fromJson(jsonDecode(source) as Map<String, dynamic>);
+
+  /// Create from Supabase JSON (snake_case keys)
+  factory UserBadgeModel.fromSupabaseJson(Map<String, dynamic> json) {
+    return UserBadgeModel(
+      id: json['id'] as String,
+      odId: json['user_id'] as String,
+      badgeId: json['badge_id'] as String,
+      earnedAt: json['earned_at'] != null
+          ? DateTime.parse(json['earned_at'] as String)
+          : DateTime.now(),
+    );
+  }
+
+  /// Convert to Supabase JSON (snake_case keys) for insert
+  Map<String, dynamic> toSupabaseJson(String userId) {
+    return {
+      'user_id': userId,
+      'badge_id': badgeId,
+      'earned_at': earnedAt.toIso8601String(),
+    };
+  }
 }

@@ -2,20 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'dart:math';
 import 'package:uuid/uuid.dart';
 import 'package:fittravel/models/event_model.dart';
-import 'package:fittravel/services/storage_service.dart';
 import 'package:fittravel/config/app_config.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fittravel/supabase/supabase_config.dart';
 
-/// Local-first EventService. Seeds a few SLC demo events.
-/// Later in Phase 9, replace storage with Supabase tables.
+/// EventService fetches events from Supabase Edge Functions.
+/// Demo events are seeded in memory on initialize.
 class EventService extends ChangeNotifier {
-  final StorageService _storage;
   List<EventModel> _events = [];
   bool _isLoading = false;
 
-  EventService(this._storage);
+  EventService();
 
   bool get isLoading => _isLoading;
   List<EventModel> get all => List.unmodifiable(_events);
@@ -24,25 +22,17 @@ class EventService extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      final jsonList = _storage.getJsonList(StorageKeys.events);
-      if (jsonList != null && jsonList.isNotEmpty) {
-        _events = jsonList.map((j) => EventModel.fromJson(j)).toList();
-      } else {
-        await _seed();
-      }
+      // Seed demo events in memory (not persisted)
+      _seed();
     } catch (e) {
       debugPrint('EventService.initialize error: $e');
-      await _seed();
+      _events = [];
     }
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<void> _save() async {
-    await _storage.setJsonList(StorageKeys.events, _events.map((e) => e.toJson()).toList());
-  }
-
-  Future<void> _seed() async {
+  void _seed() {
     final now = DateTime.now();
     final id = const Uuid();
     _events = [
@@ -108,7 +98,6 @@ class EventService extends ChangeNotifier {
         description: 'Visitors welcome. Arrive 15 min early for waiver/briefing.',
       ),
     ];
-    await _save();
   }
 
   /// Basic text search with optional category and date window filters.

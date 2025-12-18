@@ -72,6 +72,33 @@ class ChallengeModel {
     );
   }
 
+  /// Create from Supabase JSON (snake_case keys)
+  factory ChallengeModel.fromSupabaseJson(Map<String, dynamic> json) {
+    return ChallengeModel(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String,
+      type: ChallengeType.values.firstWhere(
+        (e) => e.name == json['challenge_type'],
+        orElse: () => ChallengeType.daily,
+      ),
+      xpReward: json['xp_reward'] as int? ?? 0,
+      requirementType: json['requirement_type'] as String,
+      requirementValue: json['requirement_value'] as int,
+      startDate: json['start_date'] != null
+          ? DateTime.parse(json['start_date'] as String)
+          : null,
+      endDate: json['end_date'] != null
+          ? DateTime.parse(json['end_date'] as String)
+          : null,
+      isActive: json['is_active'] as bool? ?? true,
+      iconName: json['icon_name'] as String? ?? 'emoji_events',
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+    );
+  }
+
   String get typeLabel {
     switch (type) {
       case ChallengeType.daily:
@@ -155,4 +182,32 @@ class UserChallengeModel {
 
   factory UserChallengeModel.fromJsonString(String source) =>
       UserChallengeModel.fromJson(jsonDecode(source) as Map<String, dynamic>);
+
+  /// Create from Supabase JSON (snake_case keys)
+  factory UserChallengeModel.fromSupabaseJson(Map<String, dynamic> json) {
+    return UserChallengeModel(
+      id: json['id'] as String,
+      odId: json['user_id'] as String,
+      challengeId: json['challenge_id'] as String,
+      progress: json['progress'] as int? ?? 0,
+      isCompleted: json['is_completed'] as bool? ?? false,
+      completedAt: json['completed_at'] != null
+          ? DateTime.parse(json['completed_at'] as String)
+          : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+    );
+  }
+
+  /// Convert to Supabase JSON (snake_case keys) for insert/update
+  Map<String, dynamic> toSupabaseJson(String userId) {
+    return {
+      'user_id': userId,
+      'challenge_id': challengeId,
+      'progress': progress,
+      'is_completed': isCompleted,
+      'completed_at': completedAt?.toIso8601String(),
+    };
+  }
 }

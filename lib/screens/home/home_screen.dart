@@ -166,8 +166,7 @@ class HomeScreen extends StatelessWidget {
       final mime = _inferMimeType(file.name);
       final dataUrl = 'data:$mime;base64,${base64Encode(bytes)}';
 
-      final userId = context.read<UserService>().currentUser?.id;
-      await context.read<QuickPhotoService>().addPhotoDataUrl(dataUrl: dataUrl, userId: userId);
+      await context.read<QuickPhotoService>().addPhotoDataUrl(dataUrl: dataUrl);
       await HapticUtils.success();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

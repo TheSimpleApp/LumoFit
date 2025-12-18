@@ -9,12 +9,9 @@ import 'package:fittravel/supabase/supabase_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize Supabase
   await SupabaseConfig.initialize();
-  
-  // Initialize storage service
-  final storage = await StorageService.getInstance();
 
   // Global error handling to reduce noisy preview logs and capture unexpected errors
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -35,7 +32,7 @@ void main() async {
   };
 
   runZonedGuarded(() {
-    runApp(MyApp(storage: storage));
+    runApp(const MyApp());
   }, (Object error, StackTrace stack) {
     debugPrint('[ZoneError] $error');
     debugPrint(stack.toString());
@@ -43,43 +40,41 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  final StorageService storage;
-  
-  const MyApp({super.key, required this.storage});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => UserService(storage)..initialize(),
+          create: (_) => UserService()..initialize(),
         ),
         ChangeNotifierProvider(
-          create: (_) => PlaceService(storage)..initialize(),
+          create: (_) => PlaceService()..initialize(),
         ),
         ChangeNotifierProvider(
-          create: (_) => TripService(storage)..initialize(),
+          create: (_) => TripService()..initialize(),
         ),
         ChangeNotifierProvider(
-          create: (_) => ActivityService(storage)..initialize(),
+          create: (_) => ActivityService()..initialize(),
         ),
         ChangeNotifierProvider(
-          create: (_) => GamificationService(storage)..initialize(),
+          create: (_) => GamificationService()..initialize(),
         ),
         ChangeNotifierProvider(
-          create: (_) => CommunityPhotoService(storage)..initialize(),
+          create: (_) => CommunityPhotoService()..initialize(),
         ),
         ChangeNotifierProvider(
-          create: (_) => QuickPhotoService(storage)..initialize(),
+          create: (_) => QuickPhotoService()..initialize(),
         ),
         ChangeNotifierProvider(
-          create: (_) => ReviewService(storage)..initialize(),
+          create: (_) => ReviewService()..initialize(),
         ),
         ChangeNotifierProvider(
-          create: (_) => EventService(storage)..initialize(),
+          create: (_) => EventService()..initialize(),
         ),
         ChangeNotifierProvider(
-          create: (_) => FeedbackService(storage)..initialize(),
+          create: (_) => FeedbackService()..initialize(),
         ),
       ],
       child: MaterialApp.router(
