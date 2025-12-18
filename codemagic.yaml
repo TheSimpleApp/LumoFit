@@ -8,10 +8,8 @@ workflows:
     instance_type: mac_mini_m2
     
     # App Store Connect Integration
-    # You need to set up the API key in Codemagic Team Settings > Integrations > App Store Connect
-    # Name your key "codemagic" or change the value below to match your key name
     integrations:
-      app_store_connect: codemagic
+      app_store_connect: Simple
     
     environment:
       ios_signing:
