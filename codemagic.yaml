@@ -13,10 +13,11 @@ workflows:
     
     environment:
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.simple.LumoFit
-        # Codemagic will automatically create/update certificates and profiles
-        # Make sure the certificate "vibe" is available in Codemagic code signing identities
+        # Manual code signing using fetched profiles and certificates
+        provisioning_profiles:
+          - reference_name: lumofit-appstore
+        certificates:
+          - reference_name: vibe
       vars:
         # Set this to your App Store Apple ID (the numeric ID from App Store Connect)
         # You can find this in App Store Connect > App Information > Apple ID
