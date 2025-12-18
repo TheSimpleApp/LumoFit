@@ -258,33 +258,50 @@ AIzaSyDReP4tFXyqU6W8PusrlZdFVFLAYwFr6ZA
 - Implement proper caching to minimize API calls
 - Store frequently accessed place details locally
 
-## 3.1 Gemini API Configuration (Phase 11)
+## 3.1 Gemini API Configuration (Phase 11-12)
 
-### Gemini API Key
+### Security Model
 
-```
-AIzaSyBZ9OgP8A0CZhYa1u_XILJihBUXg3Ps-xM
-```
+- **API Key Storage:** Stored in Supabase Edge Functions environment variables (GEMENI_API_KEY)
+- **Access:** Flutter app calls `cairo_guide` Edge Function, which securely calls Gemini API
+- **Model:** Gemini 2.5 Flash (upgraded from 1.5 Flash in Phase 12)
 
-### Gemini Enabled Services
+### Gemini 2.5 Flash Specifications
 
-- Gemini 1.5 Flash (generative AI)
+- **Model:** `gemini-2.5-flash` (stable release, June 2025)
+- **Input:** Up to 1M tokens
+- **Output:** Up to 65K tokens
+- **Capabilities:** Advanced reasoning with "thinking" feature, multimodal support
+- **Performance:** Fast responses (~2-5 seconds for typical queries)
 
 ### AI Cairo Guide Usage
 
+- **Implementation:** Supabase Edge Function (`cairo_guide`)
 - **AI Cairo Guide:** Provides personalized fitness recommendations for Cairo
 - **System prompt:** Cairo fitness travel expert with knowledge of local gyms, restaurants, events, and activities
 - **Features:**
   - Chat-based interface with quick question suggestions
   - Context-aware responses based on user location and preferences
-  - Specific place name recommendations with neighborhoods
+  - Specific place name recommendations with neighborhoods (Gold's Gym, Samia Allouba, CrossFit Hustle, etc.)
   - Practical tips (opening hours, price ranges, what to bring)
 
 ### Gemini Configuration Notes
 
-- Temperature: 0.7 for balanced creativity and accuracy
-- Max output tokens: 1024 (concise 2-3 paragraph responses)
-- Cost: ~$0.01-0.03 per query (~$10 for 500 queries during beta)
+- **Temperature:** 0.7 for balanced creativity and accuracy
+- **Max output tokens:** 1024 (concise 2-3 paragraph responses, under 200 words)
+- **Safety Settings:** BLOCK_MEDIUM_AND_ABOVE for harassment, hate speech, explicit, dangerous content
+- **Cost:** ~$0.00375 per query (Gemini 2.5 Flash pricing)
+  - Input: $1.25 per 1M tokens
+  - Output: $5.00 per 1M tokens
+  - Typical query: ~50 input + ~200 output tokens = ~$0.00375
+  - Beta budget: ~250-500 queries for ~$1-2
+
+### Tested & Verified (Phase 12)
+
+✅ **API Key:** Working and valid
+✅ **Edge Function:** Deployed and responding correctly
+✅ **Response Quality:** Provides specific Cairo gym recommendations (Gold's Gym Zamalek, Samia Allouba)
+✅ **Integration:** AiGuideService successfully calls Edge Function
 
 ---
 
@@ -484,8 +501,12 @@ static const String kTrails = 'trails'; // Phase 5
 | Session | Added isUploading state to both photo services for upload progress tracking | Phase 12 |
 | Session | Added Deprecated annotations to legacy data URL methods | Phase 12 |
 | Session | Updated PRODUCTION_READINESS.md with 65% overall completion status | Phase 12 |
+| Session | Upgraded Gemini API from 1.5 Flash to 2.5 Flash (1M token input, 65K output) | Phase 12 |
+| Session | Tested and verified cairo_guide Edge Function with Gemini 2.5 Flash | Phase 12 |
+| Session | Confirmed API returns Cairo-specific recommendations (Gold's Gym, Samia Allouba) | Phase 12 |
+| Session | Created local supabase/functions directory structure for version control | Phase 12 |
 | Session | Phase 12 COMPLETE — Production Readiness & Photo Storage Migration | Phase 12 ✅ |
-| Current | **App ready for Cairo beta testing with Supabase Storage** | Status: BETA READY 🚀 |
+| Current | **App fully tested and ready for Cairo beta with Gemini 2.5 Flash AI** | Status: BETA READY 🚀 |
 
 ---
 

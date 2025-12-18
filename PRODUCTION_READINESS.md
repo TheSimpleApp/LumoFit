@@ -58,32 +58,36 @@ This document tracks all tasks required to bring FitTravel to production-ready s
 
 ## 📱 Cairo Experience
 - [x] Set default location to Cairo (30.0444, 31.2357)
-- [x] Add Cairo-specific challenges
+- [x] Add Cairo-specific challenges (7 challenges created)
 - [x] Create Cairo Guide AI integration
-- [ ] Seed Cairo gyms, restaurants, events
-- [ ] Test Google Places API returns Cairo results
-- [ ] Verify Cairo Guide provides relevant recommendations
-- [ ] Add Cairo-specific empty state messages
-- [ ] Test app with Arabic language (if needed)
+- [x] Upgrade to Gemini 2.5 Flash (from 1.5 Flash)
+- [x] Test Cairo Guide Edge Function - provides specific Cairo recommendations ✅
+- [x] Verify Cairo Guide returns relevant places (Gold's Gym Zamalek, Samia Allouba verified) ✅
+- [x] Add Cairo-specific empty state messages
+- [x] Create local Edge Function source code for version control
+- [ ] Seed additional Cairo gyms, restaurants, events (basic set exists)
+- [ ] Test Google Places API returns Cairo results (needs device testing)
+- [ ] Test app with Arabic language (optional for beta)
 
 ## 🧪 Testing
-- [ ] Test signup flow (new user)
-- [ ] Test login flow (existing user)
-- [ ] Test logout and re-login
-- [ ] Test trip creation
-- [ ] Test adding places to trip
-- [ ] Test marking places as visited
-- [ ] Test XP earning
-- [ ] Test badge unlocking
-- [ ] Test challenge progress
-- [ ] Test quick photo capture
-- [ ] Test community photo upload
-- [ ] Test Cairo Guide chat
-- [ ] Test place discovery (gyms, food, events)
-- [ ] Test offline behavior (graceful degradation)
-- [ ] Test on iOS simulator
-- [ ] Test on Android emulator
-- [ ] Test on real device
+- [ ] Test signup flow (new user) - needs device testing
+- [ ] Test login flow (existing user) - needs device testing
+- [ ] Test logout and re-login - needs device testing
+- [ ] Test trip creation - needs device testing
+- [ ] Test adding places to trip - needs device testing
+- [ ] Test marking places as visited - needs device testing
+- [ ] Test XP earning - needs device testing
+- [ ] Test badge unlocking - needs device testing
+- [ ] Test challenge progress - needs device testing
+- [ ] Test quick photo capture - needs device testing
+- [ ] Test community photo upload - needs device testing
+- [x] Test Cairo Guide Edge Function - WORKING ✅ (returns Cairo gym recommendations)
+- [x] Test Gemini 2.5 Flash API - WORKING ✅ (API key valid, responses generated)
+- [ ] Test place discovery (gyms, food, events) - needs device testing in Cairo
+- [ ] Test offline behavior (graceful degradation) - needs device testing
+- [ ] Test on iOS simulator - ready for testing
+- [ ] Test on Android emulator - ready for testing
+- [ ] Test on real device in Cairo - CRITICAL for beta validation
 
 ## 🚀 Performance
 - [ ] Implement lazy loading for long lists
