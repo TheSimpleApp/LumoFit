@@ -20,7 +20,7 @@ workflows:
       vars:
         # Set this to your App Store Apple ID (the numeric ID from App Store Connect)
         # You can find this in App Store Connect > App Information > Apple ID
-        APP_STORE_APPLE_ID: 0000000000  # Replace with your actual App Store Apple ID
+        APP_STORE_APPLE_ID: 6756633672
       flutter: stable
       xcode: latest
       cocoapods: default
@@ -81,10 +81,10 @@ workflows:
     
     # Publishing configuration
     publishing:
-      # Email notifications (optional - add your email addresses)
+      # Email notifications
       email:
         recipients:
-          - your-email@example.com  # Replace with your email
+          - david@thesimpleapp.io
         notify:
           success: true
           failure: true
