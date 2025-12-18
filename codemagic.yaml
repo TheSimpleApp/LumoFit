@@ -20,7 +20,6 @@ workflows:
         bundle_identifier: com.simple.LumoFit
         # Automatic certificate management - Codemagic will create/manage certificates
         # using the Team Key from your App Store Connect integration
-        provisioning_profile_type: app_store
       vars:
         # Set this to your App Store Apple ID (the numeric ID from App Store Connect)
         # You can find this in App Store Connect > App Information > Apple ID
