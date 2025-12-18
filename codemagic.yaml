@@ -24,6 +24,10 @@ workflows:
         # Set this to your App Store Apple ID (the numeric ID from App Store Connect)
         # You can find this in App Store Connect > App Information > Apple ID
         APP_STORE_APPLE_ID: 6756633672
+        # Supabase configuration (using development credentials for beta testing)
+        SUPABASE_URL: https://lwyuwxqwshflmuefxgay.supabase.co
+        SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3eXV3eHF3c2hmbG11ZWZ4Z2F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzA5MTgsImV4cCI6MjA4MTQwNjkxOH0.Ias3yQUV8p7D825WwBI08Njry4aQ_OiMkrQRGfwl7zw
+        GOOGLE_PLACES_API_KEY: AIzaSyBCkxTR7keDd_gXjXOrj8pptvboMUfg-3Q
       flutter: stable
       xcode: latest
       cocoapods: default
@@ -108,7 +112,10 @@ workflows:
           # Codemagic will automatically handle export options for App Store distribution
           flutter build ipa --release \
             --build-name=$VERSION_NAME \
-            --build-number=$BUILD_NUMBER
+            --build-number=$BUILD_NUMBER \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+            --dart-define=GOOGLE_PLACES_API_KEY=$GOOGLE_PLACES_API_KEY
     
     # Collect build artifacts
     artifacts:

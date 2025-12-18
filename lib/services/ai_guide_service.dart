@@ -16,6 +16,8 @@ class AiGuideService {
   static const String _egyptGuideFn = 'egypt_fitness_guide';
   static const String _itineraryFn = 'generate_fitness_itinerary';
   static const String _insightsFn = 'get_place_insights';
+  static const String _fitnessIntelFn = 'analyze_place_fitness';
+  static const String _quickInsightsFn = 'generate_quick_insights';
 
   // Conversation history for context-aware responses
   final List<AiChatMessage> _conversationHistory = [];
@@ -60,7 +62,8 @@ class AiGuideService {
       }
 
       // If we reach here, either parsing failed or text is empty
-      debugPrint('AiGuideService: Empty or invalid response from edge function: ${invokeRes.data}');
+      debugPrint(
+          'AiGuideService: Empty or invalid response from edge function: ${invokeRes.data}');
       return 'Sorry, I couldn\'t get a response right now. Please try again in a moment.';
     } catch (e) {
       debugPrint('AiGuideService.askCairoGuide error: $e');
@@ -73,13 +76,21 @@ class AiGuideService {
   /// Get quick suggestion responses for common questions
   List<String> getQuickQuestions() {
     return [
-      'Best gyms near Zamalek?',
-      'Healthy restaurants with outdoor seating?',
-      'Running routes along the Nile?',
-      'Yoga studios in Maadi?',
-      'Where can I hike near Cairo?',
-      'Best time to work out in Cairo?',
+      'Best gyms near me?',
+      'Healthy restaurants nearby?',
+      'Running routes in the area?',
+      'Parks for outdoor workouts?',
+      'What\'s good for a quick workout?',
     ];
+  }
+
+  /// Check if the message indicates a guided search start
+  bool _isGuidedSearchRequest(String message) {
+    final lower = message.toLowerCase();
+    return lower.contains('start guided') ||
+        lower.contains('guided search') ||
+        lower.contains('help me find') ||
+        lower.contains('what should i do');
   }
 
   // ========================================
@@ -105,14 +116,30 @@ class AiGuideService {
       // Build conversation history for context
       final historyForApi = _conversationHistory
           .take(10) // Limit history to last 10 messages
-          .map((m) => {'role': m.isUser ? 'user' : 'assistant', 'content': m.content})
+          .map((m) =>
+              {'role': m.isUser ? 'user' : 'assistant', 'content': m.content})
           .toList();
+
+      // Enhance question for guided search
+      String enhancedQuestion = question;
+      if (_isGuidedSearchRequest(question) &&
+          _conversationHistory.length <= 2) {
+        enhancedQuestion = '''
+I want to start a guided search for fitness places. Please ask me questions to understand:
+1. What type of place I'm looking for (gym, restaurant, park, trail, etc.)
+2. How much time I have available
+3. Any specific preferences (budget, amenities, location)
+4. My fitness goals or dietary preferences
+
+Start by asking the first question to begin the guided conversation.
+''';
+      }
 
       final FunctionsClient functions = SupabaseConfig.client.functions;
       final invokeRes = await functions.invoke(
         _egyptGuideFn,
         body: {
-          'question': question,
+          'question': enhancedQuestion,
           if (destination != null) 'destination': destination,
           if (userLat != null && userLng != null)
             'userLocation': {'lat': userLat, 'lng': userLng},
@@ -121,6 +148,7 @@ class AiGuideService {
           if (dietaryPreferences != null && dietaryPreferences.isNotEmpty)
             'dietaryPreferences': dietaryPreferences,
           'conversationHistory': historyForApi,
+          'isGuidedSearch': _isGuidedSearchRequest(question),
         },
       );
 
@@ -137,14 +165,17 @@ class AiGuideService {
         return response;
       }
 
-      debugPrint('AiGuideService: Invalid response from egypt_fitness_guide: ${invokeRes.data}');
+      debugPrint(
+          'AiGuideService: Invalid response from egypt_fitness_guide: ${invokeRes.data}');
       return const EgyptGuideResponse(
-        text: 'Sorry, I couldn\'t get a response right now. Please try again shortly.',
+        text:
+            'Sorry, I couldn\'t get a response right now. Please try again shortly.',
       );
     } catch (e) {
       debugPrint('AiGuideService.askEgyptGuide error: $e');
       return const EgyptGuideResponse(
-        text: 'Sorry, something went wrong. Please check your connection and try again.',
+        text:
+            'Sorry, something went wrong. Please check your connection and try again.',
       );
     }
   }
@@ -174,7 +205,8 @@ class AiGuideService {
         return ItineraryResponse.fromJson(data);
       }
 
-      debugPrint('AiGuideService: Invalid response from generate_fitness_itinerary: ${invokeRes.data}');
+      debugPrint(
+          'AiGuideService: Invalid response from generate_fitness_itinerary: ${invokeRes.data}');
       return null;
     } catch (e) {
       debugPrint('AiGuideService.generateItinerary error: $e');
@@ -211,7 +243,8 @@ class AiGuideService {
         }
       }
 
-      debugPrint('AiGuideService: Invalid response from get_place_insights: ${invokeRes.data}');
+      debugPrint(
+          'AiGuideService: Invalid response from get_place_insights: ${invokeRes.data}');
       return null;
     } catch (e) {
       debugPrint('AiGuideService.getPlaceInsights error: $e');
@@ -280,6 +313,96 @@ class AiGuideService {
         ];
       default:
         return getQuickQuestions();
+    }
+  }
+
+  /// Analyze a place for fitness intelligence using AI
+  ///
+  /// Extracts fitness/health insights from place data and community reviews
+  /// Results are cached server-side for 24 hours
+  Future<PlaceFitnessIntelligence?> analyzePlaceFitness({
+    required String placeId,
+    required String placeName,
+    required String placeType,
+    List<Map<String, dynamic>>? reviews,
+    Map<String, dynamic>? placeData,
+  }) async {
+    try {
+      final FunctionsClient functions = SupabaseConfig.client.functions;
+      final invokeRes = await functions.invoke(
+        _fitnessIntelFn,
+        body: {
+          'placeId': placeId,
+          'placeName': placeName,
+          'placeType': placeType,
+          if (reviews != null && reviews.isNotEmpty) 'reviews': reviews,
+          if (placeData != null) 'placeData': placeData,
+        },
+      );
+
+      if (invokeRes.data is Map) {
+        final data = (invokeRes.data as Map).cast<String, dynamic>();
+        final intelligence = data['intelligence'] as Map<String, dynamic>?;
+        if (intelligence != null) {
+          return PlaceFitnessIntelligence.fromJson(intelligence);
+        }
+      }
+
+      debugPrint(
+          'AiGuideService: Invalid response from analyze_place_fitness: ${invokeRes.data}');
+      return null;
+    } catch (e) {
+      debugPrint('AiGuideService.analyzePlaceFitness error: $e');
+      return null;
+    }
+  }
+
+  /// Generate quick insights for a place using a lighter AI model
+  ///
+  /// This provides fast, lightweight overview tags from Google reviews
+  /// to help users quickly understand a place while browsing
+  /// Uses Gemini 2.5 Flash for speed. Results are cached for 7 days.
+  Future<PlaceQuickInsights?> generateQuickInsights({
+    required String placeName,
+    required String placeType,
+    required double? rating,
+    required int? reviewCount,
+    String? googlePlaceId,
+  }) async {
+    try {
+      final FunctionsClient functions = SupabaseConfig.client.functions;
+      final invokeRes = await functions.invoke(
+        _quickInsightsFn,
+        body: {
+          'placeName': placeName,
+          'placeType': placeType,
+          'rating': rating,
+          'reviewCount': reviewCount,
+          if (googlePlaceId != null) 'googlePlaceId': googlePlaceId,
+          // Request lightweight model for speed
+          'model': 'gemini-2.0-flash-exp',
+        },
+      );
+
+      if (invokeRes.data is Map) {
+        final data = (invokeRes.data as Map).cast<String, dynamic>();
+        final insights = data['insights'] as Map<String, dynamic>?;
+        if (insights != null) {
+          return PlaceQuickInsights.fromJson(insights);
+        }
+      }
+
+      debugPrint(
+          'AiGuideService: Invalid response from generate_quick_insights: ${invokeRes.data}');
+      return null;
+    } catch (e) {
+      // Suppress 404 errors (function not deployed) to avoid log spam
+      if (e.toString().contains('404') || e.toString().contains('NOT_FOUND')) {
+        debugPrint('AiGuideService: generate_quick_insights function not deployed, skipping insights.');
+      } else {
+        debugPrint('AiGuideService.generateQuickInsights error: $e');
+      }
+      return null;
     }
   }
 }

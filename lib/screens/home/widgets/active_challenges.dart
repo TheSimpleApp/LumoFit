@@ -50,12 +50,14 @@ class _EmptyState extends StatelessWidget {
     final textStyles = Theme.of(context).textTheme;
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const Text('🏆', style: TextStyle(fontSize: 40)),
           const SizedBox(height: 12),

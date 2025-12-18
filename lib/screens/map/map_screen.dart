@@ -34,6 +34,28 @@ class _MapScreenState extends State<MapScreen> {
 
   bool _isLoading = true;
 
+  // Dark map style JSON
+  static const String _darkMapStyle = '''
+[
+  {"elementType": "geometry", "stylers": [{"color": "#212121"}]},
+  {"elementType": "labels.icon", "stylers": [{"visibility": "off"}]},
+  {"elementType": "labels.text.fill", "stylers": [{"color": "#757575"}]},
+  {"elementType": "labels.text.stroke", "stylers": [{"color": "#212121"}]},
+  {"featureType": "administrative", "elementType": "geometry", "stylers": [{"color": "#757575"}]},
+  {"featureType": "poi", "elementType": "labels.text.fill", "stylers": [{"color": "#757575"}]},
+  {"featureType": "poi.park", "elementType": "geometry", "stylers": [{"color": "#181818"}]},
+  {"featureType": "poi.park", "elementType": "labels.text.fill", "stylers": [{"color": "#616161"}]},
+  {"featureType": "road", "elementType": "geometry.fill", "stylers": [{"color": "#2c2c2c"}]},
+  {"featureType": "road", "elementType": "labels.text.fill", "stylers": [{"color": "#8a8a8a"}]},
+  {"featureType": "road.arterial", "elementType": "geometry", "stylers": [{"color": "#373737"}]},
+  {"featureType": "road.highway", "elementType": "geometry", "stylers": [{"color": "#3c3c3c"}]},
+  {"featureType": "road.local", "elementType": "labels.text.fill", "stylers": [{"color": "#616161"}]},
+  {"featureType": "transit", "elementType": "labels.text.fill", "stylers": [{"color": "#757575"}]},
+  {"featureType": "water", "elementType": "geometry", "stylers": [{"color": "#000000"}]},
+  {"featureType": "water", "elementType": "labels.text.fill", "stylers": [{"color": "#3d3d3d"}]}
+]
+''';
+
   // Markers
   Set<Marker> _markers = {};
   final Map<String, PlaceModel> _placeMarkers = {};
@@ -79,7 +101,9 @@ class _MapScreenState extends State<MapScreen> {
         if (permission == LocationPermission.whileInUse ||
             permission == LocationPermission.always) {
           final position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.medium,
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+            ),
           ).timeout(const Duration(seconds: 10));
 
           _center = LatLng(position.latitude, position.longitude);
@@ -88,9 +112,9 @@ class _MapScreenState extends State<MapScreen> {
         debugPrint('MapScreen: Could not get GPS location: $e');
         // Keep default Cairo center
       }
-      } catch (e, st) {
-        debugPrint('MapScreen: Error initializing map: $e');
-        debugPrint(st.toString());
+    } catch (e, st) {
+      debugPrint('MapScreen: Error initializing map: $e');
+      debugPrint(st.toString());
     }
 
     setState(() => _isLoading = false);
@@ -98,8 +122,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _loadPlacesForCurrentLocation() async {
-    if (_activeFilters.contains(MapFilterType.all) ||
-        _activeFilters.isEmpty) {
+    if (_activeFilters.contains(MapFilterType.all) || _activeFilters.isEmpty) {
       // Load all types
       await Future.wait([
         _loadPlaces(PlaceType.gym),
@@ -225,7 +248,8 @@ class _MapScreenState extends State<MapScreen> {
   BitmapDescriptor _getMarkerIcon(PlaceType type) {
     switch (type) {
       case PlaceType.gym:
-        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
+        return BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueOrange);
       case PlaceType.restaurant:
         return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
       case PlaceType.trail:
@@ -250,38 +274,14 @@ class _MapScreenState extends State<MapScreen> {
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
-    _setMapStyle();
-  }
-
-  Future<void> _setMapStyle() async {
-    // Apply dark map style to match app theme
-    const darkStyle = '''
-[
-  {"elementType": "geometry", "stylers": [{"color": "#212121"}]},
-  {"elementType": "labels.icon", "stylers": [{"visibility": "off"}]},
-  {"elementType": "labels.text.fill", "stylers": [{"color": "#757575"}]},
-  {"elementType": "labels.text.stroke", "stylers": [{"color": "#212121"}]},
-  {"featureType": "administrative", "elementType": "geometry", "stylers": [{"color": "#757575"}]},
-  {"featureType": "poi", "elementType": "labels.text.fill", "stylers": [{"color": "#757575"}]},
-  {"featureType": "poi.park", "elementType": "geometry", "stylers": [{"color": "#181818"}]},
-  {"featureType": "poi.park", "elementType": "labels.text.fill", "stylers": [{"color": "#616161"}]},
-  {"featureType": "road", "elementType": "geometry.fill", "stylers": [{"color": "#2c2c2c"}]},
-  {"featureType": "road", "elementType": "labels.text.fill", "stylers": [{"color": "#8a8a8a"}]},
-  {"featureType": "road.arterial", "elementType": "geometry", "stylers": [{"color": "#373737"}]},
-  {"featureType": "road.highway", "elementType": "geometry", "stylers": [{"color": "#3c3c3c"}]},
-  {"featureType": "road.local", "elementType": "labels.text.fill", "stylers": [{"color": "#616161"}]},
-  {"featureType": "transit", "elementType": "labels.text.fill", "stylers": [{"color": "#757575"}]},
-  {"featureType": "water", "elementType": "geometry", "stylers": [{"color": "#000000"}]},
-  {"featureType": "water", "elementType": "labels.text.fill", "stylers": [{"color": "#3d3d3d"}]}
-]
-''';
-    await _mapController?.setMapStyle(darkStyle);
   }
 
   void _recenterToCurrentLocation() async {
     try {
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+        ),
       );
 
       _center = LatLng(position.latitude, position.longitude);
@@ -320,6 +320,7 @@ class _MapScreenState extends State<MapScreen> {
                 zoom: 13,
               ),
               markers: _markers,
+              style: _darkMapStyle,
               // myLocation is not supported on web by google_maps_flutter_web
               myLocationEnabled: !kIsWeb,
               myLocationButtonEnabled: false,
@@ -334,7 +335,8 @@ class _MapScreenState extends State<MapScreen> {
               left: 16,
               right: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: colors.primaryContainer,
                   borderRadius: BorderRadius.circular(12),
@@ -348,7 +350,8 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.flight_takeoff, size: 18, color: colors.onPrimaryContainer),
+                    Icon(Icons.flight_takeoff,
+                        size: 18, color: colors.onPrimaryContainer),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -411,6 +414,8 @@ class _MapScreenState extends State<MapScreen> {
             userLat: _center.latitude,
             userLng: _center.longitude,
             onPlacesSuggested: _onAiPlacesSuggested,
+            onPlaceTapped: _onAiPlaceTapped,
+            isBottomSheetOpen: _selectedItem != null,
           ),
         ],
       ),
@@ -426,11 +431,13 @@ class _MapScreenState extends State<MapScreen> {
         newMarkers.add(Marker(
           markerId: MarkerId('ai_${place.name}'),
           position: LatLng(place.lat!, place.lng!),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
           infoWindow: InfoWindow(
             title: place.name,
             snippet: place.neighborhood ?? place.type,
           ),
+          onTap: () => _onAiPlaceTapped(place),
         ));
       }
     }
@@ -440,8 +447,18 @@ class _MapScreenState extends State<MapScreen> {
         _markers = {..._markers, ...newMarkers};
       });
 
-      // Optionally zoom to show all suggested places
-      if (places.length == 1 && places.first.hasCoordinates) {
+      // Zoom to show all suggested places if multiple
+      if (places.length > 1) {
+        final bounds = _calculateBounds(places
+            .where((p) => p.hasCoordinates)
+            .map((p) => LatLng(p.lat!, p.lng!))
+            .toList());
+        if (bounds != null) {
+          _mapController?.animateCamera(
+            CameraUpdate.newLatLngBounds(bounds, 100),
+          );
+        }
+      } else if (places.length == 1 && places.first.hasCoordinates) {
         _mapController?.animateCamera(
           CameraUpdate.newLatLngZoom(
             LatLng(places.first.lat!, places.first.lng!),
@@ -450,6 +467,91 @@ class _MapScreenState extends State<MapScreen> {
         );
       }
     }
+  }
+
+  void _onAiPlaceTapped(SuggestedPlace place) async {
+    // If place has coordinates, show it on the map
+    if (place.hasCoordinates) {
+      // Zoom to the place
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLngZoom(
+          LatLng(place.lat!, place.lng!),
+          16,
+        ),
+      );
+
+      // Try to fetch full place details from Google Places
+      if (place.googlePlaceId != null) {
+        final placesService = GooglePlacesService();
+        final placeType = _parsePlaceType(place.type);
+        final fullPlace = await placesService.getPlaceDetails(
+          place.googlePlaceId!,
+          placeType,
+        );
+
+        if (fullPlace != null) {
+          setState(() {
+            _selectedItem = fullPlace;
+          });
+          return;
+        }
+      }
+
+      // Fallback: Create a temporary PlaceModel from SuggestedPlace
+      final tempPlace = PlaceModel(
+        id: place.googlePlaceId ?? 'temp_${place.name.hashCode}',
+        googlePlaceId: place.googlePlaceId,
+        type: _parsePlaceType(place.type),
+        name: place.name,
+        address: place.neighborhood,
+        latitude: place.lat,
+        longitude: place.lng,
+        rating: 0,
+        userRatingsTotal: 0,
+        isVisited: false,
+      );
+
+      setState(() {
+        _selectedItem = tempPlace;
+      });
+    }
+  }
+
+  PlaceType _parsePlaceType(String type) {
+    switch (type.toLowerCase()) {
+      case 'gym':
+        return PlaceType.gym;
+      case 'restaurant':
+      case 'food':
+        return PlaceType.restaurant;
+      case 'park':
+        return PlaceType.park;
+      case 'trail':
+        return PlaceType.trail;
+      default:
+        return PlaceType.gym;
+    }
+  }
+
+  LatLngBounds? _calculateBounds(List<LatLng> points) {
+    if (points.isEmpty) return null;
+
+    double minLat = points.first.latitude;
+    double maxLat = points.first.latitude;
+    double minLng = points.first.longitude;
+    double maxLng = points.first.longitude;
+
+    for (final point in points) {
+      minLat = minLat < point.latitude ? minLat : point.latitude;
+      maxLat = maxLat > point.latitude ? maxLat : point.latitude;
+      minLng = minLng < point.longitude ? minLng : point.longitude;
+      maxLng = maxLng > point.longitude ? maxLng : point.longitude;
+    }
+
+    return LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
   }
 
   @override

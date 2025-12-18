@@ -1,5 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fittravel/services/services.dart';
+import 'package:fittravel/models/ai_models.dart';
+import 'package:fittravel/models/place_model.dart';
 
 class CairoGuideScreen extends StatefulWidget {
   const CairoGuideScreen({super.key});
@@ -9,45 +16,174 @@ class CairoGuideScreen extends StatefulWidget {
 }
 
 class _CairoGuideScreenState extends State<CairoGuideScreen> {
+  static const String _conversationKey = 'cairo_guide_conversation';
+
   final AiGuideService _aiGuide = AiGuideService();
   final TextEditingController _questionController = TextEditingController();
-  final List<Map<String, String>> _messages = [];
+  final ScrollController _scrollController = ScrollController();
+  // Use AiChatMessage model to support structured data like suggested places
+  final List<AiChatMessage> _messages = [];
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConversation();
+  }
 
   @override
   void dispose() {
     _questionController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Load conversation from SharedPreferences
+  Future<void> _loadConversation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_conversationKey);
+      if (jsonString != null && jsonString.isNotEmpty) {
+        final List<dynamic> jsonList = json.decode(jsonString);
+        final messages = jsonList
+            .map((e) => AiChatMessage.fromJson(e as Map<String, dynamic>))
+            .toList();
+        if (mounted && messages.isNotEmpty) {
+          setState(() {
+            _messages.addAll(messages);
+          });
+          // Scroll to bottom after loading
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToBottom();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading conversation: $e');
+    }
+  }
+
+  /// Save conversation to SharedPreferences
+  Future<void> _saveConversation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = _messages.map((m) => m.toJson()).toList();
+      await prefs.setString(_conversationKey, json.encode(jsonList));
+    } catch (e) {
+      debugPrint('Error saving conversation: $e');
+    }
+  }
+
+  /// Clear conversation and remove from storage
+  Future<void> _clearConversation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Conversation'),
+        content: const Text(
+            'Are you sure you want to clear the conversation history?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        _messages.clear();
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_conversationKey);
+      _aiGuide.clearHistory();
+    }
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   Future<void> _askQuestion(String question) async {
     if (question.trim().isEmpty) return;
 
     setState(() {
-      _messages.add({'role': 'user', 'content': question});
+      _messages.add(AiChatMessage.user(question));
       _isLoading = true;
     });
 
     _questionController.clear();
+    _saveConversation();
+
+    // Scroll to bottom to show user message
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
     try {
-      final response = await _aiGuide.askCairoGuide(question: question);
+      // Use askEgyptGuide to get structured response with suggested places
+      final response = await _aiGuide.askEgyptGuide(
+        question: question,
+        destination: 'Cairo', // Default to Cairo context for this screen
+      );
 
       if (mounted) {
+        // Build elements list from response
+        final elements = <MessageElement>[];
+
+        // Add tags if available
+        if (response.tags != null && response.tags!.isNotEmpty) {
+          elements.add(MessageElement.tags(response.tags!));
+        }
+
+        // Add quick replies if available
+        if (response.quickReplies != null &&
+            response.quickReplies!.isNotEmpty) {
+          elements.add(MessageElement.quickReplies(response.quickReplies!));
+        }
+
+        // Add custom elements if available
+        if (response.elements != null) {
+          elements.addAll(response.elements!);
+        }
+
+        // Add places if available
+        if (response.suggestedPlaces.isNotEmpty) {
+          elements.add(MessageElement.places(response.suggestedPlaces));
+        }
+
         setState(() {
-          _messages.add({'role': 'assistant', 'content': response});
+          _messages.add(AiChatMessage.assistant(
+            response.text,
+            suggestedPlaces: response.suggestedPlaces,
+            elements: elements.isEmpty ? null : elements,
+          ));
           _isLoading = false;
         });
+
+        _saveConversation();
+
+        // Scroll to bottom to show assistant response
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _messages.add({
-            'role': 'assistant',
-            'content': 'Sorry, something went wrong. Please try again.'
-          });
+          _messages.add(AiChatMessage.assistant(
+            'Sorry, something went wrong. Please try again.',
+          ));
           _isLoading = false;
         });
+        _saveConversation();
       }
     }
   }
@@ -81,7 +217,8 @@ class _CairoGuideScreenState extends State<CairoGuideScreen> {
                   label: Text(quickQuestions[index]),
                   onPressed: () => _askQuestion(quickQuestions[index]),
                   backgroundColor: colors.surfaceContainerHighest,
-                  side: BorderSide(color: colors.outline.withValues(alpha: 0.3)),
+                  side:
+                      BorderSide(color: colors.outline.withValues(alpha: 0.3)),
                 ),
               );
             },
@@ -91,8 +228,8 @@ class _CairoGuideScreenState extends State<CairoGuideScreen> {
     );
   }
 
-  Widget _buildMessage(Map<String, String> message, ColorScheme colors) {
-    final isUser = message['role'] == 'user';
+  Widget _buildMessage(AiChatMessage message, ColorScheme colors) {
+    final isUser = message.isUser;
 
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -104,17 +241,509 @@ class _CairoGuideScreenState extends State<CairoGuideScreen> {
         ),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isUser ? colors.primaryContainer : colors.surfaceContainerHighest,
+          color:
+              isUser ? colors.primaryContainer : colors.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Text(
-          message['content']!,
-          style: TextStyle(
-            color: isUser ? colors.onPrimaryContainer : colors.onSurface,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Main text content
+            if (message.content.isNotEmpty)
+              MarkdownBody(
+                data: message.content,
+                styleSheet: MarkdownStyleSheet(
+                  p: TextStyle(
+                    color:
+                        isUser ? colors.onPrimaryContainer : colors.onSurface,
+                    fontSize: 15,
+                    height: 1.5,
+                  ),
+                  strong: TextStyle(
+                    color:
+                        isUser ? colors.onPrimaryContainer : colors.onSurface,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  em: TextStyle(
+                    color:
+                        isUser ? colors.onPrimaryContainer : colors.onSurface,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  listBullet: TextStyle(
+                    color:
+                        isUser ? colors.onPrimaryContainer : colors.onSurface,
+                    fontSize: 15,
+                  ),
+                  h1: TextStyle(
+                    color:
+                        isUser ? colors.onPrimaryContainer : colors.onSurface,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  h2: TextStyle(
+                    color:
+                        isUser ? colors.onPrimaryContainer : colors.onSurface,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  h3: TextStyle(
+                    color:
+                        isUser ? colors.onPrimaryContainer : colors.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  code: TextStyle(
+                    color:
+                        isUser ? colors.onPrimaryContainer : colors.onSurface,
+                    backgroundColor: (isUser
+                            ? colors.primaryContainer
+                            : colors.surfaceContainerHighest)
+                        .withValues(alpha: 0.3),
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                  ),
+                ),
+                selectable: true,
+              ),
+
+            // Render interactive elements
+            if (!isUser &&
+                message.elements != null &&
+                message.elements!.isNotEmpty)
+              ...message.elements!.map(
+                  (element) => _buildMessageElement(element, colors, message)),
+          ],
         ),
       ),
     );
+  }
+
+  Widget _buildMessageElement(
+      MessageElement element, ColorScheme colors, AiChatMessage message) {
+    switch (element.type) {
+      case MessageElementType.text:
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            element.text ?? '',
+            style: TextStyle(color: colors.onSurface, fontSize: 15),
+          ),
+        );
+
+      case MessageElementType.image:
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  element.imageUrl ?? '',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 150,
+                      color: colors.surfaceContainer,
+                      child: Center(
+                        child: Icon(Icons.broken_image,
+                            color: colors.onSurfaceVariant),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              if (element.text != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  element.text!,
+                  style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+
+      case MessageElementType.quickReplies:
+        return _buildQuickReplies(element.quickReplies ?? [], colors);
+
+      case MessageElementType.singleSelect:
+        return _buildSingleSelect(element.selectOption!, colors, message);
+
+      case MessageElementType.multiSelect:
+        return _buildMultiSelect(element.selectOption!, colors, message);
+
+      case MessageElementType.places:
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: _buildSuggestedPlaces(element.places ?? [], colors),
+        );
+
+      case MessageElementType.tags:
+        return Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 8),
+          child: _buildTags(element.tags ?? [], colors),
+        );
+    }
+  }
+
+  Widget _buildTags(List<String> tags, ColorScheme colors) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: tags.map((tag) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: colors.primaryContainer.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: colors.primary.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Text(
+            tag,
+            style: TextStyle(
+              fontSize: 12,
+              color: colors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildQuickReplies(List<QuickReply> replies, ColorScheme colors) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: replies.map((reply) {
+          return ActionChip(
+            avatar: reply.emoji != null
+                ? Text(reply.emoji!, style: const TextStyle(fontSize: 16))
+                : null,
+            label: Text(reply.text),
+            onPressed: () => _askQuestion(reply.value ?? reply.text),
+            backgroundColor: colors.surface,
+            side: BorderSide(
+                color: colors.primary.withValues(alpha: 0.5), width: 1.5),
+            labelStyle: TextStyle(
+              fontSize: 13,
+              color: colors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSingleSelect(
+      SelectOption option, ColorScheme colors, AiChatMessage message) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            option.question,
+            style: TextStyle(
+              color: colors.onSurface,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...option.choices.map((choice) {
+            final isSelected = option.selectedIds.contains(choice.id);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: InkWell(
+                onTap: () {
+                  // Update selection and send response
+                  _askQuestion(choice.text);
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color:
+                        isSelected ? colors.primaryContainer : colors.surface,
+                    border: Border.all(
+                      color: isSelected
+                          ? colors.primary
+                          : colors.outline.withValues(alpha: 0.3),
+                      width: isSelected ? 2 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      if (choice.emoji != null) ...[
+                        Text(choice.emoji!,
+                            style: const TextStyle(fontSize: 20)),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              choice.text,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? colors.onPrimaryContainer
+                                    : colors.onSurface,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (choice.description != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                choice.description!,
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? colors.onPrimaryContainer
+                                          .withValues(alpha: 0.8)
+                                      : colors.onSurfaceVariant,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (isSelected)
+                        Icon(Icons.check_circle,
+                            color: colors.primary, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMultiSelect(
+      SelectOption option, ColorScheme colors, AiChatMessage message) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            option.question,
+            style: TextStyle(
+              color: colors.onSurface,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...option.choices.map((choice) {
+            final isSelected = option.selectedIds.contains(choice.id);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    // Toggle selection
+                    final newSelected = List<String>.from(option.selectedIds);
+                    if (isSelected) {
+                      newSelected.remove(choice.id);
+                    } else {
+                      newSelected.add(choice.id);
+                    }
+
+                    // Update the message element
+                    final elementIndex = message.elements!.indexWhere((e) =>
+                        e.type == MessageElementType.multiSelect &&
+                        e.selectOption?.id == option.id);
+                    if (elementIndex != -1) {
+                      message.elements![elementIndex] =
+                          MessageElement.multiSelect(
+                        option.copyWithSelected(newSelected),
+                      );
+                    }
+                  });
+                  _saveConversation();
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color:
+                        isSelected ? colors.primaryContainer : colors.surface,
+                    border: Border.all(
+                      color: isSelected
+                          ? colors.primary
+                          : colors.outline.withValues(alpha: 0.3),
+                      width: isSelected ? 2 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        value: isSelected,
+                        onChanged: null, // Handled by InkWell
+                        fillColor: WidgetStateProperty.resolveWith((states) {
+                          if (isSelected) return colors.primary;
+                          return colors.surface;
+                        }),
+                      ),
+                      const SizedBox(width: 8),
+                      if (choice.emoji != null) ...[
+                        Text(choice.emoji!,
+                            style: const TextStyle(fontSize: 20)),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              choice.text,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? colors.onPrimaryContainer
+                                    : colors.onSurface,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (choice.description != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                choice.description!,
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? colors.onPrimaryContainer
+                                          .withValues(alpha: 0.8)
+                                      : colors.onSurfaceVariant,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.tonal(
+              onPressed: () {
+                // Build a summary of selections
+                final selectedTexts = option.choices
+                    .where((c) => option.selectedIds.contains(c.id))
+                    .map((c) => c.text)
+                    .join(', ');
+                if (selectedTexts.isNotEmpty) {
+                  _askQuestion('I selected: $selectedTexts');
+                }
+              },
+              child: const Text('Continue'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestedPlaces(
+      List<SuggestedPlace> places, ColorScheme colors) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: places.map((place) {
+        return ActionChip(
+          avatar:
+              Icon(_getPlaceIcon(place.type), size: 16, color: colors.primary),
+          label: Text(place.name),
+          onPressed: () => _handlePlaceTap(place),
+          backgroundColor: colors.surface,
+          side: BorderSide(color: colors.outline.withValues(alpha: 0.2)),
+          labelStyle: TextStyle(
+            fontSize: 12,
+            color: colors.onSurface,
+            fontWeight: FontWeight.w500,
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  IconData _getPlaceIcon(String type) {
+    switch (type.toLowerCase()) {
+      case 'gym':
+        return Icons.fitness_center;
+      case 'restaurant':
+      case 'food':
+        return Icons.restaurant;
+      case 'park':
+      case 'trail':
+        return Icons.directions_run;
+      case 'event':
+        return Icons.event;
+      default:
+        return Icons.place;
+    }
+  }
+
+  void _handlePlaceTap(SuggestedPlace place) {
+    // If it has a Google Place ID or coordinates, we could try to open details
+    // For now, let's open the Place Detail screen with a temporary model
+    // In a real app, you might fetch full details first
+
+    // Create a temporary PlaceModel to pass to detail screen
+    final placeModel = PlaceModel(
+      id: place.googlePlaceId ?? 'temp_${place.name.hashCode}',
+      name: place.name,
+      type: _parsePlaceType(place.type),
+      latitude: place.lat,
+      longitude: place.lng,
+      address: place.neighborhood,
+      notes: 'Recommended by Cairo Guide',
+      rating: 0,
+      userRatingsTotal: 0,
+      isVisited: false,
+    );
+
+    context.push('/place-detail', extra: placeModel);
+  }
+
+  PlaceType _parsePlaceType(String type) {
+    switch (type.toLowerCase()) {
+      case 'gym':
+        return PlaceType.gym;
+      case 'restaurant':
+      case 'food':
+        return PlaceType.restaurant;
+      case 'park':
+        return PlaceType.park;
+      case 'trail':
+        return PlaceType.trail;
+      default:
+        return PlaceType.gym; // Default
+    }
   }
 
   Widget _buildEmptyState(ColorScheme colors, TextTheme textTheme) {
@@ -193,6 +822,14 @@ class _CairoGuideScreenState extends State<CairoGuideScreen> {
             const Text('Cairo Guide'),
           ],
         ),
+        actions: [
+          if (_messages.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Clear conversation',
+              onPressed: _clearConversation,
+            ),
+        ],
       ),
       body: Column(
         children: [

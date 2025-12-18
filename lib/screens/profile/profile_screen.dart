@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter/foundation.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -390,41 +389,234 @@ class _BadgeItem extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) => Container(
-        decoration: BoxDecoration(color: colors.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(width: 40, height: 4, decoration: BoxDecoration(color: colors.outline.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
-                const SizedBox(height: 24),
+                // Drag handle
                 Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.15), shape: BoxShape.circle, border: Border.all(color: badgeColor.withValues(alpha: 0.5), width: 3)),
-                  child: Icon(_getIconData(badge.iconName), color: badgeColor, size: 36),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.outline.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                )
+                    .animate()
+                    .fadeIn(duration: 200.ms)
+                    .slideY(begin: -0.5, duration: 200.ms),
+                const SizedBox(height: 32),
+                
+                // Badge icon with glow effect
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Outer glow
+                    if (isEarned)
+                      Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              badgeColor.withValues(alpha: 0.3),
+                              badgeColor.withValues(alpha: 0.0),
+                            ],
+                          ),
+                        ),
+                      )
+                          .animate(onPlay: (controller) => controller.repeat())
+                          .scale(
+                            begin: const Offset(0.8, 0.8),
+                            end: const Offset(1.1, 1.1),
+                            duration: 2000.ms,
+                          )
+                          .then()
+                          .scale(
+                            begin: const Offset(1.1, 1.1),
+                            end: const Offset(0.8, 0.8),
+                            duration: 2000.ms,
+                          ),
+                    // Badge container
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            badgeColor.withValues(alpha: 0.2),
+                            badgeColor.withValues(alpha: 0.1),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: badgeColor.withValues(alpha: isEarned ? 0.6 : 0.3),
+                          width: 4,
+                        ),
+                        boxShadow: isEarned
+                            ? [
+                                BoxShadow(
+                                  color: badgeColor.withValues(alpha: 0.4),
+                                  blurRadius: 20,
+                                  spreadRadius: 2,
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Icon(
+                        _getIconData(badge.iconName),
+                        color: badgeColor,
+                        size: 48,
+                      ),
+                    )
+                        .animate()
+                        .scale(delay: 100.ms, duration: 400.ms, curve: Curves.elasticOut)
+                        .then()
+                        .shimmer(delay: 200.ms, duration: 1000.ms, color: Colors.white.withValues(alpha: 0.3)),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                Text(badge.name, style: textStyles.titleLarge),
-                const SizedBox(height: 8),
-                Text(badge.description, style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant), textAlign: TextAlign.center),
-                const SizedBox(height: 16),
+                const SizedBox(height: 28),
+                
+                // Tier badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(color: AppColors.xp.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(AppRadius.full)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    border: Border.all(
+                      color: badgeColor.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    badge.tier.toUpperCase(),
+                    style: textStyles.labelSmall?.copyWith(
+                      color: badgeColor,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                )
+                    .animate()
+                    .fadeIn(delay: 300.ms)
+                    .slideY(begin: 0.5, delay: 300.ms),
+                const SizedBox(height: 16),
+                
+                // Badge name
+                Text(
+                  badge.name,
+                  style: textStyles.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                )
+                    .animate()
+                    .fadeIn(delay: 350.ms)
+                    .slideY(begin: 0.3, delay: 350.ms),
+                const SizedBox(height: 12),
+                
+                // Description
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                  ),
+                  child: Text(
+                    badge.description,
+                    style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+                    .animate()
+                    .fadeIn(delay: 400.ms)
+                    .slideY(begin: 0.3, delay: 400.ms),
+                const SizedBox(height: 24),
+                
+                // XP Reward
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.xp.withValues(alpha: 0.2),
+                        AppColors.xp.withValues(alpha: 0.1),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    border: Border.all(
+                      color: AppColors.xp.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.bolt, color: AppColors.xp, size: 18),
-                      const SizedBox(width: 4),
-                      Text('+${badge.xpReward} XP', style: textStyles.labelLarge?.copyWith(color: AppColors.xp, fontWeight: FontWeight.bold)),
+                      Icon(Icons.bolt, color: AppColors.xp, size: 22),
+                      const SizedBox(width: 8),
+                      Text(
+                        '+${badge.xpReward} XP',
+                        style: textStyles.titleMedium?.copyWith(
+                          color: AppColors.xp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(isEarned ? '✅ Earned!' : '🔒 Not yet earned', style: textStyles.labelMedium?.copyWith(color: isEarned ? AppColors.success : colors.onSurfaceVariant)),
+                )
+                    .animate()
+                    .fadeIn(delay: 450.ms)
+                    .scale(delay: 450.ms, curve: Curves.elasticOut),
+                const SizedBox(height: 20),
+                
+                // Status indicator
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isEarned
+                        ? AppColors.success.withValues(alpha: 0.15)
+                        : colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(
+                      color: isEarned
+                          ? AppColors.success.withValues(alpha: 0.3)
+                          : colors.outline.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isEarned ? Icons.check_circle : Icons.lock_outline,
+                        color: isEarned ? AppColors.success : colors.onSurfaceVariant,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isEarned ? 'Earned!' : 'Not yet earned',
+                        style: textStyles.titleSmall?.copyWith(
+                          color: isEarned ? AppColors.success : colors.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+                    .animate()
+                    .fadeIn(delay: 500.ms)
+                    .slideY(begin: 0.3, delay: 500.ms),
               ],
             ),
           ),

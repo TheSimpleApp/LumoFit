@@ -1,15 +1,21 @@
-/// AI-related models for Egypt fitness guide features
+// AI-related models for Egypt fitness guide features
 
 /// Response from the Egypt fitness guide AI
 class EgyptGuideResponse {
   final String text;
   final List<SuggestedPlace> suggestedPlaces;
   final Map<String, dynamic>? suggestedFilters;
+  final List<MessageElement>? elements;
+  final List<QuickReply>? quickReplies;
+  final List<String>? tags;
 
   const EgyptGuideResponse({
     required this.text,
     this.suggestedPlaces = const [],
     this.suggestedFilters,
+    this.elements,
+    this.quickReplies,
+    this.tags,
   });
 
   factory EgyptGuideResponse.fromJson(Map<String, dynamic> json) {
@@ -20,6 +26,15 @@ class EgyptGuideResponse {
               .toList() ??
           [],
       suggestedFilters: json['suggestedFilters'] as Map<String, dynamic>?,
+      elements: (json['elements'] as List<dynamic>?)
+          ?.map((e) => MessageElement.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      quickReplies: (json['quickReplies'] as List<dynamic>?)
+          ?.map((e) => QuickReply.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      tags: (json['tags'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
     );
   }
 
@@ -27,6 +42,11 @@ class EgyptGuideResponse {
         'text': text,
         'suggestedPlaces': suggestedPlaces.map((e) => e.toJson()).toList(),
         if (suggestedFilters != null) 'suggestedFilters': suggestedFilters,
+        if (elements != null)
+          'elements': elements!.map((e) => e.toJson()).toList(),
+        if (quickReplies != null)
+          'quickReplies': quickReplies!.map((e) => e.toJson()).toList(),
+        if (tags != null) 'tags': tags,
       };
 }
 
@@ -248,6 +268,488 @@ class PlaceInsights {
       };
 }
 
+/// Enhanced AI-generated fitness intelligence for a specific place
+/// Extracted from reviews and place data
+class PlaceFitnessIntelligence {
+  // Core Analysis
+  final String summary; // 2-3 sentence AI summary focused on fitness/health
+  final double? fitnessScore; // 0-10 score for fitness suitability
+  
+  // Crowd & Timing
+  final Map<String, String> bestTimesDetailed; // e.g., {"morning": "6-9 AM - Least crowded", "evening": "After 8 PM - Peak hours"}
+  final String? crowdInsights; // AI analysis of crowd patterns
+  
+  // Type-specific Intelligence
+  final GymIntelligence? gymInsights; // For gyms/fitness centers
+  final RestaurantIntelligence? restaurantInsights; // For restaurants
+  final TrailIntelligence? trailInsights; // For trails/outdoor
+  
+  // Common Insights
+  final List<String> pros; // Fitness-focused pros
+  final List<String> cons; // Fitness-focused cons
+  final List<String> tips; // Actionable fitness tips
+  final List<String> whatToBring; // Recommended items
+  
+  // Review Analysis
+  final ReviewSentiment? sentiment; // Aggregated sentiment from reviews
+  final List<String> commonPhrases; // Frequently mentioned fitness-related phrases
+  
+  // Metadata
+  final DateTime generatedAt;
+  final int reviewsAnalyzed;
+
+  const PlaceFitnessIntelligence({
+    required this.summary,
+    this.fitnessScore,
+    this.bestTimesDetailed = const {},
+    this.crowdInsights,
+    this.gymInsights,
+    this.restaurantInsights,
+    this.trailInsights,
+    this.pros = const [],
+    this.cons = const [],
+    this.tips = const [],
+    this.whatToBring = const [],
+    this.sentiment,
+    this.commonPhrases = const [],
+    required this.generatedAt,
+    this.reviewsAnalyzed = 0,
+  });
+
+  factory PlaceFitnessIntelligence.fromJson(Map<String, dynamic> json) {
+    return PlaceFitnessIntelligence(
+      summary: json['summary'] as String? ?? '',
+      fitnessScore: (json['fitnessScore'] as num?)?.toDouble(),
+      bestTimesDetailed: (json['bestTimesDetailed'] as Map<String, dynamic>?)?.cast<String, String>() ?? {},
+      crowdInsights: json['crowdInsights'] as String?,
+      gymInsights: json['gymInsights'] != null
+          ? GymIntelligence.fromJson(json['gymInsights'] as Map<String, dynamic>)
+          : null,
+      restaurantInsights: json['restaurantInsights'] != null
+          ? RestaurantIntelligence.fromJson(json['restaurantInsights'] as Map<String, dynamic>)
+          : null,
+      trailInsights: json['trailInsights'] != null
+          ? TrailIntelligence.fromJson(json['trailInsights'] as Map<String, dynamic>)
+          : null,
+      pros: (json['pros'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      cons: (json['cons'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      tips: (json['tips'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      whatToBring: (json['whatToBring'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      sentiment: json['sentiment'] != null
+          ? ReviewSentiment.fromJson(json['sentiment'] as Map<String, dynamic>)
+          : null,
+      commonPhrases: (json['commonPhrases'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      generatedAt: json['generatedAt'] != null
+          ? DateTime.parse(json['generatedAt'] as String)
+          : DateTime.now(),
+      reviewsAnalyzed: json['reviewsAnalyzed'] as int? ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'summary': summary,
+        if (fitnessScore != null) 'fitnessScore': fitnessScore,
+        'bestTimesDetailed': bestTimesDetailed,
+        if (crowdInsights != null) 'crowdInsights': crowdInsights,
+        if (gymInsights != null) 'gymInsights': gymInsights!.toJson(),
+        if (restaurantInsights != null) 'restaurantInsights': restaurantInsights!.toJson(),
+        if (trailInsights != null) 'trailInsights': trailInsights!.toJson(),
+        'pros': pros,
+        'cons': cons,
+        'tips': tips,
+        'whatToBring': whatToBring,
+        if (sentiment != null) 'sentiment': sentiment!.toJson(),
+        'commonPhrases': commonPhrases,
+        'generatedAt': generatedAt.toIso8601String(),
+        'reviewsAnalyzed': reviewsAnalyzed,
+      };
+}
+
+/// Gym-specific intelligence
+class GymIntelligence {
+  final List<String> equipment; // Available equipment mentioned
+  final String? cleanlinessRating; // Extracted cleanliness sentiment
+  final List<String> amenities; // Showers, lockers, WiFi, etc.
+  final String? coachingQuality; // Trainer/coaching mentions
+  final bool? beginnerFriendly;
+  final Map<String, String>? classSchedule; // If mentioned in reviews
+
+  const GymIntelligence({
+    this.equipment = const [],
+    this.cleanlinessRating,
+    this.amenities = const [],
+    this.coachingQuality,
+    this.beginnerFriendly,
+    this.classSchedule,
+  });
+
+  factory GymIntelligence.fromJson(Map<String, dynamic> json) {
+    return GymIntelligence(
+      equipment: (json['equipment'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      cleanlinessRating: json['cleanlinessRating'] as String?,
+      amenities: (json['amenities'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      coachingQuality: json['coachingQuality'] as String?,
+      beginnerFriendly: json['beginnerFriendly'] as bool?,
+      classSchedule: (json['classSchedule'] as Map<String, dynamic>?)?.cast<String, String>(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'equipment': equipment,
+        if (cleanlinessRating != null) 'cleanlinessRating': cleanlinessRating,
+        'amenities': amenities,
+        if (coachingQuality != null) 'coachingQuality': coachingQuality,
+        if (beginnerFriendly != null) 'beginnerFriendly': beginnerFriendly,
+        if (classSchedule != null) 'classSchedule': classSchedule,
+      };
+}
+
+/// Restaurant-specific intelligence
+class RestaurantIntelligence {
+  final List<String> healthyOptions; // Healthy menu items mentioned
+  final List<String> dietaryAccommodations; // Vegan, gluten-free, etc.
+  final String? macroInfo; // Protein-rich, low-carb mentions
+  final String? portionSize; // Portion size feedback
+  final double? proteinScore; // 0-10 for protein availability
+  final List<String> popularHealthyDishes; // Specific dishes mentioned
+  final bool? postWorkoutFriendly;
+
+  const RestaurantIntelligence({
+    this.healthyOptions = const [],
+    this.dietaryAccommodations = const [],
+    this.macroInfo,
+    this.portionSize,
+    this.proteinScore,
+    this.popularHealthyDishes = const [],
+    this.postWorkoutFriendly,
+  });
+
+  factory RestaurantIntelligence.fromJson(Map<String, dynamic> json) {
+    return RestaurantIntelligence(
+      healthyOptions: (json['healthyOptions'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      dietaryAccommodations: (json['dietaryAccommodations'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      macroInfo: json['macroInfo'] as String?,
+      portionSize: json['portionSize'] as String?,
+      proteinScore: (json['proteinScore'] as num?)?.toDouble(),
+      popularHealthyDishes: (json['popularHealthyDishes'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      postWorkoutFriendly: json['postWorkoutFriendly'] as bool?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'healthyOptions': healthyOptions,
+        'dietaryAccommodations': dietaryAccommodations,
+        if (macroInfo != null) 'macroInfo': macroInfo,
+        if (portionSize != null) 'portionSize': portionSize,
+        if (proteinScore != null) 'proteinScore': proteinScore,
+        'popularHealthyDishes': popularHealthyDishes,
+        if (postWorkoutFriendly != null) 'postWorkoutFriendly': postWorkoutFriendly,
+      };
+}
+
+/// Trail/outdoor-specific intelligence
+class TrailIntelligence {
+  final String? difficulty; // Easy, Moderate, Hard
+  final String? terrain; // Type of terrain
+  final double? distanceKm; // Trail distance if mentioned
+  final String? elevationGain; // Elevation info
+  final List<String> scenicHighlights; // Views, landmarks
+  final String? bestSeason; // Best time of year
+  final bool? dogFriendly;
+  final bool? bikeAccessible;
+  final String? waterAvailability;
+
+  const TrailIntelligence({
+    this.difficulty,
+    this.terrain,
+    this.distanceKm,
+    this.elevationGain,
+    this.scenicHighlights = const [],
+    this.bestSeason,
+    this.dogFriendly,
+    this.bikeAccessible,
+    this.waterAvailability,
+  });
+
+  factory TrailIntelligence.fromJson(Map<String, dynamic> json) {
+    return TrailIntelligence(
+      difficulty: json['difficulty'] as String?,
+      terrain: json['terrain'] as String?,
+      distanceKm: (json['distanceKm'] as num?)?.toDouble(),
+      elevationGain: json['elevationGain'] as String?,
+      scenicHighlights: (json['scenicHighlights'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      bestSeason: json['bestSeason'] as String?,
+      dogFriendly: json['dogFriendly'] as bool?,
+      bikeAccessible: json['bikeAccessible'] as bool?,
+      waterAvailability: json['waterAvailability'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        if (difficulty != null) 'difficulty': difficulty,
+        if (terrain != null) 'terrain': terrain,
+        if (distanceKm != null) 'distanceKm': distanceKm,
+        if (elevationGain != null) 'elevationGain': elevationGain,
+        'scenicHighlights': scenicHighlights,
+        if (bestSeason != null) 'bestSeason': bestSeason,
+        if (dogFriendly != null) 'dogFriendly': dogFriendly,
+        if (bikeAccessible != null) 'bikeAccessible': bikeAccessible,
+        if (waterAvailability != null) 'waterAvailability': waterAvailability,
+      };
+}
+
+/// Review sentiment analysis
+class ReviewSentiment {
+  final double overall; // -1 to 1
+  final String label; // "Very Positive", "Positive", "Mixed", "Negative"
+  final Map<String, double> aspectScores; // e.g., {"cleanliness": 0.8, "equipment": 0.6}
+
+  const ReviewSentiment({
+    required this.overall,
+    required this.label,
+    this.aspectScores = const {},
+  });
+
+  factory ReviewSentiment.fromJson(Map<String, dynamic> json) {
+    return ReviewSentiment(
+      overall: (json['overall'] as num?)?.toDouble() ?? 0.0,
+      label: json['label'] as String? ?? 'Unknown',
+      aspectScores: (json['aspectScores'] as Map<String, dynamic>?)
+              ?.map((k, v) => MapEntry(k, (v as num).toDouble())) ??
+          {},
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'overall': overall,
+        'label': label,
+        'aspectScores': aspectScores,
+      };
+}
+
+/// Interactive message element types
+enum MessageElementType {
+  text,
+  quickReplies,
+  singleSelect,
+  multiSelect,
+  image,
+  places,
+  tags,
+}
+
+/// An interactive element within a message
+class MessageElement {
+  final MessageElementType type;
+  final String? text;
+  final String? imageUrl;
+  final List<QuickReply>? quickReplies;
+  final SelectOption? selectOption;
+  final List<SuggestedPlace>? places;
+  final List<String>? tags;
+
+  const MessageElement({
+    required this.type,
+    this.text,
+    this.imageUrl,
+    this.quickReplies,
+    this.selectOption,
+    this.places,
+    this.tags,
+  });
+
+  factory MessageElement.text(String text) {
+    return MessageElement(type: MessageElementType.text, text: text);
+  }
+
+  factory MessageElement.image(String imageUrl, {String? caption}) {
+    return MessageElement(
+      type: MessageElementType.image,
+      imageUrl: imageUrl,
+      text: caption,
+    );
+  }
+
+  factory MessageElement.quickReplies(List<QuickReply> replies) {
+    return MessageElement(
+      type: MessageElementType.quickReplies,
+      quickReplies: replies,
+    );
+  }
+
+  factory MessageElement.singleSelect(SelectOption option) {
+    return MessageElement(
+      type: MessageElementType.singleSelect,
+      selectOption: option,
+    );
+  }
+
+  factory MessageElement.multiSelect(SelectOption option) {
+    return MessageElement(
+      type: MessageElementType.multiSelect,
+      selectOption: option,
+    );
+  }
+
+  factory MessageElement.places(List<SuggestedPlace> places) {
+    return MessageElement(
+      type: MessageElementType.places,
+      places: places,
+    );
+  }
+
+  factory MessageElement.tags(List<String> tags) {
+    return MessageElement(
+      type: MessageElementType.tags,
+      tags: tags,
+    );
+  }
+
+  factory MessageElement.fromJson(Map<String, dynamic> json) {
+    final typeStr = json['type'] as String;
+    final type = MessageElementType.values.firstWhere(
+      (e) => e.name == typeStr,
+      orElse: () => MessageElementType.text,
+    );
+
+    return MessageElement(
+      type: type,
+      text: json['text'] as String?,
+      imageUrl: json['imageUrl'] as String?,
+      quickReplies: (json['quickReplies'] as List<dynamic>?)
+          ?.map((e) => QuickReply.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      selectOption: json['selectOption'] != null
+          ? SelectOption.fromJson(json['selectOption'] as Map<String, dynamic>)
+          : null,
+      places: (json['places'] as List<dynamic>?)
+          ?.map((e) => SuggestedPlace.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      tags: (json['tags'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'type': type.name,
+        if (text != null) 'text': text,
+        if (imageUrl != null) 'imageUrl': imageUrl,
+        if (quickReplies != null)
+          'quickReplies': quickReplies!.map((e) => e.toJson()).toList(),
+        if (selectOption != null) 'selectOption': selectOption!.toJson(),
+        if (places != null) 'places': places!.map((e) => e.toJson()).toList(),
+        if (tags != null) 'tags': tags,
+      };
+}
+
+/// A quick reply option
+class QuickReply {
+  final String id;
+  final String text;
+  final String? emoji;
+  final String? value;
+
+  const QuickReply({
+    required this.id,
+    required this.text,
+    this.emoji,
+    this.value,
+  });
+
+  factory QuickReply.fromJson(Map<String, dynamic> json) {
+    return QuickReply(
+      id: json['id'] as String,
+      text: json['text'] as String,
+      emoji: json['emoji'] as String?,
+      value: json['value'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'text': text,
+        if (emoji != null) 'emoji': emoji,
+        if (value != null) 'value': value,
+      };
+}
+
+/// A select option (single or multi-select)
+class SelectOption {
+  final String id;
+  final String question;
+  final List<SelectChoice> choices;
+  final List<String> selectedIds;
+
+  const SelectOption({
+    required this.id,
+    required this.question,
+    required this.choices,
+    this.selectedIds = const [],
+  });
+
+  SelectOption copyWithSelected(List<String> selectedIds) {
+    return SelectOption(
+      id: id,
+      question: question,
+      choices: choices,
+      selectedIds: selectedIds,
+    );
+  }
+
+  factory SelectOption.fromJson(Map<String, dynamic> json) {
+    return SelectOption(
+      id: json['id'] as String,
+      question: json['question'] as String,
+      choices: (json['choices'] as List<dynamic>)
+          .map((e) => SelectChoice.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      selectedIds: (json['selectedIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'question': question,
+        'choices': choices.map((e) => e.toJson()).toList(),
+        'selectedIds': selectedIds,
+      };
+}
+
+/// A choice in a select option
+class SelectChoice {
+  final String id;
+  final String text;
+  final String? emoji;
+  final String? description;
+
+  const SelectChoice({
+    required this.id,
+    required this.text,
+    this.emoji,
+    this.description,
+  });
+
+  factory SelectChoice.fromJson(Map<String, dynamic> json) {
+    return SelectChoice(
+      id: json['id'] as String,
+      text: json['text'] as String,
+      emoji: json['emoji'] as String?,
+      description: json['description'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'text': text,
+        if (emoji != null) 'emoji': emoji,
+        if (description != null) 'description': description,
+      };
+}
+
 /// A message in the AI chat conversation
 class AiChatMessage {
   final String id;
@@ -255,6 +757,7 @@ class AiChatMessage {
   final bool isUser;
   final DateTime timestamp;
   final List<SuggestedPlace>? suggestedPlaces;
+  final List<MessageElement>? elements;
 
   const AiChatMessage({
     required this.id,
@@ -262,6 +765,7 @@ class AiChatMessage {
     required this.isUser,
     required this.timestamp,
     this.suggestedPlaces,
+    this.elements,
   });
 
   factory AiChatMessage.user(String content) {
@@ -274,15 +778,42 @@ class AiChatMessage {
   }
 
   factory AiChatMessage.assistant(String content,
-      {List<SuggestedPlace>? suggestedPlaces}) {
+      {List<SuggestedPlace>? suggestedPlaces, List<MessageElement>? elements}) {
     return AiChatMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       content: content,
       isUser: false,
       timestamp: DateTime.now(),
       suggestedPlaces: suggestedPlaces,
+      elements: elements,
     );
   }
+
+  factory AiChatMessage.fromJson(Map<String, dynamic> json) {
+    return AiChatMessage(
+      id: json['id'] as String,
+      content: json['content'] as String,
+      isUser: json['isUser'] as bool,
+      timestamp: DateTime.parse(json['timestamp'] as String),
+      suggestedPlaces: (json['suggestedPlaces'] as List<dynamic>?)
+          ?.map((e) => SuggestedPlace.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      elements: (json['elements'] as List<dynamic>?)
+          ?.map((e) => MessageElement.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'content': content,
+        'isUser': isUser,
+        'timestamp': timestamp.toIso8601String(),
+        if (suggestedPlaces != null)
+          'suggestedPlaces': suggestedPlaces!.map((e) => e.toJson()).toList(),
+        if (elements != null)
+          'elements': elements!.map((e) => e.toJson()).toList(),
+      };
 }
 
 /// Egypt destination constants with coordinates
@@ -362,4 +893,56 @@ class EgyptDestination {
     required this.lng,
     this.neighborhoods = const [],
   });
+}
+
+/// AI-generated quick insights for a place
+/// These are lightweight, fast-generated tags to help users quickly understand a place
+/// Generated using a lighter AI model (e.g., Gemini 2.5 Flash) for speed
+class PlaceQuickInsights {
+  final List<String> tags; // Quick overview tags (e.g., "Great Equipment", "Crowded Evenings")
+  final String? vibe; // Overall vibe in 2-3 words (e.g., "Energetic & Social")
+  final String? bestFor; // Best suited for (e.g., "Serious Lifters", "Beginners")
+  final String? quickTip; // One quick tip (e.g., "Come early for machines")
+  final DateTime generatedAt;
+  final bool fromCache; // Whether this was retrieved from cache
+
+  const PlaceQuickInsights({
+    required this.tags,
+    this.vibe,
+    this.bestFor,
+    this.quickTip,
+    required this.generatedAt,
+    this.fromCache = false,
+  });
+
+  factory PlaceQuickInsights.fromJson(Map<String, dynamic> json) {
+    return PlaceQuickInsights(
+      tags: (json['tags'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      vibe: json['vibe'] as String?,
+      bestFor: json['bestFor'] as String?,
+      quickTip: json['quickTip'] as String?,
+      generatedAt: json['generatedAt'] != null
+          ? DateTime.parse(json['generatedAt'] as String)
+          : DateTime.now(),
+      fromCache: json['fromCache'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'tags': tags,
+        if (vibe != null) 'vibe': vibe,
+        if (bestFor != null) 'bestFor': bestFor,
+        if (quickTip != null) 'quickTip': quickTip,
+        'generatedAt': generatedAt.toIso8601String(),
+        'fromCache': fromCache,
+      };
+
+  /// Whether the insights are still fresh (< 7 days old)
+  bool get isFresh {
+    final age = DateTime.now().difference(generatedAt);
+    return age.inDays < 7;
+  }
 }

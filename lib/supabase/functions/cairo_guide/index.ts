@@ -1,7 +1,8 @@
 // supabase/functions/cairo_guide/index.ts
 // Secure Gemini proxy for Cairo Guide
 // - Requires env: GEMENI_API_KEY or GEMINI_API_KEY
-// - Expects JSON body: { question: string, userLocation?: string, fitnessLevel?: string, dietaryPreferences?: string[] }
+// - Expects JSON body: { question: string, userLocation?: string, fitnessLevel?: string, dietaryPreferences?: string[], model?: string }
+// - Defaults to gemini-2.5-flash if model not specified
 
 // CORS headers as required
 const CORS_HEADERS = {
@@ -16,6 +17,7 @@ interface RequestBody {
   userLocation?: string;
   fitnessLevel?: string;
   dietaryPreferences?: string[];
+  model?: string;
 }
 
 function buildSystemPrompt(
@@ -91,8 +93,11 @@ async function handler(req: Request): Promise<Response> {
     body?.dietaryPreferences
   );
 
+  // Use model from request, default to gemini-2.5-flash
+  const model = body?.model || 'gemini-2.5-flash';
+
   try {
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`;
     const geminiRes = await fetch(geminiUrl, {
       method: "POST",
       headers: { "content-type": "application/json" },

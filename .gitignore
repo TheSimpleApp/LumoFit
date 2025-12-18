@@ -49,4 +49,6 @@ app.*.map.json
 
 # Local tool configs
 .config/
-.claude/
+.claude/*.p8
+*.p8
+AuthKey_*.p8

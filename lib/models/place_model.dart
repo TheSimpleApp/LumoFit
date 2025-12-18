@@ -13,6 +13,7 @@ class PlaceModel {
   final double? rating;
   final int? userRatingsTotal;
   final String? photoReference;
+  final List<String> photoReferences; // Multiple photo references
   final String? phoneNumber;
   final String? website;
   final List<String> openingHours;
@@ -34,6 +35,7 @@ class PlaceModel {
     this.rating,
     this.userRatingsTotal,
     this.photoReference,
+    this.photoReferences = const [],
     this.phoneNumber,
     this.website,
     this.openingHours = const [],
@@ -56,6 +58,7 @@ class PlaceModel {
     double? rating,
     int? userRatingsTotal,
     String? photoReference,
+    List<String>? photoReferences,
     String? phoneNumber,
     String? website,
     List<String>? openingHours,
@@ -77,6 +80,7 @@ class PlaceModel {
       rating: rating ?? this.rating,
       userRatingsTotal: userRatingsTotal ?? this.userRatingsTotal,
       photoReference: photoReference ?? this.photoReference,
+      photoReferences: photoReferences ?? this.photoReferences,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       website: website ?? this.website,
       openingHours: openingHours ?? this.openingHours,
@@ -101,6 +105,7 @@ class PlaceModel {
       'rating': rating,
       'userRatingsTotal': userRatingsTotal,
       'photoReference': photoReference,
+      'photoReferences': photoReferences,
       'phoneNumber': phoneNumber,
       'website': website,
       'openingHours': openingHours,
@@ -128,6 +133,10 @@ class PlaceModel {
       rating: (json['rating'] as num?)?.toDouble(),
       userRatingsTotal: json['userRatingsTotal'] as int?,
       photoReference: json['photoReference'] as String?,
+      photoReferences: (json['photoReferences'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
       phoneNumber: json['phoneNumber'] as String?,
       website: json['website'] as String?,
       openingHours: (json['openingHours'] as List<dynamic>?)
@@ -166,6 +175,10 @@ class PlaceModel {
       rating: (json['rating'] as num?)?.toDouble(),
       userRatingsTotal: json['user_ratings_total'] as int?,
       photoReference: json['photo_reference'] as String?,
+      photoReferences: (json['photo_references'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
       phoneNumber: json['phone_number'] as String?,
       website: json['website'] as String?,
       openingHours: (json['opening_hours'] as List<dynamic>?)
@@ -198,6 +211,7 @@ class PlaceModel {
       'rating': rating,
       'user_ratings_total': userRatingsTotal,
       'photo_reference': photoReference,
+      // 'photo_references': photoReferences, // Column missing in DB
       'phone_number': phoneNumber,
       'website': website,
       'opening_hours': openingHours,

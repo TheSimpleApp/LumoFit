@@ -23,12 +23,14 @@ class AppConfig {
   /// designed to be called from client apps with API key restrictions (IP/domain)
   static String get googlePlacesApiKey {
     const key = String.fromEnvironment(_googlePlacesKeyEnv);
-    if (key.isEmpty && kDebugMode) {
-      debugPrint('⚠️ Using development fallback for Google Places API key');
+    if (key.isEmpty) {
+      if (kDebugMode) {
+        debugPrint('⚠️ Using development fallback for Google Places API key');
+      } else {
+        debugPrint(
+            '⚠️ Using development fallback for Google Places API key (release mode)');
+      }
       return _devGooglePlacesKey;
-    }
-    if (key.isEmpty && kReleaseMode) {
-      throw Exception('GOOGLE_PLACES_API_KEY required for production builds');
     }
     return key;
   }
@@ -36,11 +38,13 @@ class AppConfig {
   /// Supabase Project URL
   static String get supabaseUrl {
     const url = String.fromEnvironment(_supabaseUrlEnv);
-    if (url.isEmpty && kReleaseMode) {
-      throw Exception('SUPABASE_URL is required for production builds');
-    }
-    if (url.isEmpty && kDebugMode) {
-      debugPrint('⚠️ Using development fallback for Supabase URL');
+    if (url.isEmpty) {
+      if (kDebugMode) {
+        debugPrint('⚠️ Using development fallback for Supabase URL');
+      } else {
+        debugPrint(
+            '⚠️ Using development fallback for Supabase URL (release mode)');
+      }
       return _devSupabaseUrl;
     }
     return url;
@@ -49,11 +53,13 @@ class AppConfig {
   /// Supabase Anonymous Key (safe to expose in client)
   static String get supabaseAnonKey {
     const key = String.fromEnvironment(_supabaseAnonKeyEnv);
-    if (key.isEmpty && kReleaseMode) {
-      throw Exception('SUPABASE_ANON_KEY is required for production builds');
-    }
-    if (key.isEmpty && kDebugMode) {
-      debugPrint('⚠️ Using development fallback for Supabase anon key');
+    if (key.isEmpty) {
+      if (kDebugMode) {
+        debugPrint('⚠️ Using development fallback for Supabase anon key');
+      } else {
+        debugPrint(
+            '⚠️ Using development fallback for Supabase anon key (release mode)');
+      }
       return _devSupabaseAnonKey;
     }
     return key;
@@ -66,12 +72,15 @@ class AppConfig {
     return projectUrl.replaceAll('.supabase.co', '.functions.supabase.co');
   }
 
-  // Development fallback credentials - ONLY used in debug mode
+  // Development fallback credentials - Used when --dart-define flags are not provided
   // These are safe to expose as they point to the development Supabase project
-  // with Row-Level Security enabled
-  static const String _devSupabaseUrl = 'https://lwyuwxqwshflmuefxgay.supabase.co';
-  static const String _devSupabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3eXV3eHF3c2hmbG11ZWZ4Z2F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzA5MTgsImV4cCI6MjA4MTQwNjkxOH0.Ias3yQUV8p7D825WwBI08Njry4aQ_OiMkrQRGfwl7zw';
-  static const String _devGooglePlacesKey = 'AIzaSyBCkxTR7keDd_gXjXOrj8pptvboMUfg-3Q';
+  // with Row-Level Security enabled. Used in both debug and release modes for beta testing.
+  static const String _devSupabaseUrl =
+      'https://lwyuwxqwshflmuefxgay.supabase.co';
+  static const String _devSupabaseAnonKey =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3eXV3eHF3c2hmbG11ZWZ4Z2F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzA5MTgsImV4cCI6MjA4MTQwNjkxOH0.Ias3yQUV8p7D825WwBI08Njry4aQ_OiMkrQRGfwl7zw';
+  static const String _devGooglePlacesKey =
+      'AIzaSyBCkxTR7keDd_gXjXOrj8pptvboMUfg-3Q';
 
   /// Validate all required configuration is present
   static void validate() {
@@ -91,4 +100,3 @@ class AppConfig {
     }
   }
 }
-

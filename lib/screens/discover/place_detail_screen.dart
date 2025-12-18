@@ -16,9 +16,14 @@ import 'package:fittravel/models/community_photo.dart';
 import 'package:fittravel/services/review_service.dart';
 import 'package:fittravel/models/review_model.dart';
 import 'package:fittravel/services/gamification_service.dart';
+import 'package:fittravel/services/ai_guide_service.dart';
 import 'package:fittravel/utils/haptic_utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fittravel/openai/openai_config.dart';
+import 'package:fittravel/models/ai_models.dart';
+import 'package:fittravel/widgets/place_fitness_intelligence_card.dart';
+import 'package:fittravel/widgets/place_quick_insights.dart';
+import 'package:fittravel/widgets/details_action_bar.dart';
 
 class PlaceDetailScreen extends StatefulWidget {
   final PlaceModel place;
@@ -32,12 +37,93 @@ class PlaceDetailScreen extends StatefulWidget {
 class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
   late PlaceModel _place;
   bool _isSaved = false;
+  PlaceFitnessIntelligence? _fitnessIntel;
+  bool _isLoadingIntel = false;
+  PlaceQuickInsights? _quickInsights;
+  bool _isLoadingQuickInsights = false;
 
   @override
   void initState() {
     super.initState();
     _place = widget.place;
     _checkIfSaved();
+    _loadQuickInsights();
+    _loadFitnessIntelligence();
+  }
+
+  Future<void> _loadQuickInsights() async {
+    setState(() => _isLoadingQuickInsights = true);
+    
+    try {
+      final aiService = context.read<AiGuideService>();
+      
+      final insights = await aiService.generateQuickInsights(
+        placeName: _place.name,
+        placeType: _place.type.name,
+        rating: _place.rating,
+        reviewCount: _place.userRatingsTotal,
+        googlePlaceId: _place.googlePlaceId,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _quickInsights = insights;
+          _isLoadingQuickInsights = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load quick insights: $e');
+      if (mounted) {
+        setState(() => _isLoadingQuickInsights = false);
+      }
+    }
+  }
+
+  Future<void> _loadFitnessIntelligence() async {
+    setState(() => _isLoadingIntel = true);
+    
+    try {
+      final aiService = context.read<AiGuideService>();
+      final reviewService = context.read<ReviewService>();
+      
+      // Get community reviews for this place
+      final reviews = reviewService.getReviewsForPlace(_place.id);
+      final reviewsJson = reviews.map((r) => {
+        'rating': r.rating,
+        'text': r.text,
+        'createdAt': r.createdAt.toIso8601String(),
+      }).toList();
+      
+      // Get place data
+      final placeData = {
+        'name': _place.name,
+        'type': _place.type.name,
+        'rating': _place.rating,
+        'userRatingsTotal': _place.userRatingsTotal,
+        'priceLevel': _place.priceLevel,
+        'openingHours': _place.openingHours,
+      };
+      
+      final intel = await aiService.analyzePlaceFitness(
+        placeId: _place.id,
+        placeName: _place.name,
+        placeType: _place.type.name,
+        reviews: reviewsJson,
+        placeData: placeData,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _fitnessIntel = intel;
+          _isLoadingIntel = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load fitness intelligence: $e');
+      if (mounted) {
+        setState(() => _isLoadingIntel = false);
+      }
+    }
   }
 
   void _checkIfSaved() {
@@ -427,6 +513,107 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                   Divider(color: colors.outline.withValues(alpha: 0.1)),
                   const SizedBox(height: 24),
 
+                  // Quick Insights (Fast AI Overview)
+                  if (_isLoadingQuickInsights)
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: colors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Generating quick insights...',
+                            style: textStyles.bodyMedium?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ).animate().fadeIn()
+                  else if (_quickInsights != null) ...[
+                    PlaceQuickInsightsWidget(insights: _quickInsights!),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // AI Fitness Intelligence
+                  if (_isLoadingIntel)
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: colors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Analyzing fitness insights...',
+                            style: textStyles.bodyMedium?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ).animate().fadeIn()
+                  else if (_fitnessIntel != null) ...[
+                    PlaceFitnessIntelligenceCard(
+                      intelligence: _fitnessIntel!,
+                      placeType: _place.type.name,
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Quick Insights Chips
+                    QuickInsightsChips(intelligence: _fitnessIntel!),
+                    const SizedBox(height: 24),
+                    
+                    // Smart Timing
+                    if (_fitnessIntel!.bestTimesDetailed.isNotEmpty ||
+                        _fitnessIntel!.crowdInsights != null) ...[
+                      SmartTimingWidget(
+                        bestTimes: _fitnessIntel!.bestTimesDetailed,
+                        crowdInsights: _fitnessIntel!.crowdInsights,
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                    
+                    // AI Tips
+                    if (_fitnessIntel!.tips.isNotEmpty) ...[
+                      _AiTipsSection(tips: _fitnessIntel!.tips),
+                      const SizedBox(height: 24),
+                    ],
+                    
+                    // What to Bring
+                    if (_fitnessIntel!.whatToBring.isNotEmpty) ...[
+                      _WhatToBringSection(items: _fitnessIntel!.whatToBring),
+                      const SizedBox(height: 24),
+                    ],
+                    
+                    // Common Phrases from Reviews
+                    if (_fitnessIntel!.commonPhrases.isNotEmpty) ...[
+                      _CommonPhrasesSection(phrases: _fitnessIntel!.commonPhrases),
+                      const SizedBox(height: 24),
+                    ],
+                  ],
+
                   // Community Photos Section
                   _CommunityPhotosSection(placeId: _place.id)
                       .animate().fadeIn(delay: 250.ms),
@@ -472,44 +659,42 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _toggleSave,
-                  icon: Icon(_isSaved ? Icons.bookmark : Icons.bookmark_outline),
-                  label: Text(_isSaved ? 'Saved' : 'Save'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
+          child: DetailsActionBar(
+            leading: OutlinedButton(
+              onPressed: _toggleSave,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _addToTrip(context),
-                  icon: const Icon(Icons.playlist_add),
-                  label: const Text('Add to Trip'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
+              child: ActionBarLabel(
+                icon: _isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                text: _isSaved ? 'Saved' : 'Save',
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton.icon(
-                  onPressed: _place.isVisited ? null : _markVisited,
-                  icon: Icon(_place.isVisited ? Icons.check : Icons.fitness_center),
-                  label: Text(_place.isVisited ? 'Visited' : 'Mark Visited'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: _place.isVisited ? colors.surfaceContainerHighest : null,
-                    foregroundColor: _place.isVisited ? colors.onSurfaceVariant : null,
-                  ),
-                ),
+            ),
+            middle: OutlinedButton(
+              onPressed: () => _addToTrip(context),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
-            ],
+              child: const ActionBarLabel(
+                icon: Icons.playlist_add,
+                text: 'Add to Trip',
+              ),
+            ),
+            primary: ElevatedButton(
+              onPressed: _place.isVisited ? null : _markVisited,
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                backgroundColor: _place.isVisited ? colors.surfaceContainerHighest : null,
+                foregroundColor: _place.isVisited ? colors.onSurfaceVariant : null,
+              ),
+              child: ActionBarLabel(
+                icon: _place.isVisited ? Icons.check : Icons.fitness_center,
+                text: _place.isVisited ? 'Visited' : 'Mark Visited',
+              ),
+            ),
           ),
         ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2),
       ),
@@ -633,45 +818,137 @@ class _TripPickerSheet extends StatelessWidget {
   }
 }
 
-class _PlaceHeroImage extends StatelessWidget {
+class _PlaceHeroImage extends StatefulWidget {
   final PlaceModel place;
   final Color placeColor;
 
   const _PlaceHeroImage({required this.place, required this.placeColor});
 
   @override
+  State<_PlaceHeroImage> createState() => _PlaceHeroImageState();
+}
+
+class _PlaceHeroImageState extends State<_PlaceHeroImage> {
+  late PageController _pageController;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final googlePlacesService = GooglePlacesService();
     
-    if (place.photoReference != null) {
-      final googlePlacesService = GooglePlacesService();
-      final photoUrl = googlePlacesService.getPhotoUrl(place.photoReference!, maxWidth: 800);
-      
-      return Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.transparent,
-              colors.surface.withValues(alpha: 0.3),
-              colors.surface,
-            ],
-            stops: const [0.0, 0.7, 1.0],
-          ),
-        ),
-        child: Image.network(
-          photoUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stack) => _PlaceholderImage(
-            emoji: place.typeEmoji,
-            color: placeColor,
-          ),
-        ),
-      );
+    // Use photoReferences if available, otherwise fall back to single photoReference
+    final photoRefs = widget.place.photoReferences.isNotEmpty
+        ? widget.place.photoReferences
+        : (widget.place.photoReference != null ? [widget.place.photoReference!] : <String>[]);
+    
+    if (photoRefs.isEmpty) {
+      return _PlaceholderImage(emoji: widget.place.typeEmoji, color: widget.placeColor);
     }
     
-    return _PlaceholderImage(emoji: place.typeEmoji, color: placeColor);
+    return Stack(
+      children: [
+        // Carousel
+        PageView.builder(
+          controller: _pageController,
+          onPageChanged: (index) {
+            setState(() => _currentPage = index);
+          },
+          itemCount: photoRefs.length,
+          itemBuilder: (context, index) {
+            final photoUrl = googlePlacesService.getPhotoUrl(photoRefs[index], maxWidth: 800);
+            
+            return Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    colors.surface.withValues(alpha: 0.3),
+                    colors.surface,
+                  ],
+                  stops: const [0.0, 0.7, 1.0],
+                ),
+              ),
+              child: Image.network(
+                photoUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stack) => _PlaceholderImage(
+                  emoji: widget.place.typeEmoji,
+                  color: widget.placeColor,
+                ),
+              ),
+            );
+          },
+        ),
+        
+        // Page indicator dots (only show if more than 1 photo)
+        if (photoRefs.length > 1)
+          Positioned(
+            bottom: 16,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                photoRefs.length,
+                (index) => Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: _currentPage == index ? 24 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: _currentPage == index
+                        ? colors.primary
+                        : colors.surface.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ).animate(interval: 50.ms).fadeIn().scale(),
+            ),
+          ),
+        
+        // Photo counter badge (top right)
+        if (photoRefs.length > 1)
+          Positioned(
+            top: 60,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: colors.surface.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(AppRadius.full),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.photo_library, size: 14, color: colors.onSurface),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${_currentPage + 1}/${photoRefs.length}',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+            ).animate().fadeIn(delay: 200.ms),
+          ),
+      ],
+    );
   }
 }
 
@@ -1160,7 +1437,6 @@ class _AddReviewSheetState extends State<_AddReviewSheet> {
   int _rating = 5;
   final _controller = TextEditingController();
   bool _isSubmitting = false;
-  bool _isModerating = false;
 
   @override
   void dispose() {
@@ -1237,10 +1513,7 @@ class _AddReviewSheetState extends State<_AddReviewSheet> {
   }
 
   Future<void> _submit(BuildContext context) async {
-    setState(() {
-      _isSubmitting = true;
-      _isModerating = true;
-    });
+    setState(() => _isSubmitting = true);
     try {
       // AI moderation on text
       final text = _controller.text.trim();
@@ -1254,8 +1527,6 @@ class _AddReviewSheetState extends State<_AddReviewSheet> {
           return;
         }
       }
-      _isModerating = false;
-      if (mounted) setState(() {});
 
       await context.read<ReviewService>().addReview(
             placeId: widget.placeId,
@@ -1340,7 +1611,6 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
   final _controller = TextEditingController();
   bool _isSubmitting = false;
   String? _pickedDataUrl;
-  bool _isModerating = false;
 
   @override
   void dispose() {
@@ -1430,10 +1700,7 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
       );
       return;
     }
-    setState(() {
-      _isSubmitting = true;
-      _isModerating = true;
-    });
+    setState(() => _isSubmitting = true);
     try {
       // AI image moderation
       final openai = OpenAIClient();
@@ -1447,8 +1714,6 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
         }
         return;
       }
-      _isModerating = false;
-      if (mounted) setState(() {});
 
       final svc = context.read<CommunityPhotoService>();
       if (hasHttpUrl) {
@@ -1673,6 +1938,160 @@ String _inferMimeType(String filename) {
   if (lower.endsWith('.webp')) return 'image/webp';
   if (lower.endsWith('.gif')) return 'image/gif';
   return 'image/jpeg';
+}
+
+/// AI Tips Section
+class _AiTipsSection extends StatelessWidget {
+  final List<String> tips;
+
+  const _AiTipsSection({required this.tips});
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyles = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.lightbulb_outline, size: 20, color: AppColors.xp),
+            const SizedBox(width: 8),
+            Text('Fitness Tips', style: textStyles.titleMedium),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...tips.take(5).map((tip) => Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.xp.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(
+                  color: AppColors.xp.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('💡', style: const TextStyle(fontSize: 18)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      tip,
+                      style: textStyles.bodyMedium?.copyWith(
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )),
+      ],
+    ).animate().fadeIn(delay: 250.ms);
+  }
+}
+
+/// What to Bring Section
+class _WhatToBringSection extends StatelessWidget {
+  final List<String> items;
+
+  const _WhatToBringSection({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textStyles = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.backpack_outlined, size: 20, color: colors.primary),
+            const SizedBox(width: 8),
+            Text('What to Bring', style: textStyles.titleMedium),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: items.map((item) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainerHighest.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                  border: Border.all(
+                    color: colors.outline.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle_outline, size: 16, color: colors.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      item,
+                      style: textStyles.labelMedium?.copyWith(
+                        color: colors.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              )).toList(),
+        ),
+      ],
+    ).animate().fadeIn(delay: 300.ms);
+  }
+}
+
+/// Common Phrases Section
+class _CommonPhrasesSection extends StatelessWidget {
+  final List<String> phrases;
+
+  const _CommonPhrasesSection({required this.phrases});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textStyles = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.forum_outlined, size: 20, color: colors.primary),
+            const SizedBox(width: 8),
+            Text('What People Say', style: textStyles.titleMedium),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: phrases.take(8).map((phrase) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                  border: Border.all(
+                    color: colors.primary.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Text(
+                  '"$phrase"',
+                  style: textStyles.labelSmall?.copyWith(
+                    color: colors.onSurface,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              )).toList(),
+        ),
+      ],
+    ).animate().fadeIn(delay: 350.ms);
+  }
 }
 
 

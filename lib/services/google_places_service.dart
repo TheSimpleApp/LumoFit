@@ -255,9 +255,16 @@ class GooglePlacesService {
       hours = weekdayDescriptions.map((e) => e.toString()).toList();
     }
 
+    // Extract multiple photo references (up to 10 photos)
     String? photoRef;
+    List<String> photoRefs = [];
     if (photos != null && photos.isNotEmpty) {
       photoRef = photos.first['name'] as String?;
+      photoRefs = photos
+          .take(10) // Limit to 10 photos for carousel
+          .map((p) => p['name'] as String?)
+          .whereType<String>()
+          .toList();
     }
 
     String? priceLevel;
@@ -293,6 +300,7 @@ class GooglePlacesService {
       rating: (data['rating'] as num?)?.toDouble(),
       userRatingsTotal: data['userRatingCount'] as int?,
       photoReference: photoRef,
+      photoReferences: photoRefs,
       phoneNumber: data['nationalPhoneNumber'] as String?,
       website: data['websiteUri'] as String?,
       openingHours: hours,

@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'package:fittravel/models/itinerary_item.dart';
 import 'package:fittravel/utils/haptic_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:fittravel/widgets/details_action_bar.dart';
 
 class EventDetailScreen extends StatelessWidget {
   final EventModel event;
@@ -17,6 +18,7 @@ class EventDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final hasRegistration = event.registrationUrl != null && event.registrationUrl!.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -122,26 +124,64 @@ class EventDetailScreen extends StatelessWidget {
             ),
           ],
 
-          const SizedBox(height: 20),
-          if (event.registrationUrl != null && event.registrationUrl!.isNotEmpty) ...[
-            ElevatedButton.icon(
-              icon: const Icon(Icons.app_registration, color: Colors.black),
-              label: const Text('Register'),
-              onPressed: () async {
-                final url = Uri.tryParse(event.registrationUrl!);
-                if (url != null) {
-                  await launchUrl(url, mode: LaunchMode.externalApplication);
-                }
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-          ElevatedButton.icon(
-            icon: const Icon(Icons.add, color: Colors.black),
-            label: const Text('Add to Trip'),
-            onPressed: () => _handleAddToTrip(context),
-          ),
+          const SizedBox(height: 80), // space for bottom action bar
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: hasRegistration
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          final url = Uri.tryParse(event.registrationUrl!);
+                          if (url != null) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        ),
+                        child: const ActionBarLabel(
+                          icon: Icons.app_registration,
+                          text: 'Register',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _handleAddToTrip(context),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        ),
+                        child: const ActionBarLabel(
+                          icon: Icons.add,
+                          text: 'Add to Trip',
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => _handleAddToTrip(context),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(52),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    ),
+                    child: const ActionBarLabel(
+                      icon: Icons.add,
+                      text: 'Add to Trip',
+                    ),
+                  ),
+                ),
+        ),
       ),
     );
   }

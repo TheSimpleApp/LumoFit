@@ -26,7 +26,7 @@ class HapticUtils {
   /// Success vibration pattern (short double-tap feel)
   static Future<void> success() async {
     try {
-      final hasVibrator = await Vibration.hasVibrator() ?? false;
+      final hasVibrator = await Vibration.hasVibrator();
       if (hasVibrator) {
         await Vibration.vibrate(duration: 50);
         await Future.delayed(const Duration(milliseconds: 50));
@@ -42,7 +42,7 @@ class HapticUtils {
   /// Error vibration pattern (longer single vibration)
   static Future<void> error() async {
     try {
-      final hasVibrator = await Vibration.hasVibrator() ?? false;
+      final hasVibrator = await Vibration.hasVibrator();
       if (hasVibrator) {
         await Vibration.vibrate(duration: 200);
       } else {

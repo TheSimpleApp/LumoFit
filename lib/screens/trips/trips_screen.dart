@@ -76,6 +76,33 @@ class TripsScreen extends StatelessWidget {
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
             ],
+            // Current trips that are not active
+            if (tripService.currentTrips.where((t) => !t.isActive).isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text('Current Trips', style: textStyles.titleMedium),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final currentNonActive = tripService.currentTrips.where((t) => !t.isActive).toList();
+                    final trip = currentNonActive[index];
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                      child: _TripCard(
+                        trip: trip,
+                        onTap: () => context.push('/trip/${trip.id}'),
+                      ).animate().fadeIn(delay: ((index + 1) * 100).ms).slideY(begin: 0.1, delay: ((index + 1) * 100).ms),
+                    );
+                  },
+                  childCount: tripService.currentTrips.where((t) => !t.isActive).length,
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+            ],
             if (tripService.upcomingTrips.isNotEmpty) ...[
               SliverToBoxAdapter(
                 child: Padding(

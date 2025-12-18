@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
 import 'package:image/image.dart' as img;

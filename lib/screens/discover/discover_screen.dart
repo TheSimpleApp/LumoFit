@@ -6,8 +6,10 @@ import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/services.dart';
 import 'package:fittravel/models/place_model.dart';
 import 'package:fittravel/models/event_model.dart';
+import 'package:fittravel/models/ai_models.dart';
 import 'package:fittravel/utils/haptic_utils.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:fittravel/widgets/place_quick_insights.dart';
 
 class DiscoverScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -17,7 +19,8 @@ class DiscoverScreen extends StatefulWidget {
   State<DiscoverScreen> createState() => _DiscoverScreenState();
 }
 
-class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProviderStateMixin {
+class _DiscoverScreenState extends State<DiscoverScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _searchController = TextEditingController();
   String _searchQuery = '';
@@ -31,15 +34,24 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
   String _dateFilter = 'this_week';
   bool _filterRating4Plus = false;
   bool _filterHasPhotos = false;
-    // Location (defaults to Cairo center)
-    double _centerLat = 30.0444;
-    double _centerLng = 31.2357;
+  // Location (defaults to Cairo center)
+  double _centerLat = 30.0444;
+  double _centerLng = 31.2357;
+  // Auto-loaded nearby places
+  bool _isLoadingNearby = false;
+  List<PlaceModel> _nearbyGyms = [];
+  List<PlaceModel> _nearbyRestaurants = [];
+  List<PlaceModel> _nearbyTrails = [];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this, initialIndex: widget.initialTabIndex.clamp(0, 4));
-      _initLocation();
+    _tabController = TabController(
+        length: 5,
+        vsync: this,
+        initialIndex: widget.initialTabIndex.clamp(0, 4));
+    _initLocation();
+    _loadNearbyPlaces();
   }
 
   @override
@@ -126,10 +138,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
     setState(() => _isSearching = true);
 
     final googlePlaces = GooglePlacesService();
-    final placeType = _tabController.index == 0 
-        ? PlaceType.gym 
-        : _tabController.index == 1 
-            ? PlaceType.restaurant 
+    final placeType = _tabController.index == 0
+        ? PlaceType.gym
+        : _tabController.index == 1
+            ? PlaceType.restaurant
             : _tabController.index == 3
                 ? PlaceType.trail
                 : null;
@@ -143,7 +155,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
         latitude: _centerLat,
         longitude: _centerLng,
       );
-      
+
       if (mounted) {
         setState(() {
           _searchResults = results;
@@ -154,7 +166,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
       // Search saved places
       final placeService = context.read<PlaceService>();
       final results = placeService.searchPlaces(query);
-      
+
       if (mounted) {
         setState(() {
           _searchResults = results;
@@ -179,8 +191,55 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
         _centerLat = pos.latitude;
         _centerLng = pos.longitude;
       });
+      // Reload nearby places with updated location
+      _loadNearbyPlaces();
     } catch (e) {
       // Non-fatal: keep defaults
+    }
+  }
+
+  Future<void> _loadNearbyPlaces() async {
+    if (_isLoadingNearby) return;
+    setState(() => _isLoadingNearby = true);
+
+    final googlePlaces = GooglePlacesService();
+
+    try {
+      // Load nearby places for each type in parallel
+      final results = await Future.wait([
+        googlePlaces.searchNearbyPlaces(
+          latitude: _centerLat,
+          longitude: _centerLng,
+          placeType: PlaceType.gym,
+          radiusMeters: 5000,
+        ),
+        googlePlaces.searchNearbyPlaces(
+          latitude: _centerLat,
+          longitude: _centerLng,
+          placeType: PlaceType.restaurant,
+          radiusMeters: 5000,
+        ),
+        googlePlaces.searchNearbyPlaces(
+          latitude: _centerLat,
+          longitude: _centerLng,
+          placeType: PlaceType.trail,
+          radiusMeters: 5000,
+        ),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _nearbyGyms = results[0];
+          _nearbyRestaurants = results[1];
+          _nearbyTrails = results[2];
+          _isLoadingNearby = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading nearby places: $e');
+      if (mounted) {
+        setState(() => _isLoadingNearby = false);
+      }
     }
   }
 
@@ -200,18 +259,21 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Discover', style: textStyles.headlineMedium)
-                      .animate().fadeIn().slideX(begin: -0.1),
+                      .animate()
+                      .fadeIn()
+                      .slideX(begin: -0.1),
                   const SizedBox(height: 4),
                   Text(
                     'Find gyms, food & events nearby',
-                    style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+                    style: textStyles.bodyMedium
+                        ?.copyWith(color: colors.onSurfaceVariant),
                   ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.1),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Search Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -242,7 +304,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                       : Icon(Icons.search, color: colors.onSurfaceVariant),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: Icon(Icons.clear, color: colors.onSurfaceVariant),
+                          icon:
+                              Icon(Icons.clear, color: colors.onSurfaceVariant),
                           onPressed: () {
                             _searchController.clear();
                             setState(() {
@@ -256,9 +319,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                 ),
               ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Tab Bar
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -287,9 +350,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                 labelStyle: textStyles.labelMedium,
                 labelPadding: const EdgeInsets.symmetric(horizontal: 16),
                 splashFactory: NoSplash.splashFactory,
-                overlayColor: const MaterialStatePropertyAll(Colors.transparent),
+                overlayColor: const WidgetStatePropertyAll(Colors.transparent),
                 tabs: [
-                  Tab(child: Row(
+                  Tab(
+                      child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.fitness_center, size: 16),
@@ -297,7 +361,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                       const Text('Gyms', overflow: TextOverflow.ellipsis),
                     ],
                   )),
-                  Tab(child: Row(
+                  Tab(
+                      child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.restaurant, size: 16),
@@ -305,7 +370,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                       const Text('Food', overflow: TextOverflow.ellipsis),
                     ],
                   )),
-                  Tab(child: Row(
+                  Tab(
+                      child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.event, size: 16),
@@ -313,7 +379,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                       const Text('Events', overflow: TextOverflow.ellipsis),
                     ],
                   )),
-                  Tab(child: Row(
+                  Tab(
+                      child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.terrain, size: 16),
@@ -321,7 +388,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                       const Text('Trails', overflow: TextOverflow.ellipsis),
                     ],
                   )),
-                  Tab(child: Row(
+                  Tab(
+                      child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.bookmark, size: 16),
@@ -332,7 +400,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                 ],
               ),
             ).animate().fadeIn(delay: 300.ms),
-            
+
             const SizedBox(height: 16),
 
             // Filters (contextual)
@@ -345,13 +413,15 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                     if (_tabController.index == 2) ...[
                       ChoiceChip(
                         selected: _dateFilter == 'this_week',
-                        onSelected: (_) => setState(() => _dateFilter = 'this_week'),
+                        onSelected: (_) =>
+                            setState(() => _dateFilter = 'this_week'),
                         label: const Text('This week'),
                       ),
                       const SizedBox(width: 8),
                       ChoiceChip(
                         selected: _dateFilter == 'weekend',
-                        onSelected: (_) => setState(() => _dateFilter = 'weekend'),
+                        onSelected: (_) =>
+                            setState(() => _dateFilter = 'weekend'),
                         label: const Text('Weekend'),
                       ),
                       const SizedBox(width: 8),
@@ -365,54 +435,67 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                         icon: Icons.directions_run,
                         label: 'Running',
                         category: EventCategory.running,
-                        selected: _selectedCategories.contains(EventCategory.running),
-                        onTap: () => setState(() => _toggleCategory(EventCategory.running)),
+                        selected:
+                            _selectedCategories.contains(EventCategory.running),
+                        onTap: () => setState(
+                            () => _toggleCategory(EventCategory.running)),
                       ),
                       const SizedBox(width: 8),
                       _CategoryChip(
                         icon: Icons.self_improvement,
                         label: 'Yoga',
                         category: EventCategory.yoga,
-                        selected: _selectedCategories.contains(EventCategory.yoga),
-                        onTap: () => setState(() => _toggleCategory(EventCategory.yoga)),
+                        selected:
+                            _selectedCategories.contains(EventCategory.yoga),
+                        onTap: () =>
+                            setState(() => _toggleCategory(EventCategory.yoga)),
                       ),
                       const SizedBox(width: 8),
                       _CategoryChip(
                         icon: Icons.terrain,
                         label: 'Hiking',
                         category: EventCategory.hiking,
-                        selected: _selectedCategories.contains(EventCategory.hiking),
-                        onTap: () => setState(() => _toggleCategory(EventCategory.hiking)),
+                        selected:
+                            _selectedCategories.contains(EventCategory.hiking),
+                        onTap: () => setState(
+                            () => _toggleCategory(EventCategory.hiking)),
                       ),
                       const SizedBox(width: 8),
                       _CategoryChip(
                         icon: Icons.pedal_bike,
                         label: 'Cycling',
                         category: EventCategory.cycling,
-                        selected: _selectedCategories.contains(EventCategory.cycling),
-                        onTap: () => setState(() => _toggleCategory(EventCategory.cycling)),
+                        selected:
+                            _selectedCategories.contains(EventCategory.cycling),
+                        onTap: () => setState(
+                            () => _toggleCategory(EventCategory.cycling)),
                       ),
                       const SizedBox(width: 8),
                       _CategoryChip(
                         icon: Icons.fitness_center,
                         label: 'CrossFit',
                         category: EventCategory.crossfit,
-                        selected: _selectedCategories.contains(EventCategory.crossfit),
-                        onTap: () => setState(() => _toggleCategory(EventCategory.crossfit)),
+                        selected: _selectedCategories
+                            .contains(EventCategory.crossfit),
+                        onTap: () => setState(
+                            () => _toggleCategory(EventCategory.crossfit)),
                       ),
                     ] else ...[
                       FilterChip(
                         selected: _filterRating4Plus,
-                        onSelected: (v) => setState(() => _filterRating4Plus = v),
+                        onSelected: (v) =>
+                            setState(() => _filterRating4Plus = v),
                         label: const Text('Rating 4.0+'),
-                        avatar: const Icon(Icons.star, size: 16, color: Colors.amber),
+                        avatar: const Icon(Icons.star,
+                            size: 16, color: Colors.amber),
                       ),
                       const SizedBox(width: 8),
                       FilterChip(
                         selected: _filterHasPhotos,
                         onSelected: (v) => setState(() => _filterHasPhotos = v),
                         label: const Text('With photos'),
-                        avatar: const Icon(Icons.photo_library_outlined, size: 16),
+                        avatar:
+                            const Icon(Icons.photo_library_outlined, size: 16),
                       ),
                     ],
                   ],
@@ -420,7 +503,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
               ),
             ),
             const SizedBox(height: 8),
-            
+
             // Content
             Expanded(
               child: TabBarView(
@@ -433,6 +516,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                     isSearching: _isSearching,
                     filterRating4Plus: _filterRating4Plus,
                     filterHasPhotos: _filterHasPhotos,
+                    nearbyPlaces: _nearbyGyms,
+                    isLoadingNearby: _isLoadingNearby,
                   ),
                   _PlacesList(
                     type: PlaceType.restaurant,
@@ -441,6 +526,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                     isSearching: _isSearching,
                     filterRating4Plus: _filterRating4Plus,
                     filterHasPhotos: _filterHasPhotos,
+                    nearbyPlaces: _nearbyRestaurants,
+                    isLoadingNearby: _isLoadingNearby,
                   ),
                   _EventsList(
                     searchQuery: _searchQuery,
@@ -458,6 +545,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
                     isSearching: _isSearching,
                     filterRating4Plus: _filterRating4Plus,
                     filterHasPhotos: _filterHasPhotos,
+                    nearbyPlaces: _nearbyTrails,
+                    isLoadingNearby: _isLoadingNearby,
                   ),
                   const _SavedPlacesList(),
                 ],
@@ -491,14 +580,23 @@ class _DiscoverScreenState extends State<DiscoverScreen> with SingleTickerProvid
         // Next Sat-Sun
         final nextSat = now.add(Duration(days: (6 - now.weekday + 7) % 7));
         final nextSun = nextSat.add(const Duration(days: 1));
-        return (DateTime(nextSat.year, nextSat.month, nextSat.day), DateTime(nextSun.year, nextSun.month, nextSun.day, 23, 59));
+        return (
+          DateTime(nextSat.year, nextSat.month, nextSat.day),
+          DateTime(nextSun.year, nextSun.month, nextSun.day, 23, 59)
+        );
       case '30d':
         final end = now.add(const Duration(days: 30));
-        return (DateTime(now.year, now.month, now.day), DateTime(end.year, end.month, end.day, 23, 59));
+        return (
+          DateTime(now.year, now.month, now.day),
+          DateTime(end.year, end.month, end.day, 23, 59)
+        );
       case 'this_week':
       default:
         final endOfWeek = startOfWeek.add(const Duration(days: 6));
-        return (DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day), DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day, 23, 59));
+        return (
+          DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day),
+          DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day, 23, 59)
+        );
     }
   }
 }
@@ -510,6 +608,8 @@ class _PlacesList extends StatelessWidget {
   final bool isSearching;
   final bool filterRating4Plus;
   final bool filterHasPhotos;
+  final List<PlaceModel> nearbyPlaces;
+  final bool isLoadingNearby;
 
   const _PlacesList({
     required this.type,
@@ -518,6 +618,8 @@ class _PlacesList extends StatelessWidget {
     required this.isSearching,
     required this.filterRating4Plus,
     required this.filterHasPhotos,
+    required this.nearbyPlaces,
+    required this.isLoadingNearby,
   });
 
   @override
@@ -525,19 +627,19 @@ class _PlacesList extends StatelessWidget {
     final placeService = context.watch<PlaceService>();
     final reviewService = context.watch<ReviewService>();
     final photoService = context.watch<CommunityPhotoService>();
-    
+
     // If searching, show search results filtered by type
     if (searchQuery.isNotEmpty) {
       final filtered = searchResults.where((p) => p.type == type).toList();
-      
+
       if (isSearching) {
         return const Center(child: CircularProgressIndicator());
       }
-      
+
       if (filtered.isEmpty) {
         return _EmptySearchState(type: type, query: searchQuery);
       }
-      
+
       // Apply filters to search results
       final filtered2 = _applyFilters(filtered, reviewService, photoService);
       return ListView.builder(
@@ -546,15 +648,24 @@ class _PlacesList extends StatelessWidget {
         itemBuilder: (context, index) => Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: PlaceCard(place: filtered2[index])
-              .animate().fadeIn(delay: (index * 50).ms).slideY(begin: 0.1, delay: (index * 50).ms),
+              .animate()
+              .fadeIn(delay: (index * 50).ms)
+              .slideY(begin: 0.1, delay: (index * 50).ms),
         ),
       );
     }
-    
-    // Show local saved places
-    var places = placeService.getPlacesByType(type);
+
+    // Show nearby places if available, otherwise fall back to saved places
+    var places = nearbyPlaces.isNotEmpty
+        ? nearbyPlaces
+        : placeService.getPlacesByType(type);
     places = _applyFilters(places, reviewService, photoService);
-    
+
+    // Show loading indicator if still loading nearby places and no places available
+    if (isLoadingNearby && places.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (places.isEmpty) return _EmptyState(type: type);
 
     return ListView.builder(
@@ -563,12 +674,15 @@ class _PlacesList extends StatelessWidget {
       itemBuilder: (context, index) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: PlaceCard(place: places[index])
-            .animate().fadeIn(delay: (index * 100).ms).slideY(begin: 0.1, delay: (index * 100).ms),
+            .animate()
+            .fadeIn(delay: (index * 100).ms)
+            .slideY(begin: 0.1, delay: (index * 100).ms),
       ),
     );
   }
 
-  List<PlaceModel> _applyFilters(List<PlaceModel> input, ReviewService reviewService, CommunityPhotoService photoService) {
+  List<PlaceModel> _applyFilters(List<PlaceModel> input,
+      ReviewService reviewService, CommunityPhotoService photoService) {
     var out = input;
     if (filterRating4Plus) {
       out = out.where((p) {
@@ -577,7 +691,9 @@ class _PlacesList extends StatelessWidget {
       }).toList();
     }
     if (filterHasPhotos) {
-      out = out.where((p) => photoService.getPhotosForPlace(p.id).isNotEmpty).toList();
+      out = out
+          .where((p) => photoService.getPhotosForPlace(p.id).isNotEmpty)
+          .toList();
     }
     // Sort by community signal: avg rating desc, then photo count desc
     out.sort((a, b) {
@@ -646,8 +762,10 @@ class _EventsList extends StatelessWidget {
         default:
           final startOfWeek = now.subtract(Duration(days: now.weekday % 7));
           final endOfWeek = startOfWeek.add(const Duration(days: 6));
-          start = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-          end = DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day, 23, 59);
+          start =
+              DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+          end =
+              DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day, 23, 59);
       }
       data = eventService.search(
         query: '',
@@ -669,7 +787,11 @@ class _EventsList extends StatelessWidget {
             const SizedBox(height: 12),
             Text('No events found', style: text.titleMedium),
             const SizedBox(height: 6),
-            Text('Cairo has weekly Parkruns at Al-Azhar Park every Saturday at 7 AM. Check back soon for more events!', textAlign: TextAlign.center, style: text.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
+            Text(
+                'Cairo has weekly Parkruns at Al-Azhar Park every Saturday at 7 AM. Check back soon for more events!',
+                textAlign: TextAlign.center,
+                style:
+                    text.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
           ],
         ),
       );
@@ -681,7 +803,9 @@ class _EventsList extends StatelessWidget {
       itemBuilder: (context, index) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: EventCard(event: data[index])
-            .animate().fadeIn(delay: (index * 60).ms).slideY(begin: 0.06, delay: (index * 60).ms),
+            .animate()
+            .fadeIn(delay: (index * 60).ms)
+            .slideY(begin: 0.06, delay: (index * 60).ms),
       ),
     );
   }
@@ -712,16 +836,27 @@ class _CategoryChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? colors.primary.withValues(alpha: 0.15) : colors.surface,
+          color: selected
+              ? colors.primary.withValues(alpha: 0.15)
+              : colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.full),
-          border: Border.all(color: selected ? colors.primary : colors.outline.withValues(alpha: 0.7), width: 1),
+          border: Border.all(
+              color: selected
+                  ? colors.primary
+                  : colors.outline.withValues(alpha: 0.7),
+              width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: selected ? colors.primary : colors.onSurfaceVariant),
+            Icon(icon,
+                size: 16,
+                color: selected ? colors.primary : colors.onSurfaceVariant),
             const SizedBox(width: 6),
-            Text(label, style: text.labelMedium?.copyWith(color: selected ? colors.primary : colors.onSurfaceVariant)),
+            Text(label,
+                style: text.labelMedium?.copyWith(
+                    color:
+                        selected ? colors.primary : colors.onSurfaceVariant)),
           ],
         ),
       ),
@@ -747,7 +882,8 @@ class EventCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+          border: Border.all(
+              color: colors.outline.withValues(alpha: 0.1), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -763,8 +899,11 @@ class EventCard extends StatelessWidget {
                     child: event.imageUrl != null && event.imageUrl!.isNotEmpty
                         ? Image.network(event.imageUrl!, fit: BoxFit.cover)
                         : Container(
-                            color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
-                            child: Center(child: Text(eventCategoryEmoji(event.category), style: const TextStyle(fontSize: 28))),
+                            color: colors.surfaceContainerHighest
+                                .withValues(alpha: 0.5),
+                            child: Center(
+                                child: Text(eventCategoryEmoji(event.category),
+                                    style: const TextStyle(fontSize: 28))),
                           ),
                   ),
                 ),
@@ -773,19 +912,31 @@ class EventCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(event.title, style: text.titleSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      Text(event.title,
+                          style: text.titleSmall,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 4),
                       Row(children: [
-                        Icon(Icons.event, size: 14, color: colors.onSurfaceVariant),
+                        Icon(Icons.event,
+                            size: 14, color: colors.onSurfaceVariant),
                         const SizedBox(width: 4),
-                        Text('${event.shortDate} • ${event.shortTime}', style: text.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                        Text('${event.shortDate} • ${event.shortTime}',
+                            style: text.labelSmall
+                                ?.copyWith(color: colors.onSurfaceVariant)),
                       ]),
                       if (event.venueName.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Row(children: [
-                          Icon(Icons.place, size: 14, color: colors.onSurfaceVariant),
+                          Icon(Icons.place,
+                              size: 14, color: colors.onSurfaceVariant),
                           const SizedBox(width: 4),
-                          Expanded(child: Text(event.venueName, style: text.labelSmall?.copyWith(color: colors.onSurfaceVariant), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                          Expanded(
+                              child: Text(event.venueName,
+                                  style: text.labelSmall?.copyWith(
+                                      color: colors.onSurfaceVariant),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis)),
                         ]),
                       ],
                     ],
@@ -799,14 +950,18 @@ class EventCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: colors.surfaceContainerHighest.withValues(alpha: 0.6),
+                      color:
+                          colors.surfaceContainerHighest.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
                     child: Text(
                       (event.source!).toUpperCase(),
-                      style: text.labelSmall?.copyWith(color: colors.onSurfaceVariant, fontWeight: FontWeight.w600),
+                      style: text.labelSmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                          fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -840,7 +995,8 @@ class _SavedPlacesList extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Discover places in the tabs above and\nsave your favorites to see them here',
-              style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+              style: textStyles.bodyMedium
+                  ?.copyWith(color: colors.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
           ],
@@ -850,7 +1006,8 @@ class _SavedPlacesList extends StatelessWidget {
 
     // Group by type
     final gyms = places.where((p) => p.type == PlaceType.gym).toList();
-    final restaurants = places.where((p) => p.type == PlaceType.restaurant).toList();
+    final restaurants =
+        places.where((p) => p.type == PlaceType.restaurant).toList();
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -863,10 +1020,11 @@ class _SavedPlacesList extends StatelessWidget {
           ).animate().fadeIn(),
           const SizedBox(height: 12),
           ...gyms.asMap().entries.map((entry) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: PlaceCard(place: entry.value, showSaveButton: true)
-                .animate().fadeIn(delay: (entry.key * 50).ms),
-          )),
+                padding: const EdgeInsets.only(bottom: 12),
+                child: PlaceCard(place: entry.value, showSaveButton: true)
+                    .animate()
+                    .fadeIn(delay: (entry.key * 50).ms),
+              )),
         ],
         if (restaurants.isNotEmpty) ...[
           if (gyms.isNotEmpty) const SizedBox(height: 8),
@@ -877,10 +1035,11 @@ class _SavedPlacesList extends StatelessWidget {
           ).animate().fadeIn(delay: 100.ms),
           const SizedBox(height: 12),
           ...restaurants.asMap().entries.map((entry) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: PlaceCard(place: entry.value, showSaveButton: true)
-                .animate().fadeIn(delay: ((gyms.length + entry.key) * 50).ms),
-          )),
+                padding: const EdgeInsets.only(bottom: 12),
+                child: PlaceCard(place: entry.value, showSaveButton: true)
+                    .animate()
+                    .fadeIn(delay: ((gyms.length + entry.key) * 50).ms),
+              )),
         ],
         const SizedBox(height: 20),
       ],
@@ -943,27 +1102,32 @@ class _EmptyState extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            type == PlaceType.gym ? '🏋️' : type == PlaceType.trail ? '🥾' : '🥗',
+            type == PlaceType.gym
+                ? '🏋️'
+                : type == PlaceType.trail
+                    ? '🥾'
+                    : '🥗',
             style: const TextStyle(fontSize: 48),
           ),
           const SizedBox(height: 16),
           Text(
             type == PlaceType.gym
-              ? 'No gyms saved yet'
-              : type == PlaceType.trail
-                ? 'No trails saved yet'
-                : 'No food spots saved yet',
+                ? 'No gyms saved yet'
+                : type == PlaceType.trail
+                    ? 'No trails saved yet'
+                    : 'No food spots saved yet',
             style: textStyles.titleMedium,
           ),
           const SizedBox(height: 8),
           Text(
             type == PlaceType.gym
-              ? 'Try searching for "Gold\'s Gym Maadi" or "CrossFit Cairo" to get started!'
-              : type == PlaceType.trail
-                ? 'Try the Nile Corniche for running/walking, or visit Wadi Degla Protectorate for desert hiking!'
-                : 'Check out "Zooba" in Zamalek or "The Gym Café" for healthy options!',
+                ? 'Try searching for "Gold\'s Gym Maadi" or "CrossFit Cairo" to get started!'
+                : type == PlaceType.trail
+                    ? 'Try the Nile Corniche for running/walking, or visit Wadi Degla Protectorate for desert hiking!'
+                    : 'Check out "Zooba" in Zamalek or "The Gym Café" for healthy options!',
             textAlign: TextAlign.center,
-            style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+            style:
+                textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
           ),
         ],
       ),
@@ -992,7 +1156,8 @@ class _EmptySearchState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Try a different search term',
-            style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+            style:
+                textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
           ),
         ],
       ),
@@ -1001,7 +1166,7 @@ class _EmptySearchState extends StatelessWidget {
 }
 
 /// Reusable Place Card widget
-class PlaceCard extends StatelessWidget {
+class PlaceCard extends StatefulWidget {
   final PlaceModel place;
   final bool showSaveButton;
 
@@ -1011,13 +1176,53 @@ class PlaceCard extends StatelessWidget {
     this.showSaveButton = false,
   });
 
+  @override
+  State<PlaceCard> createState() => _PlaceCardState();
+}
+
+class _PlaceCardState extends State<PlaceCard> {
+  PlaceQuickInsights? _quickInsights;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadQuickInsights();
+  }
+
+  Future<void> _loadQuickInsights() async {
+    try {
+      final aiService = context.read<AiGuideService>();
+      
+      final insights = await aiService.generateQuickInsights(
+        placeName: widget.place.name,
+        placeType: widget.place.type.name,
+        rating: widget.place.rating,
+        reviewCount: widget.place.userRatingsTotal,
+        googlePlaceId: widget.place.googlePlaceId,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _quickInsights = insights;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load quick insights: $e');
+    }
+  }
+
   Color _getPlaceColor(PlaceType type) {
     switch (type) {
-      case PlaceType.gym: return AppColors.primary;
-      case PlaceType.restaurant: return AppColors.success;
-      case PlaceType.park: return AppColors.info;
-      case PlaceType.trail: return AppColors.warning;
-      case PlaceType.other: return AppColors.primary;
+      case PlaceType.gym:
+        return AppColors.primary;
+      case PlaceType.restaurant:
+        return AppColors.success;
+      case PlaceType.park:
+        return AppColors.info;
+      case PlaceType.trail:
+        return AppColors.warning;
+      case PlaceType.other:
+        return AppColors.primary;
     }
   }
 
@@ -1029,14 +1234,15 @@ class PlaceCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         HapticUtils.light();
-        context.push('/place-detail', extra: place);
+        context.push('/place-detail', extra: widget.place);
       },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+          border: Border.all(
+              color: colors.outline.withValues(alpha: 0.1), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1048,22 +1254,28 @@ class PlaceCard extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: _getPlaceColor(place.type).withValues(alpha: 0.1),
+                    color: _getPlaceColor(widget.place.type).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
-                  child: Center(child: Text(place.typeEmoji, style: const TextStyle(fontSize: 28))),
+                  child: Center(
+                      child: Text(widget.place.typeEmoji,
+                          style: const TextStyle(fontSize: 28))),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(place.name, style: textStyles.titleSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
-                      if (place.address != null) ...[
+                      Text(widget.place.name,
+                          style: textStyles.titleSmall,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
+                      if (widget.place.address != null) ...[
                         const SizedBox(height: 4),
                         Text(
-                          place.address!,
-                          style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                          widget.place.address!,
+                          style: textStyles.bodySmall
+                              ?.copyWith(color: colors.onSurfaceVariant),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1071,37 +1283,52 @@ class PlaceCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (showSaveButton)
-                  _SaveButton(place: place),
+                if (widget.showSaveButton) _SaveButton(place: widget.place),
               ],
             ),
             const SizedBox(height: 12),
+            
+            // Quick Insights (if available)
+            if (_quickInsights != null) ...[
+              PlaceQuickInsightsInline(insights: _quickInsights!),
+              const SizedBox(height: 8),
+            ],
+            
             Row(
               children: [
-                if (place.rating != null) ...[
+                if (widget.place.rating != null) ...[
                   Icon(Icons.star, size: 16, color: AppColors.xp),
                   const SizedBox(width: 4),
-                  Text(place.rating!.toStringAsFixed(1), style: textStyles.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
-                  if (place.userRatingsTotal != null) ...[
+                  Text(widget.place.rating!.toStringAsFixed(1),
+                      style: textStyles.labelMedium
+                          ?.copyWith(fontWeight: FontWeight.w600)),
+                  if (widget.place.userRatingsTotal != null) ...[
                     const SizedBox(width: 4),
-                    Text('(${place.userRatingsTotal})', style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                    Text('(${widget.place.userRatingsTotal})',
+                        style: textStyles.labelSmall
+                            ?.copyWith(color: colors.onSurfaceVariant)),
                   ],
                 ],
-                if (place.priceLevel != null) ...[
+                if (widget.place.priceLevel != null) ...[
                   const SizedBox(width: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                      color:
+                          colors.surfaceContainerHighest.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
-                    child: Text(place.priceLevel!, style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                    child: Text(widget.place.priceLevel!,
+                        style: textStyles.labelSmall
+                            ?.copyWith(color: colors.onSurfaceVariant)),
                   ),
                 ],
                 const Spacer(),
-                if (place.isVisited)
+                if (widget.place.isVisited)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.success.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -1109,9 +1336,13 @@ class PlaceCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle, size: 14, color: AppColors.success),
+                        Icon(Icons.check_circle,
+                            size: 14, color: AppColors.success),
                         const SizedBox(width: 4),
-                        Text('Visited', style: textStyles.labelSmall?.copyWith(color: AppColors.success, fontWeight: FontWeight.w600)),
+                        Text('Visited',
+                            style: textStyles.labelSmall?.copyWith(
+                                color: AppColors.success,
+                                fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
