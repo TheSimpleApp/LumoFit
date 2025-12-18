@@ -64,13 +64,32 @@ workflows:
           flutter test
         ignore_failure: true
 
-      # Build iOS IPA for App Store
+      # Get the latest build number from App Store Connect and increment it
+      - name: Get and increment build number
+        script: | 
+          # Get the latest build number from App Store Connect
+          LATEST_BUILD=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo "0")
+          # Increment the build number
+          NEW_BUILD_NUMBER=$((LATEST_BUILD + 1))
+          echo "Latest build number in App Store Connect: $LATEST_BUILD"
+          echo "New build number: $NEW_BUILD_NUMBER"
+          # Export the build number for use in the next step
+          echo "export BUILD_NUMBER=$NEW_BUILD_NUMBER" >> $CM_ENV
+
+      # Build iOS IPA for App Store with auto-incremented build number
       - name: Flutter build ipa
         script: | 
+          # Source the environment variables to get BUILD_NUMBER
+          source $CM_ENV
+          # Extract version from pubspec.yaml (format: version: 1.0.0)
+          VERSION_NAME=$(grep "^version:" pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
+          echo "Building version: $VERSION_NAME with build number: $BUILD_NUMBER"
+          # Build the IPA with the incremented build number
+          # Using --release flag ensures proper App Store distribution
+          # Codemagic will automatically handle export options for App Store distribution
           flutter build ipa --release \
-            --build-name=1.0.0 \
-            --build-number=$(($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID") + 1)) \
-            --export-options-plist=/Users/builder/export_options.plist
+            --build-name=$VERSION_NAME \
+            --build-number=$BUILD_NUMBER
     
     # Collect build artifacts
     artifacts:
