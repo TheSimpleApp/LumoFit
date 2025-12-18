@@ -1,11 +1,32 @@
 import 'package:flutter/foundation.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
+import 'package:fittravel/models/ai_models.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// AI Guide Service using Gemini API for Cairo fitness recommendations
+/// AI Guide Service for Egypt-wide fitness recommendations
+///
+/// Provides AI-powered features:
+/// - Egypt-wide fitness guide (all major destinations)
+/// - Fitness itinerary generation
+/// - Place insights with caching
 class AiGuideService {
-  // Using Supabase Edge Function instead of calling Gemini directly from client
-  static const String _edgeFunctionName = 'cairo_guide';
+  // Edge function names
+  static const String _cairoGuideFn = 'cairo_guide';
+  static const String _egyptGuideFn = 'egypt_fitness_guide';
+  static const String _itineraryFn = 'generate_fitness_itinerary';
+  static const String _insightsFn = 'get_place_insights';
+
+  // Conversation history for context-aware responses
+  final List<AiChatMessage> _conversationHistory = [];
+
+  /// Get current conversation history
+  List<AiChatMessage> get conversationHistory =>
+      List.unmodifiable(_conversationHistory);
+
+  /// Clear conversation history
+  void clearHistory() {
+    _conversationHistory.clear();
+  }
 
   /// Ask the Cairo Guide a question and get AI-powered recommendations
   Future<String> askCairoGuide({
@@ -15,22 +36,10 @@ class AiGuideService {
     List<String>? dietaryPreferences,
   }) async {
     try {
-      // Build context from user info
-      String context = 'User context: ';
-      if (userLocation != null) {
-        context += 'Currently in $userLocation. ';
-      }
-      if (fitnessLevel != null) {
-        context += 'Fitness level: $fitnessLevel. ';
-      }
-      if (dietaryPreferences != null && dietaryPreferences.isNotEmpty) {
-        context += 'Dietary preferences: ${dietaryPreferences.join(", ")}. ';
-      }
-
       // Call Supabase Edge Function (secured with server-side Gemini key)
       final FunctionsClient functions = SupabaseConfig.client.functions;
       final invokeRes = await functions.invoke(
-        _edgeFunctionName,
+        _cairoGuideFn,
         body: {
           'question': question,
           if (userLocation != null) 'userLocation': userLocation,
@@ -66,5 +75,206 @@ class AiGuideService {
       'Where can I hike near Cairo?',
       'Best time to work out in Cairo?',
     ];
+  }
+
+  // ========================================
+  // Egypt-wide AI Guide Methods
+  // ========================================
+
+  /// Ask the Egypt fitness guide a question with full context
+  ///
+  /// Returns structured response with text and suggested places
+  Future<EgyptGuideResponse> askEgyptGuide({
+    required String question,
+    String? destination,
+    double? userLat,
+    double? userLng,
+    Map<String, double>? mapBounds,
+    String? fitnessLevel,
+    List<String>? dietaryPreferences,
+  }) async {
+    try {
+      // Add user message to history
+      _conversationHistory.add(AiChatMessage.user(question));
+
+      // Build conversation history for context
+      final historyForApi = _conversationHistory
+          .take(10) // Limit history to last 10 messages
+          .map((m) => {'role': m.isUser ? 'user' : 'assistant', 'content': m.content})
+          .toList();
+
+      final FunctionsClient functions = SupabaseConfig.client.functions;
+      final invokeRes = await functions.invoke(
+        _egyptGuideFn,
+        body: {
+          'question': question,
+          if (destination != null) 'destination': destination,
+          if (userLat != null && userLng != null)
+            'userLocation': {'lat': userLat, 'lng': userLng},
+          if (mapBounds != null) 'mapBounds': mapBounds,
+          if (fitnessLevel != null) 'fitnessLevel': fitnessLevel,
+          if (dietaryPreferences != null && dietaryPreferences.isNotEmpty)
+            'dietaryPreferences': dietaryPreferences,
+          'conversationHistory': historyForApi,
+        },
+      );
+
+      if (invokeRes.data is Map) {
+        final data = (invokeRes.data as Map).cast<String, dynamic>();
+        final response = EgyptGuideResponse.fromJson(data);
+
+        // Add assistant response to history
+        _conversationHistory.add(AiChatMessage.assistant(
+          response.text,
+          suggestedPlaces: response.suggestedPlaces,
+        ));
+
+        return response;
+      }
+
+      debugPrint('AiGuideService: Invalid response from egypt_fitness_guide: ${invokeRes.data}');
+      return const EgyptGuideResponse(
+        text: 'Sorry, I couldn\'t generate a response. Please try again.',
+      );
+    } catch (e) {
+      debugPrint('AiGuideService.askEgyptGuide error: $e');
+      return const EgyptGuideResponse(
+        text: 'Sorry, something went wrong. Please check your connection and try again.',
+      );
+    }
+  }
+
+  /// Generate a fitness itinerary for a destination
+  Future<ItineraryResponse?> generateItinerary({
+    required String destination,
+    required DateTime date,
+    String? fitnessLevel,
+    List<String>? focusAreas,
+  }) async {
+    try {
+      final FunctionsClient functions = SupabaseConfig.client.functions;
+      final invokeRes = await functions.invoke(
+        _itineraryFn,
+        body: {
+          'destination': destination,
+          'date': date.toIso8601String().split('T').first,
+          if (fitnessLevel != null) 'fitnessLevel': fitnessLevel,
+          if (focusAreas != null && focusAreas.isNotEmpty)
+            'focusAreas': focusAreas,
+        },
+      );
+
+      if (invokeRes.data is Map) {
+        final data = (invokeRes.data as Map).cast<String, dynamic>();
+        return ItineraryResponse.fromJson(data);
+      }
+
+      debugPrint('AiGuideService: Invalid response from generate_fitness_itinerary: ${invokeRes.data}');
+      return null;
+    } catch (e) {
+      debugPrint('AiGuideService.generateItinerary error: $e');
+      return null;
+    }
+  }
+
+  /// Get AI-generated insights for a specific place
+  ///
+  /// Results are cached server-side for 7 days
+  Future<PlaceInsights?> getPlaceInsights({
+    required String placeName,
+    required String placeType,
+    required String destination,
+    String? googlePlaceId,
+  }) async {
+    try {
+      final FunctionsClient functions = SupabaseConfig.client.functions;
+      final invokeRes = await functions.invoke(
+        _insightsFn,
+        body: {
+          'placeName': placeName,
+          'placeType': placeType,
+          'destination': destination,
+          if (googlePlaceId != null) 'googlePlaceId': googlePlaceId,
+        },
+      );
+
+      if (invokeRes.data is Map) {
+        final data = (invokeRes.data as Map).cast<String, dynamic>();
+        final insights = data['insights'] as Map<String, dynamic>?;
+        if (insights != null) {
+          return PlaceInsights.fromJson(insights);
+        }
+      }
+
+      debugPrint('AiGuideService: Invalid response from get_place_insights: ${invokeRes.data}');
+      return null;
+    } catch (e) {
+      debugPrint('AiGuideService.getPlaceInsights error: $e');
+      return null;
+    }
+  }
+
+  /// Get quick questions for a specific Egypt destination
+  List<String> getQuickQuestionsForDestination(String destination) {
+    switch (destination.toLowerCase()) {
+      case 'cairo':
+        return [
+          'Best gyms near Zamalek?',
+          'Healthy restaurants with outdoor seating?',
+          'Running routes along the Nile?',
+          'Yoga studios in Maadi?',
+        ];
+      case 'luxor':
+        return [
+          'Best time to run near the temples?',
+          'Gyms in Luxor with day passes?',
+          'Healthy breakfast spots on East Bank?',
+          'Cycling routes near Valley of the Kings?',
+        ];
+      case 'aswan':
+        return [
+          'Swimming spots near Elephantine Island?',
+          'Running routes along the Nile?',
+          'Yoga retreats in Nubian villages?',
+          'Best healthy food in Aswan?',
+        ];
+      case 'hurghada':
+        return [
+          'Best beach yoga classes?',
+          'Gyms with sea views?',
+          'Diving fitness requirements?',
+          'Healthy restaurants in El Gouna?',
+        ];
+      case 'sharm el sheikh':
+        return [
+          'Best resort gyms with day passes?',
+          'Hiking trails in Sinai?',
+          'Snorkeling fitness spots?',
+          'Healthy eating in Naama Bay?',
+        ];
+      case 'alexandria':
+        return [
+          'Running routes on the Corniche?',
+          'Best gyms in Alexandria?',
+          'Mediterranean swimming spots?',
+          'Healthy seafood restaurants?',
+        ];
+      case 'dahab':
+        return [
+          'Freediving schools and fitness?',
+          'Desert yoga retreats?',
+          'Kitesurfing lessons?',
+          'Healthy cafes in Dahab?',
+        ];
+      case 'siwa':
+        return [
+          'Desert cycling routes?',
+          'Hot springs for recovery?',
+          'Sunrise yoga spots?',
+          'Organic food in Siwa?',
+        ];
+      default:
+        return getQuickQuestions();
+    }
   }
 }

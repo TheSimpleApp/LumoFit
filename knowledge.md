@@ -1,8 +1,8 @@
 # FitTravel Knowledge Base
 
 > **Last Updated:** December 2024
-> **Status:** Beta Ready — Phase 10 (Beta Testing & QA) In Progress
-> **Strategy:** Cloud-synced MVP with Supabase backend, ready for live beta testing
+> **Status:** Beta Ready — Phase 13 (AI-Powered Map Discovery) Complete
+> **Strategy:** Cloud-synced MVP with Supabase backend, AI-powered map experience, ready for Egypt beta testing
 
 ---
 
@@ -31,11 +31,14 @@ The project is connected to Supabase (Dreamflow Supabase panel). **All data serv
   - `community-photos` (5MB limit, JPEG/PNG/WebP/HEIC)
   - `quick-photos` (5MB limit, JPEG/PNG/WebP/HEIC)
   - `avatars` (2MB limit, JPEG/PNG/WebP)
-- **Edge Functions:** 4 active functions
+- **Edge Functions:** 7 active functions
   - `list_events_combined` - Aggregates Eventbrite + RunSignup events
   - `list_events_eventbrite` - Eventbrite API integration
   - `list_events_runsignup` - RunSignup API integration
   - `cairo_guide` - Gemini AI integration for Cairo recommendations
+  - `egypt_fitness_guide` - Egypt-wide AI concierge (8 destinations)
+  - `get_place_insights` - AI-generated place tips with 7-day cache
+  - `generate_fitness_itinerary` - AI day planner for any Egypt destination
 - **Security Model:** All external API keys stored in Supabase Edge Functions environment variables
 - **Image Processing:** Client-side compression to 1920px max, 85% JPEG quality
 
@@ -237,6 +240,25 @@ CREATE TABLE user_challenges (
   completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+```
+
+#### Place Insights Cache Table (Phase 13)
+
+```sql
+CREATE TABLE place_insights (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  cache_key TEXT UNIQUE NOT NULL,
+  google_place_id TEXT,
+  place_name TEXT NOT NULL,
+  destination TEXT NOT NULL,
+  insights JSONB NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_place_insights_cache_key ON place_insights(cache_key);
+ALTER TABLE place_insights ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read" ON place_insights FOR SELECT USING (true);
 ```
 
 ---
@@ -507,6 +529,21 @@ static const String kTrails = 'trails'; // Phase 5
 | Session | Created local supabase/functions directory structure for version control | Phase 12 |
 | Session | Phase 12 COMPLETE — Production Readiness & Photo Storage Migration | Phase 12 ✅ |
 | Current | **App fully tested and ready for Cairo beta with Gemini 2.5 Flash AI** | Status: BETA READY 🚀 |
+| Session | Added Google Maps Flutter integration (google_maps_flutter ^2.5.3) | Phase 13 |
+| Session | Configured iOS and Android with Google Maps API keys | Phase 13 |
+| Session | Deployed egypt_fitness_guide Edge Function (Egypt-wide AI concierge) | Phase 13 |
+| Session | Deployed get_place_insights Edge Function (cached AI tips) | Phase 13 |
+| Session | Deployed generate_fitness_itinerary Edge Function (AI day planner) | Phase 13 |
+| Session | Created place_insights cache table with 7-day expiry | Phase 13 |
+| Session | Added destination_latitude/longitude to trips table | Phase 13 |
+| Session | Built MapScreen with dark theme, markers, and filters | Phase 13 |
+| Session | Built AiMapConcierge floating chat widget | Phase 13 |
+| Session | Built PlaceInsightsCard for AI-generated place tips | Phase 13 |
+| Session | Built ItineraryGeneratorScreen for AI day planning | Phase 13 |
+| Session | Added Map tab to bottom navigation (5 tabs total) | Phase 13 |
+| Session | Enhanced AiGuideService with Egypt-wide methods | Phase 13 |
+| Session | Created AI models (EgyptGuideResponse, ItineraryResponse, PlaceInsights) | Phase 13 |
+| Session | Phase 13 COMPLETE — AI-Powered Map Discovery | Phase 13 ✅ |
 
 ---
 
@@ -579,8 +616,8 @@ static const String kTrails = 'trails'; // Phase 5
 
 - **go_router** for declarative routing
 - Auth guard redirects unauthenticated users to login
-- Bottom nav for main tabs (Home, Discover, Trips, Profile)
-- Modal routes for detail screens (Place Detail, Trip Detail, Event Detail)
+- Bottom nav for main tabs (Home, Map, Discover, Trips, Profile) - 5 tabs total
+- Modal routes for detail screens (Place Detail, Trip Detail, Event Detail, Cairo Guide, Itinerary Generator)
 
 ---
 

@@ -22,6 +22,17 @@ class TripService extends ChangeNotifier {
       return null;
     }
   }
+
+  /// Get coordinates of the active trip destination for map centering
+  /// Returns null if no active trip or no coordinates set
+  (double lat, double lng)? get activeTripCoordinates {
+    final trip = activeTrip;
+    if (trip?.destinationLatitude != null && trip?.destinationLongitude != null) {
+      return (trip!.destinationLatitude!, trip.destinationLongitude!);
+    }
+    return null;
+  }
+
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -97,6 +108,8 @@ class TripService extends ChangeNotifier {
   Future<TripModel> createTrip({
     required String destinationCity,
     String? destinationCountry,
+    double? destinationLatitude,
+    double? destinationLongitude,
     required DateTime startDate,
     required DateTime endDate,
     String? notes,
@@ -111,6 +124,8 @@ class TripService extends ChangeNotifier {
         'user_id': userId,
         'destination_city': destinationCity,
         'destination_country': destinationCountry,
+        'destination_latitude': destinationLatitude,
+        'destination_longitude': destinationLongitude,
         'start_date': startDate.toIso8601String().split('T')[0],
         'end_date': endDate.toIso8601String().split('T')[0],
         'notes': notes,

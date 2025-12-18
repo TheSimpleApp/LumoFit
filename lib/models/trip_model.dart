@@ -5,6 +5,8 @@ class TripModel {
   final String userId;
   final String destinationCity;
   final String? destinationCountry;
+  final double? destinationLatitude;
+  final double? destinationLongitude;
   final DateTime startDate;
   final DateTime endDate;
   final bool isActive;
@@ -19,6 +21,8 @@ class TripModel {
     required this.userId,
     required this.destinationCity,
     this.destinationCountry,
+    this.destinationLatitude,
+    this.destinationLongitude,
     required this.startDate,
     required this.endDate,
     this.isActive = false,
@@ -35,6 +39,8 @@ class TripModel {
     String? userId,
     String? destinationCity,
     String? destinationCountry,
+    double? destinationLatitude,
+    double? destinationLongitude,
     DateTime? startDate,
     DateTime? endDate,
     bool? isActive,
@@ -49,6 +55,8 @@ class TripModel {
       userId: userId ?? this.userId,
       destinationCity: destinationCity ?? this.destinationCity,
       destinationCountry: destinationCountry ?? this.destinationCountry,
+      destinationLatitude: destinationLatitude ?? this.destinationLatitude,
+      destinationLongitude: destinationLongitude ?? this.destinationLongitude,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       isActive: isActive ?? this.isActive,
@@ -66,6 +74,8 @@ class TripModel {
       'userId': userId,
       'destinationCity': destinationCity,
       'destinationCountry': destinationCountry,
+      'destinationLatitude': destinationLatitude,
+      'destinationLongitude': destinationLongitude,
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
       'isActive': isActive,
@@ -83,6 +93,8 @@ class TripModel {
       userId: json['userId'] as String,
       destinationCity: json['destinationCity'] as String,
       destinationCountry: json['destinationCountry'] as String?,
+      destinationLatitude: (json['destinationLatitude'] as num?)?.toDouble(),
+      destinationLongitude: (json['destinationLongitude'] as num?)?.toDouble(),
       startDate: DateTime.parse(json['startDate'] as String),
       endDate: DateTime.parse(json['endDate'] as String),
       isActive: json['isActive'] as bool? ?? false,
@@ -113,6 +125,8 @@ class TripModel {
       userId: json['user_id'] as String,
       destinationCity: json['destination_city'] as String,
       destinationCountry: json['destination_country'] as String?,
+      destinationLatitude: (json['destination_latitude'] as num?)?.toDouble(),
+      destinationLongitude: (json['destination_longitude'] as num?)?.toDouble(),
       startDate: DateTime.parse(json['start_date'] as String),
       endDate: DateTime.parse(json['end_date'] as String),
       isActive: json['is_active'] as bool? ?? false,
@@ -135,6 +149,8 @@ class TripModel {
       'user_id': userId,
       'destination_city': destinationCity,
       'destination_country': destinationCountry,
+      'destination_latitude': destinationLatitude,
+      'destination_longitude': destinationLongitude,
       'start_date': startDate.toIso8601String().split('T')[0],
       'end_date': endDate.toIso8601String().split('T')[0],
       'is_active': isActive,
@@ -143,6 +159,10 @@ class TripModel {
       'updated_at': DateTime.now().toIso8601String(),
     };
   }
+
+  /// Check if destination has coordinates for map centering
+  bool get hasCoordinates =>
+      destinationLatitude != null && destinationLongitude != null;
 
   int get durationDays => endDate.difference(startDate).inDays + 1;
 

@@ -17,6 +17,8 @@ import 'package:fittravel/screens/auth/forgot_password_screen.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
 import 'package:fittravel/screens/feedback/feedback_screen.dart';
 import 'package:fittravel/screens/home/cairo_guide_screen.dart';
+import 'package:fittravel/screens/map/map_screen.dart';
+import 'package:fittravel/screens/trips/itinerary_generator_screen.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -56,6 +58,15 @@ class AppRouter {
             pageBuilder: (context, state) => const NoTransitionPage(
               child: HomeScreen(),
             ),
+          ),
+          GoRoute(
+            path: '/map',
+            pageBuilder: (context, state) {
+              final filter = state.uri.queryParameters['filter'];
+              return NoTransitionPage(
+                child: MapScreen(initialFilter: filter),
+              );
+            },
           ),
           GoRoute(
             path: '/discover',
@@ -135,6 +146,14 @@ class AppRouter {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const FeedbackScreen(),
       ),
+      GoRoute(
+        path: '/generate-itinerary',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final destination = state.uri.queryParameters['destination'];
+          return ItineraryGeneratorScreen(initialDestination: destination);
+        },
+      ),
       // Auth routes
       GoRoute(
         path: '/login',
@@ -156,9 +175,10 @@ class AppRouter {
 
   static int getCurrentIndex(String location) {
     if (location.startsWith('/home')) return 0;
-    if (location.startsWith('/discover')) return 1;
-    if (location.startsWith('/trips')) return 2;
-    if (location.startsWith('/profile')) return 3;
+    if (location.startsWith('/map')) return 1;
+    if (location.startsWith('/discover')) return 2;
+    if (location.startsWith('/trips')) return 3;
+    if (location.startsWith('/profile')) return 4;
     return 0;
   }
 
@@ -167,10 +187,12 @@ class AppRouter {
       case 0:
         return '/home';
       case 1:
-        return '/discover';
+        return '/map';
       case 2:
-        return '/trips';
+        return '/discover';
       case 3:
+        return '/trips';
+      case 4:
         return '/profile';
       default:
         return '/home';

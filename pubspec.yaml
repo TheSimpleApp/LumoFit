@@ -25,6 +25,10 @@ dependencies:
   go_router: ^16.1.0
   image_picker: ^1.0.7
   supabase_flutter: '>=1.10.0'
+  # Map integration
+  google_maps_flutter: ^2.5.3
+  google_maps_cluster_manager: ^3.0.0+1
+  flutter_polyline_points: ^2.0.0
 
 dev_dependencies:
   flutter_test:

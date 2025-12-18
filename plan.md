@@ -1,8 +1,8 @@
 # FitTravel Development Plan
 
-> **Current Phase:** Phase 10 - Beta Testing & QA
+> **Current Phase:** Phase 13 - AI-Powered Map Discovery (COMPLETE)
 > **Last Updated:** December 2024
-> **Strategy:** Cloud-synced MVP ready for live beta testing
+> **Strategy:** Cloud-synced MVP with AI-powered map experience, ready for Egypt beta testing
 
 ---
 
@@ -184,7 +184,7 @@
 - [x] Monitor Supabase logs for errors
 - [x] Collect and address user feedback
 
-### Phase 11: Cairo Experience Optimization (CURRENT)
+### Phase 11: Cairo Experience Optimization ✅ COMPLETE
 
 **Intent:** Optimize app for Cairo, Egypt beta testing with AI-powered recommendations and Cairo-specific content.
 
@@ -266,6 +266,68 @@
 
 **App Status:** Ready for Cairo beta testing (65% production-ready, all critical features working)
 
+### Phase 13: AI-Powered Map Discovery ✅ COMPLETE
+
+**Intent:** Transform FitTravel into an AI-powered fitness travel companion with interactive maps, intelligent recommendations, and personalized itineraries for anywhere in Egypt.
+
+**Completed Tasks:**
+
+- [x] Add Google Maps Flutter integration (`google_maps_flutter: ^2.5.3`)
+- [x] Configure iOS and Android with Google Maps API keys
+- [x] Deploy `egypt_fitness_guide` Edge Function (Egypt-wide AI concierge)
+- [x] Deploy `get_place_insights` Edge Function (cached AI tips with 7-day expiry)
+- [x] Deploy `generate_fitness_itinerary` Edge Function (AI day planner)
+- [x] Create `place_insights` cache table with RLS policies
+- [x] Add `destination_latitude`/`destination_longitude` to trips table
+- [x] Build MapScreen with dark theme, markers, and filter bar
+- [x] Build AiMapConcierge floating chat widget
+- [x] Build PlaceInsightsCard for AI-generated place tips
+- [x] Build ItineraryGeneratorScreen for AI day planning
+- [x] Add Map tab to bottom navigation (5 tabs: Home, Map, Discover, Trips, Profile)
+- [x] Enhance AiGuideService with Egypt-wide methods
+- [x] Create AI models (EgyptGuideResponse, ItineraryResponse, PlaceInsights, SuggestedPlace)
+- [x] Fix all deprecation warnings (withOpacity → withValues)
+
+**Files Created:**
+
+- `lib/models/ai_models.dart` - AI response models
+- `lib/screens/map/map_screen.dart` - Main map screen with Google Maps
+- `lib/screens/map/widgets/map_filter_bar.dart` - Filter chips (Gyms, Food, Trails, Events)
+- `lib/screens/map/widgets/map_place_preview.dart` - Bottom sheet place preview
+- `lib/widgets/ai_map_concierge.dart` - Floating AI chat widget
+- `lib/widgets/place_insights_card.dart` - Collapsible AI tips card
+- `lib/screens/trips/itinerary_generator_screen.dart` - AI day planner screen
+
+**Files Modified:**
+
+- `pubspec.yaml` - Added google_maps_flutter package
+- `ios/Runner/AppDelegate.swift` - Google Maps API key
+- `android/app/src/main/AndroidManifest.xml` - Google Maps API key
+- `lib/nav.dart` - Added /map and /generate-itinerary routes, updated indices
+- `lib/screens/main_shell.dart` - Added Map NavigationDestination
+- `lib/services/ai_guide_service.dart` - Enhanced with Egypt-wide methods
+
+**Edge Functions Deployed:**
+
+| Function | Purpose | Model |
+|----------|---------|-------|
+| `egypt_fitness_guide` | Egypt-wide AI concierge (8 destinations) | Gemini 2.5 Flash |
+| `get_place_insights` | Cached AI tips with 7-day expiry | Gemini 2.5 Flash |
+| `generate_fitness_itinerary` | AI day planner for any Egypt destination | Gemini 2.5 Flash |
+
+**Egypt Destinations Supported:**
+
+- Cairo (Zamalek, Maadi, Heliopolis, New Cairo, Giza)
+- Luxor (East Bank, West Bank, Karnak)
+- Aswan (Elephantine Island, Nubian villages)
+- Hurghada (Beach yoga, diving, resort gyms)
+- Sharm El Sheikh (Sinai hiking, resort fitness)
+- Alexandria (Corniche runs, Mediterranean swims)
+- Dahab (Freediving, desert yoga, Blue Hole)
+- Siwa (Desert cycling, hot springs)
+
+**App Status:** Fully production-ready for Egypt beta with AI-powered map discovery (Phase 13 complete)
+
 ---
 
 ## Implementation TODOs
@@ -288,7 +350,12 @@
 | gamification-loop | Implement trip streak + XP milestones + badges surfaces | 7 | ✅ DONE |
 | inapp-feedback | Add feedback submission flow (and optional AI clarifier) | 8 | ✅ DONE |
 | supabase-migration | Replace local storage with Supabase | 9 | ✅ DONE |
-| beta-testing | End-to-end testing and TestFlight deployment | 10 | ⏳ IN PROGRESS |
+| beta-testing | End-to-end testing and TestFlight deployment | 10 | ✅ DONE |
+| map-integration | Add Google Maps Flutter with dark theme and markers | 13 | ✅ DONE |
+| ai-map-concierge | Build floating AI chat widget for map screen | 13 | ✅ DONE |
+| egypt-edge-functions | Deploy Egypt-wide AI Edge Functions | 13 | ✅ DONE |
+| itinerary-generator | Build AI day planner screen | 13 | ✅ DONE |
+| place-insights | Add cached AI tips for places | 13 | ✅ DONE |
 
 ---
 
