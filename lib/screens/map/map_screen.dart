@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
@@ -87,8 +88,9 @@ class _MapScreenState extends State<MapScreen> {
         debugPrint('MapScreen: Could not get GPS location: $e');
         // Keep default Cairo center
       }
-    } catch (e) {
-      debugPrint('MapScreen: Error initializing map: $e');
+      } catch (e, st) {
+        debugPrint('MapScreen: Error initializing map: $e');
+        debugPrint(st.toString());
     }
 
     setState(() => _isLoading = false);
@@ -141,8 +143,9 @@ class _MapScreenState extends State<MapScreen> {
           _placeMarkers[place.id] = place;
         }
       }
-    } catch (e) {
+    } catch (e, st) {
       debugPrint('MapScreen: Error loading $type places: $e');
+      debugPrint(st.toString());
     }
   }
 
@@ -161,8 +164,9 @@ class _MapScreenState extends State<MapScreen> {
           _eventMarkers[event.id] = event;
         }
       }
-    } catch (e) {
+    } catch (e, st) {
       debugPrint('MapScreen: Error loading events: $e');
+      debugPrint(st.toString());
     }
   }
 
@@ -285,12 +289,14 @@ class _MapScreenState extends State<MapScreen> {
         CameraUpdate.newLatLngZoom(_center, 14),
       );
       _loadPlacesForCurrentLocation();
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not get your location')),
         );
       }
+      debugPrint('MapScreen: recenter error: $e');
+      debugPrint(st.toString());
     }
   }
 
@@ -314,7 +320,8 @@ class _MapScreenState extends State<MapScreen> {
                 zoom: 13,
               ),
               markers: _markers,
-              myLocationEnabled: true,
+              // myLocation is not supported on web by google_maps_flutter_web
+              myLocationEnabled: !kIsWeb,
               myLocationButtonEnabled: false,
               zoomControlsEnabled: false,
               mapToolbarEnabled: false,
