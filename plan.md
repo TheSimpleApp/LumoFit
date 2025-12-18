@@ -222,6 +222,39 @@
 - `lib/services/services.dart` - Export ai_guide_service
 - Supabase migration: `add_cairo_challenges.sql`
 
+### Phase 12: Production Readiness & Polish (CURRENT)
+
+**Intent:** Prepare app for live beta testing in Cairo with production-grade security, storage, and error handling.
+
+- [x] Refactor API key security (move to Edge Functions)
+- [x] Create Supabase Storage buckets with RLS policies
+- [x] Implement PhotoStorageService with image compression
+- [x] Fix all critical Dart analyzer errors
+- [x] Add `image` package for photo processing
+- [x] Create PRODUCTION_READINESS.md checklist
+- [x] Update AppConfig for Edge Functions architecture
+- [ ] Migrate photo services to use Supabase Storage
+- [ ] Add comprehensive error handling to all services
+- [ ] Add loading states and user feedback
+- [ ] Implement form validation
+- [ ] End-to-end testing of all critical flows
+- [ ] Performance optimization (lazy loading, caching)
+- [ ] TestFlight deployment
+
+**Files created/modified:**
+
+- `lib/config/app_config.dart` - Simplified to Supabase + Google Places only
+- `lib/services/photo_storage_service.dart` (new) - Image upload/compression
+- `lib/supabase/supabase_config.dart` - Added storage client accessor
+- `pubspec.yaml` - Added image package (^4.0.0)
+- `.env.example` - Updated for new security model
+- `PRODUCTION_READINESS.md` (new) - Comprehensive checklist
+
+**Storage Buckets Created:**
+- `community-photos`: 5MB limit, public read, user RLS on write
+- `quick-photos`: 5MB limit, public read, user RLS on write
+- `avatars`: 2MB limit, public read, user RLS on write
+
 ---
 
 ## Implementation TODOs

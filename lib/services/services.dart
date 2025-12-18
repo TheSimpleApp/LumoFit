@@ -1,5 +1,6 @@
 // Barrel file for all services
 export 'storage_service.dart';
+export 'photo_storage_service.dart';
 export 'user_service.dart';
 export 'place_service.dart';
 export 'trip_service.dart';

@@ -16,6 +16,7 @@ dependencies:
   uuid: ^4.0.0
   shared_preferences: ^2.0.0
   vibration: ^3.0.0
+  image: ^4.0.0  # For image compression and processing
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8

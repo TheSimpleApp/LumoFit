@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
 import 'package:image/image.dart' as img;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Service for managing Supabase Storage operations for photos
 /// Handles photo uploads, downloads, and deletions for all storage buckets

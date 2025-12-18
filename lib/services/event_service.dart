@@ -188,7 +188,7 @@ class EventService extends ChangeNotifier {
       }
 
       // 2) Fallback to direct HTTP if functions base is provided (for dev/no-auth cases)
-      final base = AppConfig.supabaseFunctionsBaseUrl;
+      final base = AppConfig.supabaseFunctionsUrl;
       if (base.isEmpty) {
         debugPrint('fetchExternalEvents skipped: no Supabase Functions base URL and invoke failed');
         return [];

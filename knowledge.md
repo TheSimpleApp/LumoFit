@@ -23,12 +23,21 @@
 
 The project is connected to Supabase (Dreamflow Supabase panel). **All data services now use Supabase** for cloud storage and sync. Phase 9 (Database Migration) was completed in December 2024.
 
-### Current Architecture
+### Current Architecture (Phase 12 - Production Ready)
 
-- **Database:** Supabase PostgreSQL with Row-Level Security (RLS)
-- **Authentication:** Supabase Auth (email/password)
-- **Storage:** Supabase Storage for community photos (planned)
-- **Edge Functions:** Event aggregation from Eventbrite + RunSignup APIs
+- **Database:** Supabase PostgreSQL with Row-Level Security (RLS) on all 15 tables
+- **Authentication:** Supabase Auth (email/password) with user profile auto-creation
+- **Storage:** Supabase Storage with 3 buckets:
+  - `community-photos` (5MB limit, JPEG/PNG/WebP/HEIC)
+  - `quick-photos` (5MB limit, JPEG/PNG/WebP/HEIC)
+  - `avatars` (2MB limit, JPEG/PNG/WebP)
+- **Edge Functions:** 4 active functions
+  - `list_events_combined` - Aggregates Eventbrite + RunSignup events
+  - `list_events_eventbrite` - Eventbrite API integration
+  - `list_events_runsignup` - RunSignup API integration
+  - `cairo_guide` - Gemini AI integration for Cairo recommendations
+- **Security Model:** All external API keys stored in Supabase Edge Functions environment variables
+- **Image Processing:** Client-side compression to 1920px max, 85% JPEG quality
 
 ### 2.1 Current Supabase Schema
 
@@ -461,7 +470,16 @@ static const String kTrails = 'trails'; // Phase 5
 | Session | Added "Ask Cairo Guide" card to Home screen | Phase 11 |
 | Session | Created 7 Cairo-specific challenges in Supabase | Phase 11 |
 | Session | Updated empty states with Cairo venue suggestions | Phase 11 |
-| Current | **Phase 11 IN PROGRESS** — Cairo Experience Optimization | Phase 11 🚧 |
+| Session | Phase 11 COMPLETE — Cairo Experience Optimization | Phase 11 ✅ |
+| Session | Refactored API key security: moved to Edge Functions architecture | Phase 12 |
+| Session | Created Supabase Storage buckets for photos (community-photos, quick-photos, avatars) | Phase 12 |
+| Session | Implemented PhotoStorageService with image compression (max 1920px, 85% quality) | Phase 12 |
+| Session | Set up RLS policies for all storage buckets | Phase 12 |
+| Session | Added image processing package for compression and avatar cropping | Phase 12 |
+| Session | Fixed all critical Dart analyzer errors | Phase 12 |
+| Session | Created PRODUCTION_READINESS.md checklist for Cairo beta launch | Phase 12 |
+| Session | Updated AppConfig to use Edge Functions for API security | Phase 12 |
+| Current | **Phase 12 IN PROGRESS** — Production Readiness & Polish | Phase 12 🚧 |
 
 ---
 

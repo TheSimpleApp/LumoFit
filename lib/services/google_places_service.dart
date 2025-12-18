@@ -23,7 +23,7 @@ class CitySuggestion {
 
 /// Service for interacting with Google Places API (New)
 class GooglePlacesService {
-  static const String _apiKey = AppConfig.googlePlacesApiKey;
+  static String get _apiKey => AppConfig.googlePlacesApiKey;
   static const String _baseUrl = 'https://places.googleapis.com/v1/places';
 
   /// Autocomplete destination cities using Google Places Autocomplete API
