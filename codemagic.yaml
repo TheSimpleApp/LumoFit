@@ -13,8 +13,10 @@ workflows:
     
     environment:
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.simple.LumoFit
+        provisioning_profiles:
+          - reference_name: lumofit-appstore
+        certificates:
+          - reference_name: vibe
       vars:
         # Set this to your App Store Apple ID (the numeric ID from App Store Connect)
         # You can find this in App Store Connect > App Information > Apple ID
