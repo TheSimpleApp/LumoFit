@@ -1,16 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:fittravel/models/quick_photo.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
+import 'package:fittravel/services/photo_storage_service.dart';
 
-/// Manages quick-added photos captured from the camera before assignment via Supabase.
+/// Manages quick-added photos captured from the camera before assignment via Supabase Storage.
 class QuickPhotoService extends ChangeNotifier {
   List<QuickPhoto> _photos = [];
   bool _isLoading = false;
+  bool _isUploading = false;
   String? _error;
 
   QuickPhotoService();
 
   bool get isLoading => _isLoading;
+  bool get isUploading => _isUploading;
   List<QuickPhoto> get photos => _photos;
   String? get error => _error;
 
@@ -51,6 +54,59 @@ class QuickPhotoService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Add a photo from image bytes (recommended - uses Supabase Storage)
+  Future<QuickPhoto> addPhoto({
+    required Uint8List imageBytes,
+    String? photoId,
+  }) async {
+    final userId = _currentUserId;
+    if (userId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    _isUploading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      // Upload to Supabase Storage with compression
+      final storagePath = await PhotoStorageService.uploadQuickPhoto(
+        imageBytes: imageBytes,
+        photoId: photoId,
+      );
+
+      // Get public URL
+      final imageUrl = PhotoStorageService.getQuickPhotoUrl(storagePath);
+
+      // Save metadata to database
+      final data = {
+        'user_id': userId,
+        'image_url': imageUrl,
+        'place_id': null,
+      };
+
+      final result = await SupabaseService.insert('quick_photos', data);
+
+      if (result.isNotEmpty) {
+        final photo = QuickPhoto.fromSupabaseJson(result.first);
+        _photos.insert(0, photo);
+        _error = null;
+        _isUploading = false;
+        notifyListeners();
+        return photo;
+      }
+      throw Exception('Failed to save quick photo metadata');
+    } catch (e) {
+      _error = 'Failed to upload quick photo: ${e.toString()}';
+      debugPrint('QuickPhotoService.addPhoto error: $e');
+      _isUploading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  /// Legacy method: Add a photo from data URL (for backwards compatibility)
+  @Deprecated('Use addPhoto() with image bytes instead')
   Future<QuickPhoto> addPhotoDataUrl({
     required String dataUrl,
   }) async {

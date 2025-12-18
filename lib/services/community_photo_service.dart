@@ -1,16 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:fittravel/models/models.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
+import 'package:fittravel/services/photo_storage_service.dart';
 
-/// Manages community photos for places via Supabase.
+/// Manages community photos for places via Supabase Storage.
 class CommunityPhotoService extends ChangeNotifier {
   List<CommunityPhoto> _photos = [];
   bool _isLoading = false;
+  bool _isUploading = false;
   String? _error;
 
   CommunityPhotoService();
 
   bool get isLoading => _isLoading;
+  bool get isUploading => _isUploading;
   List<CommunityPhoto> get photos => _photos;
   String? get error => _error;
 
@@ -49,6 +52,61 @@ class CommunityPhotoService extends ChangeNotifier {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
+  /// Add a photo from image bytes (recommended - uses Supabase Storage)
+  Future<CommunityPhoto> addPhoto({
+    required String placeId,
+    required Uint8List imageBytes,
+    String? photoId,
+  }) async {
+    final userId = _currentUserId;
+    if (userId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    _isUploading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      // Upload to Supabase Storage with compression
+      final storagePath = await PhotoStorageService.uploadCommunityPhoto(
+        imageBytes: imageBytes,
+        placeId: placeId,
+        photoId: photoId,
+      );
+
+      // Get public URL
+      final imageUrl = PhotoStorageService.getCommunityPhotoUrl(storagePath);
+
+      // Save metadata to database
+      final data = {
+        'place_id': placeId,
+        'user_id': userId,
+        'image_url': imageUrl,
+      };
+
+      final result = await SupabaseService.insert('community_photos', data);
+
+      if (result.isNotEmpty) {
+        final photo = CommunityPhoto.fromSupabaseJson(result.first);
+        _photos.insert(0, photo);
+        _error = null;
+        _isUploading = false;
+        notifyListeners();
+        return photo;
+      }
+      throw Exception('Failed to save photo metadata');
+    } catch (e) {
+      _error = 'Failed to upload photo: ${e.toString()}';
+      debugPrint('CommunityPhotoService.addPhoto error: $e');
+      _isUploading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  /// Legacy method: Add a photo from URL (for backwards compatibility)
+  @Deprecated('Use addPhoto() with image bytes instead')
   Future<CommunityPhoto> addPhotoUrl({
     required String placeId,
     required String imageUrl,
