@@ -5,79 +5,79 @@
     
     
       
-      <testcase classname="fastlane.lanes" name="00: default_platform" time="0.000189">
+      <testcase classname="fastlane.lanes" name="00: default_platform" time="0.000175">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="01: Switch to ios auto_commit_changes lane" time="6.9e-05">
+      <testcase classname="fastlane.lanes" name="01: Switch to ios auto_commit_changes lane" time="0.000252">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="02: shell command" time="0.019409">
+      <testcase classname="fastlane.lanes" name="02: shell command" time="0.019738">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="03: shell command" time="0.018129">
+      <testcase classname="fastlane.lanes" name="03: shell command" time="0.01794">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="04: shell command" time="0.020251">
+      <testcase classname="fastlane.lanes" name="04: shell command" time="0.019589">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="05: shell command" time="0.026594">
+      <testcase classname="fastlane.lanes" name="05: shell command" time="0.026029">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="06: Switch to ios auto_pull_and_resolve lane" time="9.6e-05">
+      <testcase classname="fastlane.lanes" name="06: Switch to ios auto_pull_and_resolve lane" time="9.7e-05">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="07: shell command" time="0.839154">
+      <testcase classname="fastlane.lanes" name="07: shell command" time="0.815714">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="08: push_to_git_remote" time="0.873115">
+      <testcase classname="fastlane.lanes" name="08: push_to_git_remote" time="0.832156">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="09: Switch to ios beta_with_build lane" time="0.000291">
+      <testcase classname="fastlane.lanes" name="09: Switch to ios beta_with_build lane" time="0.000275">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="10: latest_testflight_build_number" time="3.451435">
+      <testcase classname="fastlane.lanes" name="10: latest_testflight_build_number" time="3.304966">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="11: increment_build_number" time="0.187602">
+      <testcase classname="fastlane.lanes" name="11: increment_build_number" time="0.162261">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="12: Switch to ios generate_changelog lane" time="8.5e-05">
+      <testcase classname="fastlane.lanes" name="12: Switch to ios generate_changelog lane" time="9.9e-05">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="13: shell command" time="0.028883">
+      <testcase classname="fastlane.lanes" name="13: shell command" time="0.027019">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="14: pod install" time="0.038488">
+      <testcase classname="fastlane.lanes" name="14: cd ../.. &amp;&amp; flutter build ipa --release       --dart-define=SUPABASE_URL=https://lwyuwxqwshflmuefxgay.supabase.co       --dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3eXV3eHF3c2hmbG11ZWZ4Z2F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzA5MTgsImV4cCI6MjA4MTQwNjkxOH0.Ias3yQUV8p7D825WwBI08Njry4aQ_OiMkrQRGfwl7zw       --dart-define=GOOGLE_PLACES_API_KEY=AIzaSyBCkxTR7keDd_gXjXOrj8pptvboMUfg-3Q       --export-options-plist=ios/ExportOptions.plist" time="3.661569">
         
-          <failure message="/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/actions/actions_helper.rb:67:in &apos;Fastlane::Actions.execute_action&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/fast_file.rb:224:in &apos;Fastlane::FastFile.sh&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/fast_file.rb:214:in &apos;Fastlane::FastFile#sh&apos;&#10;Fastfile:103:in &apos;block (2 levels) in Fastlane::FastFile#parsing_binding&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/lane.rb:41:in &apos;Fastlane::Lane#call&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/runner.rb:204:in &apos;Fastlane::Runner#try_switch_to_lane&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/runner.rb:146:in &apos;Fastlane::Runner#trigger_action_by_name&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/fast_file.rb:159:in &apos;Fastlane::FastFile#method_missing&apos;&#10;Fastfile:84:in &apos;block (2 levels) in Fastlane::FastFile#parsing_binding&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/lane.rb:41:in &apos;Fastlane::Lane#call&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/runner.rb:49:in &apos;block in Fastlane::Runner#execute&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/runner.rb:45:in &apos;Dir.chdir&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/runner.rb:45:in &apos;Fastlane::Runner#execute&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/lane_manager.rb:46:in &apos;Fastlane::LaneManager.cruise_lane&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/command_line_handler.rb:34:in &apos;Fastlane::CommandLineHandler.handle&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/commands_generator.rb:110:in &apos;block (2 levels) in Fastlane::CommandsGenerator#run&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/commander-4.6.0/lib/commander/command.rb:187:in &apos;Commander::Command#call&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/commander-4.6.0/lib/commander/command.rb:157:in &apos;Commander::Command#run&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/commander-4.6.0/lib/commander/runner.rb:444:in &apos;Commander::Runner#run_active_command&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane_core/lib/fastlane_core/ui/fastlane_runner.rb:124:in &apos;Commander::Runner#run!&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/commander-4.6.0/lib/commander/delegates.rb:18:in &apos;Commander::Delegates#run!&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/commands_generator.rb:363:in &apos;Fastlane::CommandsGenerator#run&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/commands_generator.rb:43:in &apos;Fastlane::CommandsGenerator.start&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/cli_tools_distributor.rb:123:in &apos;Fastlane::CLIToolsDistributor.take_off&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/bin/fastlane:23:in &apos;&lt;top (required)&gt;&apos;&#10;/opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems.rb:303:in &apos;Kernel#load&apos;&#10;/opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems.rb:303:in &apos;Gem.activate_and_load_bin_path&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/bin/fastlane:25:in &apos;&lt;main&gt;&apos;&#10;&#10;Exit status of command &apos;pod install&apos; was 1 instead of 0.&#10;/opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems/specification.rb:1408:in &apos;block in Gem::Specification#activate_dependencies&apos;: Could not find &apos;minitest&apos; (&gt;= 5.1) among 183 total gem(s) (Gem::MissingSpecError)&#10;Checked in &apos;GEM_PATH=/Users/daviddotson/.local/share/fastlane/3.4.0:/opt/homebrew/Cellar/fastlane/2.230.0/libexec:/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec&apos; at: /opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/specifications/activesupport-7.2.2.2.gemspec, execute `gem env` for more information&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems/specification.rb:1394:in &apos;Array#each&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems/specification.rb:1394:in &apos;Gem::Specification#activate_dependencies&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems/specification.rb:1376:in &apos;Gem::Specification#activate&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems/specification.rb:1410:in &apos;block in Gem::Specification#activate_dependencies&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems/specification.rb:1394:in &apos;Array#each&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems/specification.rb:1394:in &apos;Gem::Specification#activate_dependencies&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems/specification.rb:1376:in &apos;Gem::Specification#activate&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems/specification.rb:1410:in &apos;block in Gem::Specification#activate_dependencies&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems/specification.rb:1394:in &apos;Array#each&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems/specification.rb:1394:in &apos;Gem::Specification#activate_dependencies&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems/specification.rb:1376:in &apos;Gem::Specification#activate&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems.rb:239:in &apos;block in Gem.find_and_activate_spec_for_exe&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems.rb:238:in &apos;Thread::Mutex#synchronize&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems.rb:238:in &apos;Gem.find_and_activate_spec_for_exe&apos;&#10;	from /opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems.rb:318:in &apos;Gem.activate_bin_path&apos;&#10;	from /opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/bin/pod:25:in &apos;&lt;main&gt;&apos;&#10;" />
+          <failure message="/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/actions/actions_helper.rb:67:in &apos;Fastlane::Actions.execute_action&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/fast_file.rb:224:in &apos;Fastlane::FastFile.sh&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/fast_file.rb:216:in &apos;Fastlane::FastFile#sh&apos;&#10;Fastfile:102:in &apos;block (2 levels) in Fastlane::FastFile#parsing_binding&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/lane.rb:41:in &apos;Fastlane::Lane#call&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/runner.rb:204:in &apos;Fastlane::Runner#try_switch_to_lane&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/runner.rb:146:in &apos;Fastlane::Runner#trigger_action_by_name&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/fast_file.rb:159:in &apos;Fastlane::FastFile#method_missing&apos;&#10;Fastfile:84:in &apos;block (2 levels) in Fastlane::FastFile#parsing_binding&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/lane.rb:41:in &apos;Fastlane::Lane#call&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/runner.rb:49:in &apos;block in Fastlane::Runner#execute&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/runner.rb:45:in &apos;Dir.chdir&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/runner.rb:45:in &apos;Fastlane::Runner#execute&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/lane_manager.rb:46:in &apos;Fastlane::LaneManager.cruise_lane&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/command_line_handler.rb:34:in &apos;Fastlane::CommandLineHandler.handle&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/commands_generator.rb:110:in &apos;block (2 levels) in Fastlane::CommandsGenerator#run&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/commander-4.6.0/lib/commander/command.rb:187:in &apos;Commander::Command#call&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/commander-4.6.0/lib/commander/command.rb:157:in &apos;Commander::Command#run&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/commander-4.6.0/lib/commander/runner.rb:444:in &apos;Commander::Runner#run_active_command&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane_core/lib/fastlane_core/ui/fastlane_runner.rb:124:in &apos;Commander::Runner#run!&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/commander-4.6.0/lib/commander/delegates.rb:18:in &apos;Commander::Delegates#run!&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/commands_generator.rb:363:in &apos;Fastlane::CommandsGenerator#run&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/commands_generator.rb:43:in &apos;Fastlane::CommandsGenerator.start&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/fastlane/lib/fastlane/cli_tools_distributor.rb:123:in &apos;Fastlane::CLIToolsDistributor.take_off&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/gems/fastlane-2.230.0/bin/fastlane:23:in &apos;&lt;top (required)&gt;&apos;&#10;/opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems.rb:303:in &apos;Kernel#load&apos;&#10;/opt/homebrew/Cellar/ruby/3.4.8/lib/ruby/3.4.0/rubygems.rb:303:in &apos;Gem.activate_and_load_bin_path&apos;&#10;/opt/homebrew/Cellar/fastlane/2.230.0/libexec/bin/fastlane:25:in &apos;&lt;main&gt;&apos;&#10;&#10;Exit status of command &apos;cd ../.. &amp;&amp; flutter build ipa --release       --dart-define=SUPABASE_URL=https://lwyuwxqwshflmuefxgay.supabase.co       --dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3eXV3eHF3c2hmbG11ZWZ4Z2F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzA5MTgsImV4cCI6MjA4MTQwNjkxOH0.Ias3yQUV8p7D825WwBI08Njry4aQ_OiMkrQRGfwl7zw       --dart-define=GOOGLE_PLACES_API_KEY=AIzaSyBCkxTR7keDd_gXjXOrj8pptvboMUfg-3Q       --export-options-plist=ios/ExportOptions.plist&apos; was 1 instead of 0.&#10;Archiving com.simple.LumoFit...&#10;Automatically signing iOS for device deployment using specified development team in Xcode project: 2QJTN3CT3K&#10;Warning: CocoaPods is installed but broken. Skipping pod install.&#10;  You appear to have CocoaPods installed but it is not working.&#10;  This can happen if the version of Ruby that CocoaPods was installed with is different from the one being used to invoke it.&#10;  This can usually be fixed by re-installing CocoaPods.&#10;For re-installation instructions, see https://guides.cocoapods.org/using/getting-started.html#installation&#10;&#10;CocoaPods not installed or not in valid state.&#10;" />
         
       </testcase>
     
