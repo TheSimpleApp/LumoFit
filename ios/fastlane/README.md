@@ -23,6 +23,14 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 Push a new beta build to TestFlight
 
+### ios auto_deploy
+
+```sh
+[bundle exec] fastlane ios auto_deploy
+```
+
+🚀 Full auto-deploy: commit, pull, resolve conflicts, build, deploy
+
 ### ios beta_with_build
 
 ```sh
