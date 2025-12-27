@@ -98,12 +98,22 @@ platform :ios do
     # Generate changelog from git commits
     changelog = generate_changelog
 
-    # Build the Flutter app
-    sh "cd ../.. && flutter build ipa --release \
-      --dart-define=SUPABASE_URL=https://lwyuwxqwshflmuefxgay.supabase.co \
-      --dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3eXV3eHF3c2hmbG11ZWZ4Z2F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzA5MTgsImV4cCI6MjA4MTQwNjkxOH0.Ias3yQUV8p7D825WwBI08Njry4aQ_OiMkrQRGfwl7zw \
-      --dart-define=GOOGLE_PLACES_API_KEY=AIzaSyBCkxTR7keDd_gXjXOrj8pptvboMUfg-3Q \
-      --export-options-plist=ios/ExportOptions.plist"
+    # Build Flutter app using direct xcodebuild (bypasses Flutter's CocoaPods check)
+    puts "🔨 Building Flutter app with Xcode..."
+
+    # Step 1: Flutter build prep (generates Dart code, doesn't require CocoaPods)
+    sh("cd ../.. && flutter pub get", log: true)
+
+    # Step 2: Build with xcodebuild directly (pods already installed)
+    build_ios_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "../build/ios/ipa",
+      output_name: "LumoFit.ipa",
+      export_options: "../ExportOptions.plist"
+    )
 
     # Upload to TestFlight with changelog
     upload_to_testflight(
