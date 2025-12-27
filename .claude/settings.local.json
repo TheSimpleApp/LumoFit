@@ -1,0 +1,13 @@
+{
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "suppx",
+    "supabase abc",
+    "lumofit-supabase"
+  ],
+  "permissions": {
+    "allow": [
+      "Bash(supabase secrets set:*)"
+    ]
+  }
+}
