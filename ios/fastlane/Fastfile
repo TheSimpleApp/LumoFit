@@ -112,7 +112,7 @@ platform :ios do
       export_method: "app-store",
       output_directory: "../build/ios/ipa",
       output_name: "LumoFit.ipa",
-      export_options: "../ExportOptions.plist"
+      export_options: "ExportOptions.plist"
     )
 
     # Upload to TestFlight with changelog
