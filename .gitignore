@@ -52,3 +52,10 @@ app.*.map.json
 .claude/*.p8
 *.p8
 AuthKey_*.p8
+
+# Fastlane session cookies - NEVER commit
+ios/fastlane/apple_session_cookie.yml
+**/apple_session_cookie.yml
+
+# OpenMemory - IDE/Assistant specific rules
+.cursor/rules/openmemory.mdc

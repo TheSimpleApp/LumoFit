@@ -2,11 +2,16 @@ import 'dart:convert';
 
 /// Categories of active lifestyle events supported in MVP.
 enum EventCategory {
-  running, // 5K/10K/half/full
-  yoga,
-  hiking,
-  cycling,
-  crossfit,
+  running, // 5K/10K/half/full/trail runs
+  yoga, // Yoga classes, retreats
+  hiking, // Hiking groups, trail walks
+  cycling, // Road cycling, MTB, spin classes
+  crossfit, // CrossFit boxes, functional fitness
+  bootcamp, // Outdoor bootcamps, group training
+  swimming, // Pool workouts, open water
+  groupFitness, // Generic group classes
+  triathlon, // Tri events, multi-sport
+  obstacle, // Spartan, Tough Mudder, OCR
   other,
 }
 
@@ -22,23 +27,59 @@ String eventCategoryEmoji(EventCategory c) {
       return '🚴';
     case EventCategory.crossfit:
       return '💪';
+    case EventCategory.bootcamp:
+      return '🏋️';
+    case EventCategory.swimming:
+      return '🏊';
+    case EventCategory.groupFitness:
+      return '🤸';
+    case EventCategory.triathlon:
+      return '🏅';
+    case EventCategory.obstacle:
+      return '🧗';
     case EventCategory.other:
       return '✨';
   }
 }
 
 EventCategory eventCategoryFromString(String s) {
-  switch (s) {
+  switch (s.toLowerCase()) {
     case 'running':
+    case 'run':
+    case '5k':
+    case '10k':
+    case 'marathon':
       return EventCategory.running;
     case 'yoga':
       return EventCategory.yoga;
     case 'hiking':
+    case 'hike':
       return EventCategory.hiking;
     case 'cycling':
+    case 'bike':
+    case 'biking':
       return EventCategory.cycling;
     case 'crossfit':
       return EventCategory.crossfit;
+    case 'bootcamp':
+    case 'boot_camp':
+      return EventCategory.bootcamp;
+    case 'swimming':
+    case 'swim':
+      return EventCategory.swimming;
+    case 'groupfitness':
+    case 'group_fitness':
+    case 'fitness':
+    case 'class':
+      return EventCategory.groupFitness;
+    case 'triathlon':
+    case 'tri':
+      return EventCategory.triathlon;
+    case 'obstacle':
+    case 'ocr':
+    case 'spartan':
+    case 'tough_mudder':
+      return EventCategory.obstacle;
     default:
       return EventCategory.other;
   }
@@ -62,6 +103,8 @@ class EventModel {
   final String? imageUrl;
   /// Optional source/provider label (e.g., "eventbrite", "runsignup")
   final String? source;
+  /// Distance from user in kilometers (calculated client-side)
+  final double? distanceKm;
 
   const EventModel({
     required this.id,
@@ -78,10 +121,51 @@ class EventModel {
     this.registrationUrl,
     this.imageUrl,
     this.source,
+    this.distanceKm,
   });
 
   String get shortDate => '${start.month}/${start.day}/${start.year}';
   String get shortTime => '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+  String get distanceLabel => distanceKm != null
+      ? '${distanceKm!.toStringAsFixed(1)} km away'
+      : '';
+
+  /// Create a copy with optional field overrides
+  EventModel copyWith({
+    String? id,
+    String? title,
+    EventCategory? category,
+    DateTime? start,
+    DateTime? end,
+    String? description,
+    String? venueName,
+    String? address,
+    double? latitude,
+    double? longitude,
+    String? websiteUrl,
+    String? registrationUrl,
+    String? imageUrl,
+    String? source,
+    double? distanceKm,
+  }) {
+    return EventModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      category: category ?? this.category,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      description: description ?? this.description,
+      venueName: venueName ?? this.venueName,
+      address: address ?? this.address,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      websiteUrl: websiteUrl ?? this.websiteUrl,
+      registrationUrl: registrationUrl ?? this.registrationUrl,
+      imageUrl: imageUrl ?? this.imageUrl,
+      source: source ?? this.source,
+      distanceKm: distanceKm ?? this.distanceKm,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,

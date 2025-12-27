@@ -8,6 +8,7 @@ import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/user_service.dart';
 import 'package:fittravel/services/activity_service.dart';
 import 'package:fittravel/services/gamification_service.dart';
+import 'package:fittravel/services/strava_service.dart';
 import 'package:fittravel/models/user_model.dart';
 import 'package:fittravel/models/activity_model.dart';
 import 'package:fittravel/models/badge_model.dart';
@@ -74,6 +75,12 @@ class ProfileScreen extends StatelessWidget {
               child: _ContributionsSection(userId: user.id).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1),
             ),
           ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                child: const _StravaSection().animate().fadeIn(delay: 380.ms).slideY(begin: 0.1),
+              ),
+            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -621,6 +628,144 @@ class _BadgeItem extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StravaSection extends StatelessWidget {
+  const _StravaSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textStyles = Theme.of(context).textTheme;
+
+    return Consumer<StravaService>(
+      builder: (context, strava, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Connected Apps', style: textStyles.titleMedium),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+              ),
+              child: InkWell(
+                onTap: () => strava.isAuthenticated
+                    ? _showDisconnectDialog(context, strava)
+                    : strava.authenticate(),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      // Strava logo placeholder
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFC4C02).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                        child: const Icon(
+                          Icons.directions_run,
+                          color: Color(0xFFFC4C02),
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  'Strava',
+                                  style: textStyles.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                if (strava.isAuthenticated) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.success.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(AppRadius.full),
+                                    ),
+                                    child: Text(
+                                      'Connected',
+                                      style: textStyles.labelSmall?.copyWith(
+                                        color: AppColors.success,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              strava.isAuthenticated
+                                  ? strava.athlete?.fullName ?? 'Connected'
+                                  : 'See popular running routes nearby',
+                              style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        strava.isAuthenticated ? Icons.link_off : Icons.link,
+                        color: strava.isAuthenticated ? colors.error : colors.primary,
+                        size: 22,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDisconnectDialog(BuildContext context, StravaService strava) {
+    final colors = Theme.of(context).colorScheme;
+    final textStyles = Theme.of(context).textTheme;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: colors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xl)),
+        title: Text('Disconnect Strava?', style: textStyles.titleLarge),
+        content: Text(
+          'You will no longer see Strava segments on the map. You can reconnect anytime.',
+          style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancel', style: TextStyle(color: colors.onSurfaceVariant)),
+          ),
+          TextButton(
+            onPressed: () {
+              strava.logout();
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Strava disconnected'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            child: Text('Disconnect', style: TextStyle(color: colors.error)),
+          ),
+        ],
       ),
     );
   }

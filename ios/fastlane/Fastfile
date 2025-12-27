@@ -61,6 +61,29 @@ platform :ios do
     puts "Successfully uploaded build #{new_build_number} to TestFlight!"
   end
 
+  desc "🚀 Full auto-deploy: commit, pull, resolve conflicts, build, deploy"
+  lane :auto_deploy do
+    puts "🚀 Starting full auto-deploy workflow..."
+
+    # Step 1: Auto-commit changes
+    auto_commit_changes
+
+    # Step 2: Pull and auto-resolve conflicts
+    auto_pull_and_resolve
+
+    # Step 3: Push to remote
+    push_to_git_remote(
+      local_branch: "main",
+      remote_branch: "main",
+      tags: false
+    )
+
+    puts "✅ Git sync complete! Now building and deploying..."
+
+    # Step 4: Build and deploy
+    beta_with_build
+  end
+
   desc "Build IPA and push to TestFlight"
   lane :beta_with_build do
     # Get latest build number and increment
@@ -72,6 +95,9 @@ platform :ios do
       xcodeproj: "Runner.xcodeproj"
     )
 
+    # Generate changelog from git commits
+    changelog = generate_changelog
+
     # Build the Flutter app
     sh "cd ../.. && flutter build ipa --release \
       --dart-define=SUPABASE_URL=https://lwyuwxqwshflmuefxgay.supabase.co \
@@ -79,13 +105,104 @@ platform :ios do
       --dart-define=GOOGLE_PLACES_API_KEY=AIzaSyBCkxTR7keDd_gXjXOrj8pptvboMUfg-3Q \
       --export-options-plist=ios/ExportOptions.plist"
 
-    # Upload to TestFlight
+    # Upload to TestFlight with changelog
     upload_to_testflight(
       ipa: "../build/ios/ipa/LumoFit.ipa",
-      skip_waiting_for_build_processing: true
+      skip_waiting_for_build_processing: true,
+      changelog: changelog
     )
 
     puts "Successfully uploaded build #{new_build_number} to TestFlight!"
+    puts "\nChangelog:\n#{changelog}"
+  end
+
+  desc "Generate changelog from git commits since last tag"
+  private_lane :generate_changelog do
+    # Get commits since last git tag (or last 10 commits if no tag)
+    begin
+      commits = sh("cd ../.. && git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:'• %s' --no-merges", log: false).strip
+    rescue
+      # Fallback to last 10 commits if no tags exist
+      commits = sh("cd ../.. && git log -10 --pretty=format:'• %s' --no-merges", log: false).strip
+    end
+
+    if commits.empty?
+      changelog = "Bug fixes and performance improvements"
+    else
+      # Format changelog
+      changelog = "What's New:\n#{commits}"
+
+      # Limit to 4000 characters (App Store Connect limit)
+      if changelog.length > 4000
+        changelog = changelog[0..3996] + "..."
+      end
+    end
+
+    changelog
+  end
+
+  desc "Auto-commit all changes with generated message"
+  private_lane :auto_commit_changes do
+    # Check if there are changes to commit
+    status = sh("cd ../.. && git status --porcelain", log: false).strip
+
+    if status.empty?
+      puts "✅ No changes to commit"
+      return
+    end
+
+    puts "📝 Changes detected, generating commit message..."
+
+    # Get list of changed files
+    changed_files = sh("cd ../.. && git status --short", log: false).strip
+
+    # Generate simple commit message based on files
+    commit_msg = "chore: Auto-deploy update\n\n#{changed_files}"
+
+    puts "Committing with message:\n#{commit_msg}"
+
+    # Stage all changes
+    sh("cd ../.. && git add -A", log: false)
+
+    # Commit
+    sh("cd ../.. && git commit -m '#{commit_msg.gsub("'", "\\\\'")}' || true", log: false)
+
+    puts "✅ Changes committed"
+  end
+
+  desc "Pull from remote and auto-resolve conflicts"
+  private_lane :auto_pull_and_resolve do
+    puts "📥 Pulling latest changes from remote main..."
+
+    begin
+      # Try to pull
+      sh("cd ../.. && git pull origin main", log: false)
+      puts "✅ Pull successful, no conflicts"
+    rescue => e
+      puts "⚠️  Conflicts detected during pull, attempting auto-resolve..."
+
+      # Get list of conflicted files
+      conflicted_files = sh("cd ../.. && git diff --name-only --diff-filter=U", log: false).strip.split("\n")
+
+      if conflicted_files.empty?
+        puts "✅ No conflicted files found"
+        return
+      end
+
+      puts "🔧 Auto-resolving conflicts in #{conflicted_files.length} file(s)..."
+
+      # For each conflicted file, keep "ours" (local changes)
+      conflicted_files.each do |file|
+        puts "  - Resolving #{file} (keeping local changes)"
+        sh("cd ../.. && git checkout --ours '#{file}'", log: false)
+        sh("cd ../.. && git add '#{file}'", log: false)
+      end
+
+      # Commit the merge
+      sh("cd ../.. && git commit -m 'chore: Auto-resolve merge conflicts (kept local changes)' --no-edit", log: false)
+
+      puts "✅ Conflicts resolved automatically (kept your local changes)"
+    end
   end
 
   desc "Push a new release build to App Store"

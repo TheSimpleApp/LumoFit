@@ -1,6 +1,7 @@
 // supabase/functions/cairo_guide/index.ts
-// Secure Gemini proxy for Cairo Guide
+// Secure Gemini proxy for Fitness Guide
 // Updated to use Gemini 2.5 Flash (latest stable model)
+// Now location-agnostic - works with any destination
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
@@ -13,6 +14,7 @@ const CORS_HEADERS = {
 
 interface RequestBody {
   question?: string;
+  destination?: string;
   userLocation?: string;
   fitnessLevel?: string;
   dietaryPreferences?: string[];
@@ -20,10 +22,12 @@ interface RequestBody {
 
 function buildSystemPrompt(
   question: string,
+  destination?: string,
   userLocation?: string,
   fitnessLevel?: string,
   dietaryPreferences?: string[]
 ): string {
+  const destName = destination || 'your destination';
   let context = "User context: ";
   if (userLocation) context += `Currently in ${userLocation}. `;
   if (fitnessLevel) context += `Fitness level: ${fitnessLevel}. `;
@@ -31,15 +35,15 @@ function buildSystemPrompt(
     context += `Dietary preferences: ${dietaryPreferences.join(", ")}. `;
   }
 
-  return `You are a Cairo fitness travel expert helping visitors find gyms, healthy restaurants, fitness events, and outdoor activities in Cairo, Egypt.
+  return `You are a fitness travel expert helping visitors find gyms, healthy restaurants, fitness events, and outdoor activities in ${destName}.
 
 Your role:
-- Provide practical, actionable recommendations with specific place names and neighborhoods
-- Focus on real places in Cairo (Zamalek, Maadi, Heliopolis, New Cairo, Downtown, Giza)
-- Mention popular spots like Gold's Gym, CrossFit Hustle, Cairo Runners, Wadi Degla, Nile Corniche, Samia Allouba
-- Include helpful details like opening hours, price ranges, what to bring
-- Be encouraging and enthusiastic about Cairo's fitness scene
+- Provide practical, actionable recommendations with specific place names and neighborhoods when you know them
+- Use your knowledge of fitness facilities, healthy restaurants, running routes, parks, and outdoor activities in ${destName}
+- Include helpful details like opening hours, price ranges, what to bring when available
+- Be encouraging and enthusiastic about staying fit while traveling
 - Keep responses concise (2-3 paragraphs max, under 200 words)
+- If you don't know specific places, suggest types of activities and general tips
 
 ${context}
 
@@ -86,15 +90,15 @@ async function handler(req: Request): Promise<Response> {
 
   const prompt = buildSystemPrompt(
     question,
+    body?.destination,
     body?.userLocation,
     body?.fitnessLevel,
     body?.dietaryPreferences
   );
 
   try {
-    // Updated to use Gemini 2.5 Flash (current stable model, released June 2025)
-    // Supports up to 1M tokens input, 65K tokens output
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+    // Using Gemini 2.5 Flash (stable model)
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
     const geminiRes = await fetch(geminiUrl, {
       method: "POST",
       headers: { "content-type": "application/json" },

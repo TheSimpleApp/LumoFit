@@ -13,3 +13,5 @@ export 'review_service.dart';
 export 'event_service.dart';
 export 'feedback_service.dart';
 export 'ai_guide_service.dart';
+export 'strava_service.dart';
+export 'ai_recommendation_service.dart';

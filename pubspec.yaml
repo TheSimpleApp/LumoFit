@@ -31,6 +31,8 @@ dependencies:
   google_maps_cluster_manager: ^3.0.0+1
   flutter_polyline_points: ^2.0.0
   flutter_markdown: ^0.7.4
+  # Secure storage for Strava tokens
+  flutter_secure_storage: ^9.2.2
 
 dev_dependencies:
   flutter_test:

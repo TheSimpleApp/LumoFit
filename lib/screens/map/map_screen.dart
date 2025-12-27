@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -7,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:fittravel/services/trip_service.dart';
 import 'package:fittravel/services/google_places_service.dart';
 import 'package:fittravel/services/event_service.dart';
+import 'package:fittravel/services/strava_service.dart';
 import 'package:fittravel/models/place_model.dart';
 import 'package:fittravel/models/event_model.dart';
 import 'package:fittravel/theme.dart';
@@ -28,8 +30,8 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
 
-  // Default to Cairo
-  static const LatLng _defaultCenter = LatLng(30.0444, 31.2357);
+  // Default fallback location (used only if no trip and GPS fails)
+  static const LatLng _defaultCenter = LatLng(40.7128, -74.0060); // New York
   LatLng _center = _defaultCenter;
 
   bool _isLoading = true;
@@ -56,13 +58,23 @@ class _MapScreenState extends State<MapScreen> {
 ]
 ''';
 
-  // Markers
+  // Markers and polylines
   Set<Marker> _markers = {};
+  Set<Polyline> _stravaPolylines = {};
   final Map<String, PlaceModel> _placeMarkers = {};
   final Map<String, EventModel> _eventMarkers = {};
 
   // Filters
   Set<MapFilterType> _activeFilters = {MapFilterType.all};
+
+  // Search radius in km
+  int _searchRadiusKm = 10;
+  static const List<int> _radiusOptions = [5, 10, 25, 50, 100];
+
+  // "Search this area" button
+  bool _showSearchAreaButton = false;
+  LatLng? _lastSearchCenter;
+  CameraPosition? _currentCameraPosition;
 
   // Selected item for preview
   dynamic _selectedItem; // PlaceModel or EventModel
@@ -80,18 +92,7 @@ class _MapScreenState extends State<MapScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Priority 1: Active trip destination
-      final tripService = context.read<TripService>();
-      final tripCoords = tripService.activeTripCoordinates;
-
-      if (tripCoords != null) {
-        _center = LatLng(tripCoords.$1, tripCoords.$2);
-        setState(() => _isLoading = false);
-        _loadPlacesForCurrentLocation();
-        return;
-      }
-
-      // Priority 2: Current GPS location
+      // Default to current GPS location
       try {
         LocationPermission permission = await Geolocator.checkPermission();
         if (permission == LocationPermission.denied) {
@@ -110,7 +111,7 @@ class _MapScreenState extends State<MapScreen> {
         }
       } catch (e) {
         debugPrint('MapScreen: Could not get GPS location: $e');
-        // Keep default Cairo center
+        // Keep default fallback center
       }
     } catch (e, st) {
       debugPrint('MapScreen: Error initializing map: $e');
@@ -119,6 +120,30 @@ class _MapScreenState extends State<MapScreen> {
 
     setState(() => _isLoading = false);
     _loadPlacesForCurrentLocation();
+  }
+
+  void _goToTripDestination() {
+    final tripService = context.read<TripService>();
+    final tripCoords = tripService.activeTripCoordinates;
+
+    if (tripCoords != null) {
+      _center = LatLng(tripCoords.$1, tripCoords.$2);
+      _mapController?.animateCamera(
+        CameraUpdate.newLatLngZoom(_center, 13),
+      );
+      _loadPlacesForCurrentLocation();
+    } else {
+      // Trip doesn't have coordinates yet - try to geocode
+      final activeTrip = tripService.activeTrip;
+      if (activeTrip != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Loading ${activeTrip.destinationCity} location...'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadPlacesForCurrentLocation() async {
@@ -131,6 +156,8 @@ class _MapScreenState extends State<MapScreen> {
         _loadPlaces(PlaceType.park),
         _loadEvents(),
       ]);
+      // Clear Strava polylines when showing all (unless specifically requested)
+      setState(() => _stravaPolylines = {});
     } else {
       final futures = <Future>[];
       if (_activeFilters.contains(MapFilterType.gyms)) {
@@ -146,6 +173,12 @@ class _MapScreenState extends State<MapScreen> {
       if (_activeFilters.contains(MapFilterType.events)) {
         futures.add(_loadEvents());
       }
+      if (_activeFilters.contains(MapFilterType.strava)) {
+        futures.add(_loadStravaSegments());
+      } else {
+        // Clear Strava polylines if not in filter
+        setState(() => _stravaPolylines = {});
+      }
       await Future.wait(futures);
     }
 
@@ -158,7 +191,7 @@ class _MapScreenState extends State<MapScreen> {
         latitude: _center.latitude,
         longitude: _center.longitude,
         placeType: type,
-        radiusMeters: 10000, // 10km radius
+        radiusMeters: _searchRadiusKm * 1000, // Convert km to meters
       );
 
       for (final place in places) {
@@ -178,7 +211,7 @@ class _MapScreenState extends State<MapScreen> {
       final events = await eventService.fetchExternalEvents(
         centerLat: _center.latitude,
         centerLng: _center.longitude,
-        radiusKm: 50,
+        radiusKm: _searchRadiusKm.toDouble(),
         limit: 30,
       );
 
@@ -265,15 +298,94 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _onFilterChanged(Set<MapFilterType> filters) {
+    final previousFilters = _activeFilters;
     setState(() {
       _activeFilters = filters;
       _selectedItem = null;
     });
-    _updateMarkers();
+
+    // If Strava filter was toggled, we need to load/unload segments
+    final stravaWasActive = previousFilters.contains(MapFilterType.strava);
+    final stravaIsActive = filters.contains(MapFilterType.strava);
+    if (stravaWasActive != stravaIsActive) {
+      _loadPlacesForCurrentLocation();
+    } else {
+      _updateMarkers();
+    }
   }
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
+    _lastSearchCenter = _center;
+  }
+
+  void _onCameraMove(CameraPosition position) {
+    _currentCameraPosition = position;
+
+    // Show "Search this area" button if user has panned significantly
+    if (_lastSearchCenter != null) {
+      final distance = _haversineDistance(
+        _lastSearchCenter!.latitude,
+        _lastSearchCenter!.longitude,
+        position.target.latitude,
+        position.target.longitude,
+      );
+      if (distance > 2.0 && !_showSearchAreaButton) {
+        setState(() => _showSearchAreaButton = true);
+      }
+    }
+  }
+
+  void _searchThisArea() {
+    if (_currentCameraPosition != null) {
+      _center = _currentCameraPosition!.target;
+      _lastSearchCenter = _center;
+      _placeMarkers.clear();
+      _eventMarkers.clear();
+      _loadPlacesForCurrentLocation();
+    }
+    setState(() => _showSearchAreaButton = false);
+  }
+
+  /// Calculate distance between two points in km using Haversine formula
+  double _haversineDistance(double lat1, double lon1, double lat2, double lon2) {
+    const R = 6371.0; // Earth's radius in km
+    final dLat = _deg2rad(lat2 - lat1);
+    final dLon = _deg2rad(lon2 - lon1);
+    final a = (sin(dLat / 2) * sin(dLat / 2)) +
+        cos(_deg2rad(lat1)) * cos(_deg2rad(lat2)) * (sin(dLon / 2) * sin(dLon / 2));
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return R * c;
+  }
+
+  double _deg2rad(double deg) => deg * (3.141592653589793 / 180.0);
+
+  Future<void> _loadStravaSegments() async {
+    final stravaService = context.read<StravaService>();
+    if (!stravaService.isAuthenticated) return;
+
+    try {
+      final bounds = await _mapController?.getVisibleRegion();
+      if (bounds == null) return;
+
+      final segments = await stravaService.exploreSegments(
+        swLat: bounds.southwest.latitude,
+        swLng: bounds.southwest.longitude,
+        neLat: bounds.northeast.latitude,
+        neLng: bounds.northeast.longitude,
+      );
+
+      setState(() {
+        _stravaPolylines = segments.map((seg) => Polyline(
+          polylineId: PolylineId('strava_${seg.id}'),
+          points: seg.points.map((p) => LatLng(p[0], p[1])).toList(),
+          color: Colors.orange,
+          width: 4,
+        )).toSet();
+      });
+    } catch (e) {
+      debugPrint('MapScreen: Error loading Strava segments: $e');
+    }
   }
 
   void _recenterToCurrentLocation() async {
@@ -315,11 +427,13 @@ class _MapScreenState extends State<MapScreen> {
           else
             GoogleMap(
               onMapCreated: _onMapCreated,
+              onCameraMove: _onCameraMove,
               initialCameraPosition: CameraPosition(
                 target: _center,
                 zoom: 13,
               ),
               markers: _markers,
+              polylines: _stravaPolylines,
               style: _darkMapStyle,
               // myLocation is not supported on web by google_maps_flutter_web
               myLocationEnabled: !kIsWeb,
@@ -328,7 +442,7 @@ class _MapScreenState extends State<MapScreen> {
               mapToolbarEnabled: false,
             ),
 
-          // Trip context banner
+          // Trip destination banner
           if (activeTrip != null)
             Positioned(
               top: MediaQuery.of(context).padding.top + 8,
@@ -355,34 +469,139 @@ class _MapScreenState extends State<MapScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Exploring ${activeTrip.destinationCity}',
+                        activeTrip.destinationCity,
                         style: TextStyle(
                           color: colors.onPrimaryContainer,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                    TextButton(
-                      onPressed: _recenterToCurrentLocation,
-                      child: const Text('My location'),
+                    TextButton.icon(
+                      onPressed: _goToTripDestination,
+                      icon: Icon(Icons.place, size: 18, color: colors.primary),
+                      label: Text('View Location', style: TextStyle(color: colors.primary)),
                     ),
                   ],
                 ),
               ),
             ),
 
-          // Filter bar
+          // Filter bar with radius selector
           Positioned(
             top: activeTrip != null
                 ? MediaQuery.of(context).padding.top + 68
                 : MediaQuery.of(context).padding.top + 8,
             left: 0,
             right: 0,
-            child: MapFilterBar(
-              activeFilters: _activeFilters,
-              onFilterChanged: _onFilterChanged,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Consumer<StravaService>(
+                  builder: (context, stravaService, _) => MapFilterBar(
+                    activeFilters: _activeFilters,
+                    onFilterChanged: _onFilterChanged,
+                    isStravaAuthenticated: stravaService.isAuthenticated,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Radius selector
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: colors.surface.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.radar, size: 16, color: colors.onSurface.withValues(alpha: 0.7)),
+                        const SizedBox(width: 6),
+                        DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            value: _searchRadiusKm,
+                            isDense: true,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: colors.onSurface,
+                            ),
+                            dropdownColor: colors.surface,
+                            items: _radiusOptions.map((r) => DropdownMenuItem(
+                              value: r,
+                              child: Text('${r}km'),
+                            )).toList(),
+                            onChanged: (r) {
+                              if (r != null && r != _searchRadiusKm) {
+                                setState(() => _searchRadiusKm = r);
+                                _loadPlacesForCurrentLocation();
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+
+          // "Search this area" button
+          if (_showSearchAreaButton)
+            Positioned(
+              top: activeTrip != null
+                  ? MediaQuery.of(context).padding.top + 160
+                  : MediaQuery.of(context).padding.top + 100,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _searchThisArea,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: colors.primary,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.refresh, size: 18, color: colors.onPrimary),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Search this area',
+                            style: TextStyle(
+                              color: colors.onPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
 
           // My location FAB
           Positioned(

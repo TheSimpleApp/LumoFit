@@ -34,9 +34,13 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   String _dateFilter = 'this_week';
   bool _filterRating4Plus = false;
   bool _filterHasPhotos = false;
-  // Location (defaults to Cairo center)
-  double _centerLat = 30.0444;
-  double _centerLng = 31.2357;
+  // Dietary filters for Food tab
+  final Set<String> _selectedDietaryFilters = {};
+  // Location (fallback when no trip and GPS fails)
+  double _centerLat = 40.7128;  // New York
+  double _centerLng = -74.0060;
+  // Active trip context
+  String? _activeTripDestination;
   // Auto-loaded nearby places
   bool _isLoadingNearby = false;
   List<PlaceModel> _nearbyGyms = [];
@@ -52,10 +56,21 @@ class _DiscoverScreenState extends State<DiscoverScreen>
         initialIndex: widget.initialTabIndex.clamp(0, 4));
     _initLocation();
     _loadNearbyPlaces();
+
+    // Listen for trip changes to update location
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TripService>().addListener(_onTripChanged);
+    });
+  }
+
+  void _onTripChanged() {
+    // Re-initialize location when active trip changes
+    _initLocation();
   }
 
   @override
   void dispose() {
+    context.read<TripService>().removeListener(_onTripChanged);
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -177,8 +192,23 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   }
 
   Future<void> _initLocation() async {
+    // Priority 1: Active trip destination
+    final tripService = context.read<TripService>();
+    final tripCoords = tripService.activeTripCoordinates;
+    final activeTrip = tripService.activeTrip;
+
+    if (tripCoords != null) {
+      setState(() {
+        _centerLat = tripCoords.$1;
+        _centerLng = tripCoords.$2;
+        _activeTripDestination = activeTrip?.destinationCity;
+      });
+      _loadNearbyPlaces();
+      return;
+    }
+
+    // Priority 2: GPS location
     try {
-      // Avoid prompting repeatedly; ask once when screen mounts
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -190,6 +220,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       setState(() {
         _centerLat = pos.latitude;
         _centerLng = pos.longitude;
+        _activeTripDestination = null;
       });
       // Reload nearby places with updated location
       _loadNearbyPlaces();
@@ -264,9 +295,17 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                       .slideX(begin: -0.1),
                   const SizedBox(height: 4),
                   Text(
-                    'Find gyms, food & events nearby',
-                    style: textStyles.bodyMedium
-                        ?.copyWith(color: colors.onSurfaceVariant),
+                    _activeTripDestination != null
+                        ? 'Exploring $_activeTripDestination'
+                        : 'Find gyms, food & events nearby',
+                    style: textStyles.bodyMedium?.copyWith(
+                      color: _activeTripDestination != null
+                          ? colors.primary
+                          : colors.onSurfaceVariant,
+                      fontWeight: _activeTripDestination != null
+                          ? FontWeight.w500
+                          : null,
+                    ),
                   ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.1),
                 ],
               ),
@@ -497,6 +536,44 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                         avatar:
                             const Icon(Icons.photo_library_outlined, size: 16),
                       ),
+                      // Dietary filters for Food tab
+                      if (_tabController.index == 1) ...[
+                        const SizedBox(width: 12),
+                        _DietaryChip(
+                          label: 'Healthy',
+                          emoji: '🥗',
+                          selected: _selectedDietaryFilters.contains('healthy'),
+                          onTap: () => _toggleDietaryFilter('healthy'),
+                        ),
+                        const SizedBox(width: 8),
+                        _DietaryChip(
+                          label: 'Vegan',
+                          emoji: '🌱',
+                          selected: _selectedDietaryFilters.contains('vegan'),
+                          onTap: () => _toggleDietaryFilter('vegan'),
+                        ),
+                        const SizedBox(width: 8),
+                        _DietaryChip(
+                          label: 'Vegetarian',
+                          emoji: '🥬',
+                          selected: _selectedDietaryFilters.contains('vegetarian'),
+                          onTap: () => _toggleDietaryFilter('vegetarian'),
+                        ),
+                        const SizedBox(width: 8),
+                        _DietaryChip(
+                          label: 'Halal',
+                          emoji: '🍖',
+                          selected: _selectedDietaryFilters.contains('halal'),
+                          onTap: () => _toggleDietaryFilter('halal'),
+                        ),
+                        const SizedBox(width: 8),
+                        _DietaryChip(
+                          label: 'Gluten-Free',
+                          emoji: '🌾',
+                          selected: _selectedDietaryFilters.contains('gluten-free'),
+                          onTap: () => _toggleDietaryFilter('gluten-free'),
+                        ),
+                      ],
                     ],
                   ],
                 ),
@@ -537,6 +614,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                     eventResults: _eventResults,
                     centerLat: _centerLat,
                     centerLng: _centerLng,
+                    activeTripDestination: _activeTripDestination,
                   ),
                   _PlacesList(
                     type: PlaceType.trail,
@@ -568,6 +646,19 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       _performSearch(_searchQuery);
     } else {
       setState(() {});
+    }
+  }
+
+  void _toggleDietaryFilter(String filter) {
+    setState(() {
+      if (_selectedDietaryFilters.contains(filter)) {
+        _selectedDietaryFilters.remove(filter);
+      } else {
+        _selectedDietaryFilters.add(filter);
+      }
+    });
+    if (_searchQuery.isNotEmpty) {
+      _performSearch(_searchQuery);
     }
   }
 
@@ -717,6 +808,7 @@ class _EventsList extends StatelessWidget {
   final List<EventModel> eventResults;
   final double centerLat;
   final double centerLng;
+  final String? activeTripDestination;
 
   const _EventsList({
     required this.searchQuery,
@@ -726,6 +818,7 @@ class _EventsList extends StatelessWidget {
     required this.eventResults,
     required this.centerLat,
     required this.centerLng,
+    this.activeTripDestination,
   });
 
   @override
@@ -788,7 +881,9 @@ class _EventsList extends StatelessWidget {
             Text('No events found', style: text.titleMedium),
             const SizedBox(height: 6),
             Text(
-                'Cairo has weekly Parkruns at Al-Azhar Park every Saturday at 7 AM. Check back soon for more events!',
+                activeTripDestination != null
+                    ? 'No fitness events found in $activeTripDestination. Try searching for local running clubs or yoga classes!'
+                    : 'Search for fitness events, running clubs, or yoga classes in your area!',
                 textAlign: TextAlign.center,
                 style:
                     text.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
@@ -830,34 +925,40 @@ class _CategoryChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.full),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected
-              ? colors.primary.withValues(alpha: 0.15)
-              : colors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.full),
-          border: Border.all(
-              color: selected
-                  ? colors.primary
-                  : colors.outline.withValues(alpha: 0.7),
-              width: 1),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon,
-                size: 16,
-                color: selected ? colors.primary : colors.onSurfaceVariant),
-            const SizedBox(width: 6),
-            Text(label,
-                style: text.labelMedium?.copyWith(
-                    color:
-                        selected ? colors.primary : colors.onSurfaceVariant)),
-          ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        splashFactory: InkRipple.splashFactory,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected
+                ? colors.primary.withValues(alpha: 0.15)
+                : colors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.full),
+            border: Border.all(
+                color: selected
+                    ? colors.primary
+                    : colors.outline.withValues(alpha: 0.7),
+                width: selected ? 2 : 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon,
+                  size: 16,
+                  color: selected ? colors.primary : colors.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Text(label,
+                  style: text.labelMedium?.copyWith(
+                      color:
+                          selected ? colors.primary : colors.onSurfaceVariant,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500)),
+            ],
+          ),
         ),
       ),
     );
@@ -1121,10 +1222,10 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             type == PlaceType.gym
-                ? 'Try searching for "Gold\'s Gym Maadi" or "CrossFit Cairo" to get started!'
+                ? 'Search for gyms, CrossFit boxes, or fitness centers nearby!'
                 : type == PlaceType.trail
-                    ? 'Try the Nile Corniche for running/walking, or visit Wadi Degla Protectorate for desert hiking!'
-                    : 'Check out "Zooba" in Zamalek or "The Gym Café" for healthy options!',
+                    ? 'Search for parks, trails, or running paths in your area!'
+                    : 'Search for healthy restaurants, cafes, or juice bars nearby!',
             textAlign: TextAlign.center,
             style:
                 textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
@@ -1226,10 +1327,21 @@ class _PlaceCardState extends State<PlaceCard> {
     }
   }
 
+  String? _getPhotoUrl() {
+    if (widget.place.photoReference != null) {
+      return 'https://places.googleapis.com/v1/${widget.place.photoReference}/media?maxWidthPx=400&key=${const String.fromEnvironment('GOOGLE_PLACES_API_KEY', defaultValue: '')}';
+    }
+    if (widget.place.photoReferences.isNotEmpty) {
+      return 'https://places.googleapis.com/v1/${widget.place.photoReferences.first}/media?maxWidthPx=400&key=${const String.fromEnvironment('GOOGLE_PLACES_API_KEY', defaultValue: '')}';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
+    final photoUrl = _getPhotoUrl();
 
     return GestureDetector(
       onTap: () {
@@ -1237,7 +1349,6 @@ class _PlaceCardState extends State<PlaceCard> {
         context.push('/place-detail', extra: widget.place);
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -1247,109 +1358,214 @@ class _PlaceCardState extends State<PlaceCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: _getPlaceColor(widget.place.type).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
+            // Cover Photo (if available)
+            if (photoUrl != null)
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+                child: SizedBox(
+                  height: 120,
+                  width: double.infinity,
+                  child: Image.network(
+                    photoUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: _getPlaceColor(widget.place.type).withValues(alpha: 0.1),
+                      child: Center(
+                        child: Text(widget.place.typeEmoji, style: const TextStyle(fontSize: 40)),
+                      ),
+                    ),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        color: colors.surfaceContainerHighest,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                : null,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  child: Center(
-                      child: Text(widget.place.typeEmoji,
-                          style: const TextStyle(fontSize: 28))),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
+              ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(widget.place.name,
-                          style: textStyles.titleSmall,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis),
-                      if (widget.place.address != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.place.address!,
-                          style: textStyles.bodySmall
-                              ?.copyWith(color: colors.onSurfaceVariant),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                      if (photoUrl == null) ...[
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: _getPlaceColor(widget.place.type).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                          child: Center(
+                              child: Text(widget.place.typeEmoji,
+                                  style: const TextStyle(fontSize: 28))),
                         ),
+                        const SizedBox(width: 12),
                       ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(widget.place.name,
+                                style: textStyles.titleSmall,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis),
+                            if (widget.place.address != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                widget.place.address!,
+                                style: textStyles.bodySmall
+                                    ?.copyWith(color: colors.onSurfaceVariant),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (widget.showSaveButton) _SaveButton(place: widget.place),
                     ],
                   ),
-                ),
-                if (widget.showSaveButton) _SaveButton(place: widget.place),
-              ],
-            ),
-            const SizedBox(height: 12),
-            
-            // Quick Insights (if available)
-            if (_quickInsights != null) ...[
-              PlaceQuickInsightsInline(insights: _quickInsights!),
-              const SizedBox(height: 8),
-            ],
-            
-            Row(
-              children: [
-                if (widget.place.rating != null) ...[
-                  Icon(Icons.star, size: 16, color: AppColors.xp),
-                  const SizedBox(width: 4),
-                  Text(widget.place.rating!.toStringAsFixed(1),
-                      style: textStyles.labelMedium
-                          ?.copyWith(fontWeight: FontWeight.w600)),
-                  if (widget.place.userRatingsTotal != null) ...[
-                    const SizedBox(width: 4),
-                    Text('(${widget.place.userRatingsTotal})',
-                        style: textStyles.labelSmall
-                            ?.copyWith(color: colors.onSurfaceVariant)),
+                  const SizedBox(height: 12),
+
+                  // Quick Insights (if available)
+                  if (_quickInsights != null) ...[
+                    PlaceQuickInsightsInline(insights: _quickInsights!),
+                    const SizedBox(height: 8),
                   ],
-                ],
-                if (widget.place.priceLevel != null) ...[
-                  const SizedBox(width: 12),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color:
-                          colors.surfaceContainerHighest.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                    child: Text(widget.place.priceLevel!,
-                        style: textStyles.labelSmall
-                            ?.copyWith(color: colors.onSurfaceVariant)),
-                  ),
-                ],
-                const Spacer(),
-                if (widget.place.isVisited)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.check_circle,
-                            size: 14, color: AppColors.success),
+
+                  Row(
+                    children: [
+                      if (widget.place.rating != null) ...[
+                        Icon(Icons.star, size: 16, color: AppColors.xp),
                         const SizedBox(width: 4),
-                        Text('Visited',
-                            style: textStyles.labelSmall?.copyWith(
-                                color: AppColors.success,
-                                fontWeight: FontWeight.w600)),
+                        Text(widget.place.rating!.toStringAsFixed(1),
+                            style: textStyles.labelMedium
+                                ?.copyWith(fontWeight: FontWeight.w600)),
+                        if (widget.place.userRatingsTotal != null) ...[
+                          const SizedBox(width: 4),
+                          Text('(${widget.place.userRatingsTotal})',
+                              style: textStyles.labelSmall
+                                  ?.copyWith(color: colors.onSurfaceVariant)),
+                        ],
                       ],
-                    ),
+                      if (widget.place.priceLevel != null) ...[
+                        const SizedBox(width: 12),
+                        Container(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color:
+                                colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Text(widget.place.priceLevel!,
+                              style: textStyles.labelSmall
+                                  ?.copyWith(color: colors.onSurfaceVariant)),
+                        ),
+                      ],
+                      const Spacer(),
+                      if (widget.place.isVisited)
+                        Container(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle,
+                                  size: 14, color: AppColors.success),
+                              const SizedBox(width: 4),
+                              Text('Visited',
+                                  style: textStyles.labelSmall?.copyWith(
+                                      color: AppColors.success,
+                                      fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
+                      Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
+                    ],
                   ),
-                Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
-              ],
+                ],
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Dietary filter chip for Food tab
+class _DietaryChip extends StatelessWidget {
+  final String label;
+  final String emoji;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _DietaryChip({
+    required this.label,
+    required this.emoji,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        splashFactory: InkRipple.splashFactory,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected
+                ? colors.primaryContainer
+                : colors.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected
+                  ? colors.primary
+                  : colors.outline.withValues(alpha: 0.2),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 14)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  color: selected
+                      ? colors.onPrimaryContainer
+                      : colors.onSurface.withValues(alpha: 0.8),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

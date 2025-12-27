@@ -16,7 +16,8 @@ import 'package:fittravel/screens/auth/signup_screen.dart';
 import 'package:fittravel/screens/auth/forgot_password_screen.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
 import 'package:fittravel/screens/feedback/feedback_screen.dart';
-import 'package:fittravel/screens/home/cairo_guide_screen.dart';
+import 'package:fittravel/screens/home/cairo_guide_screen.dart'; // Contains FitnessGuideScreen
+import 'package:fittravel/screens/home/goals_screen.dart';
 import 'package:fittravel/screens/map/map_screen.dart';
 import 'package:fittravel/screens/trips/itinerary_generator_screen.dart';
 
@@ -137,9 +138,20 @@ class AppRouter {
         },
       ),
       GoRoute(
+        path: '/fitness-guide',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const FitnessGuideScreen(),
+      ),
+      // Legacy route for backwards compatibility
+      GoRoute(
         path: '/cairo-guide',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const CairoGuideScreen(),
+        redirect: (context, state) => '/fitness-guide',
+      ),
+      GoRoute(
+        path: '/goals',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const GoalsScreen(),
       ),
       GoRoute(
         path: '/feedback',

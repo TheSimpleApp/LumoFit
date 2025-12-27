@@ -1,6 +1,7 @@
 // supabase/functions/egypt_fitness_guide/index.ts
-// Enhanced Cairo fitness guide with dynamic, conversational responses
+// Enhanced fitness guide with dynamic, conversational responses
 // Supports interactive elements: quick replies, selects, images, and places
+// Now location-agnostic - works with any destination
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
@@ -78,16 +79,16 @@ function buildSystemPrompt(
   conversationHistory: ConversationMessage[]
 ): string {
   const hasHistory = conversationHistory.length > 0;
-  const isFirstMessage = conversationHistory.length <= 1;
+  const destName = destination || 'your destination';
 
-  return `You are an enthusiastic Cairo fitness guide helping travelers stay active and eat healthy. You're conversational, fun, and always provide SHORT, dynamic responses.
+  return `You are an enthusiastic fitness guide helping travelers stay active and eat healthy in ${destName}. You're conversational, fun, and always provide SHORT, dynamic responses.
 
 CRITICAL RULES:
 1. **Keep responses VERY SHORT** - 2-3 sentences maximum (under 60 words).
-2. **Use "Tags" (Keywords)** - Extract 3-5 key concepts (e.g., "Best Gyms", "Healthy Food", "Zamalek", "Outdoor Run") as tags.
+2. **Use "Tags" (Keywords)** - Extract 3-5 key concepts (e.g., "Best Gyms", "Healthy Food", "Running", "Outdoor Activities") as tags.
 3. **Be conversational** - Ask follow-up questions to keep the chat going.
 4. **Provide quick reply options** - Suggested follow-up queries.
-5. **Give specific place names** with neighborhoods.
+5. **Give specific place names** with neighborhoods when you know them.
 
 RESPONSE FORMAT:
 You must return a valid JSON object with this structure:
@@ -99,28 +100,19 @@ You must return a valid JSON object with this structure:
     {"id": "2", "text": "Option 2", "emoji": "🥗"}
   ],
   "suggestedPlaces": [
-    {"name": "Place Name", "type": "gym|restaurant|park|trail", "neighborhood": "Zamalek"}
+    {"name": "Place Name", "type": "gym|restaurant|park|trail", "neighborhood": "Area Name"}
   ]
 }
 
 CONVERSATION STYLE:
-- First message: Welcome warmly, ask what they're looking for.
-- Follow-ups: Be specific, offer 2-3 quick reply options.
+- First message: Welcome warmly, ask what type of fitness activity they're interested in.
+- Follow-ups: Be specific to ${destName}, offer 2-3 quick reply options.
 - Always: Keep it SHORT and scan-able.
 
-CAIRO NEIGHBORHOODS:
-- Zamalek (upscale, Nile-side, expats)
-- Maadi (residential, family-friendly)
-- Heliopolis (near airport, suburban)
-- New Cairo (modern, malls, compounds)
-- Downtown (central, historic)
-- Giza (pyramids, university)
-
-POPULAR PLACES:
-Gyms: Gold's Gym (multiple locations), CrossFit Hustle, Wadi Degla, Iron House
-Restaurants: Zooba (healthy Egyptian), Right Bite, Tabla Luna, On The Run
-Running: Nile Corniche, Wadi Degla Sports Club trails, Cairo Runners group
-Parks: Al-Azhar Park, Orman Garden
+YOUR KNOWLEDGE:
+- Use your knowledge of fitness facilities, healthy restaurants, running routes, parks, yoga studios, and outdoor activities in ${destName}.
+- If you know specific places in ${destName}, mention them by name with their neighborhood/area.
+- If you don't know specific places, suggest types of activities and general tips for staying fit while traveling.
 
 ${hasHistory ? `\nConversation so far:\n${conversationHistory.map(m => `${m.role}: ${m.content}`).join('\n')}` : ''}
 
@@ -128,29 +120,82 @@ Remember: Keep it SHORT (under 60 words), use TAGS for scannability, and include
 }
 
 function parseAIResponse(rawText: string): EgyptGuideResponse {
+  // Clean the response - remove markdown code blocks if present
+  let cleanedText = rawText.trim();
+
+  // Remove markdown code fences (```json ... ``` or ``` ... ```)
+  const codeFenceMatch = cleanedText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (codeFenceMatch) {
+    cleanedText = codeFenceMatch[1].trim();
+  }
+
   // Try to parse as JSON first
-  const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+  const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
     try {
       const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        text: parsed.text || rawText,
-        suggestedPlaces: parsed.suggestedPlaces || [],
-        tags: parsed.tags || [],
-        quickReplies: parsed.quickReplies || [],
-        elements: parsed.elements || []
-      };
+
+      // Ensure text is a string and not undefined/null
+      let text = typeof parsed.text === 'string' && parsed.text.trim()
+        ? parsed.text.trim()
+        : null;
+
+      // Check if text itself is nested JSON (Gemini sometimes wraps responses)
+      let nestedData: any = null;
+      if (text && text.trimStart().startsWith('{')) {
+        try {
+          nestedData = JSON.parse(text);
+          if (nestedData && typeof nestedData.text === 'string') {
+            text = nestedData.text.trim();
+          }
+        } catch (e) {
+          // Not valid JSON, use text as-is
+          nestedData = null;
+        }
+      }
+
+      // If we got valid text, return the structured response
+      // Merge nested data with outer data, preferring nested values if present
+      if (text) {
+        return {
+          text: text,
+          suggestedPlaces: Array.isArray(nestedData?.suggestedPlaces) ? nestedData.suggestedPlaces
+            : (Array.isArray(parsed.suggestedPlaces) ? parsed.suggestedPlaces : []),
+          tags: Array.isArray(nestedData?.tags) ? nestedData.tags
+            : (Array.isArray(parsed.tags) ? parsed.tags : []),
+          quickReplies: Array.isArray(nestedData?.quickReplies) ? nestedData.quickReplies
+            : (Array.isArray(parsed.quickReplies) ? parsed.quickReplies : []),
+          elements: Array.isArray(nestedData?.elements) ? nestedData.elements
+            : (Array.isArray(parsed.elements) ? parsed.elements : [])
+        };
+      }
     } catch (e) {
-      // If parsing fails, fall through to text-only
+      console.error("JSON parse error:", e);
+      // If parsing fails, fall through to text extraction
     }
   }
 
-  // Fallback: treat as plain text
+  // Fallback: extract just the conversational text without JSON artifacts
+  // Remove any JSON-like content and return clean text
+  let fallbackText = rawText
+    .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+    .replace(/\{[\s\S]*\}/g, '') // Remove JSON objects
+    .trim();
+
+  // If nothing remains, use a generic response
+  if (!fallbackText) {
+    fallbackText = "I'd be happy to help you find fitness spots! What are you looking for?";
+  }
+
   return {
-    text: rawText,
+    text: fallbackText,
     suggestedPlaces: [],
     tags: [],
-    quickReplies: []
+    quickReplies: [
+      { id: "1", text: "Best gyms", emoji: "💪", value: "Best gyms nearby?" },
+      { id: "2", text: "Healthy food", emoji: "🥗", value: "Healthy restaurants nearby?" },
+      { id: "3", text: "Running spots", emoji: "🏃", value: "Best running routes?" }
+    ]
   };
 }
 
@@ -205,7 +250,7 @@ async function handler(req: Request): Promise<Response> {
   ];
 
   try {
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
     
     // Build Gemini request with full conversation
     const geminiRes = await fetch(geminiUrl, {
@@ -264,12 +309,12 @@ async function handler(req: Request): Promise<Response> {
 
     if (!rawText) {
       return new Response(
-        JSON.stringify({ 
-          text: "Hmm, I'm drawing a blank. What are you looking for in Cairo? 🤔",
+        JSON.stringify({
+          text: "Hmm, I'm drawing a blank. What are you looking for? 🤔",
           quickReplies: [
             { id: "1", text: "Gyms", emoji: "💪", value: "Best gyms near me?" },
             { id: "2", text: "Restaurants", emoji: "🥗", value: "Healthy restaurants nearby?" },
-            { id: "3", text: "Running", emoji: "🏃", value: "Running routes in Cairo?" }
+            { id: "3", text: "Running", emoji: "🏃", value: "Best running routes?" }
           ]
         }),
         { status: 200, headers: { ...CORS_HEADERS, "content-type": "application/json" } }

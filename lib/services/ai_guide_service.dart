@@ -4,12 +4,13 @@ import 'package:fittravel/models/ai_models.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 // We stick to Gemini via Supabase Edge Functions. No OpenAI fallback.
 
-/// AI Guide Service for Egypt-wide fitness recommendations
+/// AI Guide Service for fitness recommendations worldwide
 ///
 /// Provides AI-powered features:
-/// - Egypt-wide fitness guide (all major destinations)
+/// - Global fitness guide (location-aware recommendations)
 /// - Fitness itinerary generation
 /// - Place insights with caching
+/// - AIML-powered smart recommendations
 class AiGuideService {
   // Edge function names
   static const String _cairoGuideFn = 'cairo_guide';
@@ -94,12 +95,36 @@ class AiGuideService {
   }
 
   // ========================================
-  // Egypt-wide AI Guide Methods
+  // Global Fitness AI Guide Methods
   // ========================================
 
-  /// Ask the Egypt fitness guide a question with full context
+  /// Ask the fitness guide a question with full context
+  /// Works globally with any destination
   ///
   /// Returns structured response with text and suggested places
+  Future<FitnessGuideResponse> askFitnessGuide({
+    required String question,
+    String? destination,
+    double? userLat,
+    double? userLng,
+    Map<String, double>? mapBounds,
+    String? fitnessLevel,
+    List<String>? dietaryPreferences,
+  }) =>
+      // ignore: deprecated_member_use_from_same_package
+      askEgyptGuide(
+        question: question,
+        destination: destination,
+        userLat: userLat,
+        userLng: userLng,
+        mapBounds: mapBounds,
+        fitnessLevel: fitnessLevel,
+        dietaryPreferences: dietaryPreferences,
+      );
+
+  /// Legacy method - use askFitnessGuide instead
+  /// Kept for backward compatibility
+  @Deprecated('Use askFitnessGuide instead')
   Future<EgyptGuideResponse> askEgyptGuide({
     required String question,
     String? destination,

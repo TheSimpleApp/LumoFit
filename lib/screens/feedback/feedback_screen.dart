@@ -155,13 +155,26 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     try {
       await svc.submit(category: _category, message: message, contact: _contactController.text);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Thanks for your feedback!'), behavior: SnackBarBehavior.floating));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Thanks for your feedback!'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.green,
+      ));
       if (!mounted) return;
       // Use go_router pop to maintain consistent navigation
       context.pop();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send. Try again.'), behavior: SnackBarBehavior.floating));
+      // Feedback was saved locally even if Supabase sync failed
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Feedback saved locally. Will sync when connection is restored.'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.orange.shade700,
+        duration: const Duration(seconds: 4),
+      ));
+      // Still pop - the feedback is safe locally
+      if (!mounted) return;
+      context.pop();
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -173,12 +186,31 @@ class _RecentList extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    final items = context.watch<FeedbackService>().items;
+    final feedbackService = context.watch<FeedbackService>();
+    final items = feedbackService.items;
     if (items.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Recent submissions', style: text.titleMedium),
+        Row(
+          children: [
+            Text('Recent submissions', style: text.titleMedium),
+            if (feedbackService.unsyncedCount > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${feedbackService.unsyncedCount} pending sync',
+                  style: text.labelSmall?.copyWith(color: Colors.orange.shade800),
+                ),
+              ),
+            ],
+          ],
+        ),
         const SizedBox(height: 8),
         ...items.take(5).map((f) => Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -186,7 +218,12 @@ class _RecentList extends StatelessWidget {
               decoration: BoxDecoration(
                 color: colors.surface,
                 borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+                border: Border.all(
+                  color: f.syncedToSupabase
+                      ? colors.outline.withValues(alpha: 0.1)
+                      : Colors.orange.withValues(alpha: 0.5),
+                  width: 1,
+                ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,6 +231,11 @@ class _RecentList extends StatelessWidget {
                   Icon(_iconFor(f.category), color: colors.primary),
                   const SizedBox(width: 10),
                   Expanded(child: Text(f.message, style: text.bodyMedium)),
+                  if (!f.syncedToSupabase)
+                    Tooltip(
+                      message: 'Pending sync',
+                      child: Icon(Icons.cloud_off, size: 16, color: Colors.orange.shade600),
+                    ),
                 ],
               ),
             )),

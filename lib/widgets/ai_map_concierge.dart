@@ -314,9 +314,11 @@ class _AiMapConciergeState extends State<AiMapConcierge>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Egypt Fitness Guide',
-                        style: TextStyle(
+                      Text(
+                        widget.destination != null
+                            ? '${widget.destination} Fitness Guide'
+                            : 'Fitness Guide',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
@@ -380,7 +382,7 @@ class _AiMapConciergeState extends State<AiMapConcierge>
       },
       {
         'icon': Icons.restaurant,
-        'text': 'Healthy restaurants in ${widget.destination ?? 'Egypt'}',
+        'text': 'Healthy restaurants in ${widget.destination ?? 'this area'}',
         'subtitle': 'Discover nutritious dining spots',
       },
       {
@@ -921,7 +923,9 @@ class _AiMapConciergeState extends State<AiMapConcierge>
                   maxLines: null,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
-                    hintText: 'Ask about fitness in Egypt...',
+                    hintText: widget.destination != null
+                        ? 'Ask about fitness in ${widget.destination}...'
+                        : 'Ask about fitness nearby...',
                     hintStyle: TextStyle(
                       fontSize: 15,
                       color: colors.onSurface.withValues(alpha: 0.5),

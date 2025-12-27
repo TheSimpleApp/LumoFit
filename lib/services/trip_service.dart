@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:fittravel/models/models.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
+import 'package:fittravel/services/google_places_service.dart';
 
 class TripService extends ChangeNotifier {
   List<TripModel> _trips = [];
@@ -236,10 +237,54 @@ class TripService extends ChangeNotifier {
       }
       _error = null;
       notifyListeners();
+
+      // If the trip has no coordinates, geocode the destination
+      final trip = getTripById(tripId);
+      if (trip != null &&
+          trip.destinationLatitude == null &&
+          trip.destinationLongitude == null) {
+        await _geocodeTripDestination(trip);
+      }
     } catch (e) {
       _error = 'Failed to set active trip';
       debugPrint('TripService.setActiveTrip error: $e');
       notifyListeners();
+    }
+  }
+
+  /// Geocode a trip's destination city and update the trip with coordinates
+  Future<void> _geocodeTripDestination(TripModel trip) async {
+    try {
+      final placesService = GooglePlacesService();
+      final coords = await placesService.geocodeCity(
+        trip.destinationCity,
+        country: trip.destinationCountry,
+      );
+
+      if (coords != null) {
+        final (lat, lng) = coords;
+
+        // Update in database
+        await SupabaseConfig.client.from('trips').update({
+          'destination_latitude': lat,
+          'destination_longitude': lng,
+        }).eq('id', trip.id);
+
+        // Update local state
+        final index = _trips.indexWhere((t) => t.id == trip.id);
+        if (index >= 0) {
+          _trips[index] = _trips[index].copyWith(
+            destinationLatitude: lat,
+            destinationLongitude: lng,
+          );
+          notifyListeners();
+          debugPrint(
+              'TripService: Geocoded ${trip.destinationCity} to ($lat, $lng)');
+        }
+      }
+    } catch (e) {
+      debugPrint('TripService._geocodeTripDestination error: $e');
+      // Non-fatal: trip still works without coordinates
     }
   }
 

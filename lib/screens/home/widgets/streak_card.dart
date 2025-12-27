@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/user_service.dart';
+import 'package:fittravel/utils/haptic_utils.dart';
 
 class StreakCard extends StatelessWidget {
   const StreakCard({super.key});
@@ -12,7 +14,12 @@ class StreakCard extends StatelessWidget {
     final user = userService.currentUser;
     final textStyles = Theme.of(context).textTheme;
 
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        HapticUtils.light();
+        context.push('/goals');
+      },
+      child: Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: AppColors.goldShimmer,
@@ -86,6 +93,7 @@ class StreakCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }

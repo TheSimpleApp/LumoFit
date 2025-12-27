@@ -222,6 +222,50 @@ class GooglePlacesService {
     return 'https://places.googleapis.com/v1/$photoReference/media?maxWidthPx=$maxWidth&key=$_apiKey';
   }
 
+  /// Geocode a city name to get coordinates
+  /// Returns (latitude, longitude) or null if not found
+  Future<(double, double)?> geocodeCity(String cityName, {String? country}) async {
+    try {
+      final query = country != null ? '$cityName, $country' : cityName;
+
+      final response = await http.post(
+        Uri.parse('$_baseUrl:searchText'),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': _apiKey,
+          'X-Goog-FieldMask': 'places.location,places.displayName',
+        },
+        body: jsonEncode({
+          'textQuery': query,
+          'includedType': 'locality',
+          'maxResultCount': 1,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final places = data['places'] as List<dynamic>? ?? [];
+        if (places.isNotEmpty) {
+          final location = places.first['location'] as Map<String, dynamic>?;
+          if (location != null) {
+            final lat = (location['latitude'] as num?)?.toDouble();
+            final lng = (location['longitude'] as num?)?.toDouble();
+            if (lat != null && lng != null) {
+              debugPrint('GooglePlacesService.geocodeCity: $query -> ($lat, $lng)');
+              return (lat, lng);
+            }
+          }
+        }
+      } else {
+        debugPrint('Google Places geocode error: ${response.statusCode} - ${response.body}');
+      }
+      return null;
+    } catch (e) {
+      debugPrint('GooglePlacesService.geocodeCity error: $e');
+      return null;
+    }
+  }
+
   List<String> _getIncludedTypes(PlaceType type) {
     switch (type) {
       case PlaceType.gym:

@@ -5,7 +5,7 @@ import 'package:fittravel/services/ai_guide_service.dart';
 import 'package:fittravel/models/ai_models.dart';
 import 'package:fittravel/theme.dart';
 
-/// Screen to generate AI-powered fitness itineraries for Egypt destinations
+/// Screen to generate AI-powered fitness itineraries for any destination
 class ItineraryGeneratorScreen extends StatefulWidget {
   final String? initialDestination;
   final DateTime? initialDate;
@@ -34,14 +34,14 @@ class _ItineraryGeneratorScreenState extends State<ItineraryGeneratorScreen> {
   String? _errorMessage;
 
   final List<String> _destinations = [
-    'Cairo',
-    'Luxor',
-    'Aswan',
-    'Hurghada',
-    'Sharm El Sheikh',
-    'Alexandria',
-    'Dahab',
-    'Siwa',
+    'New York',
+    'Los Angeles',
+    'London',
+    'Paris',
+    'Tokyo',
+    'Sydney',
+    'Dubai',
+    'Barcelona',
   ];
 
   final List<String> _fitnessLevels = ['beginner', 'intermediate', 'advanced'];
@@ -174,7 +174,7 @@ class _ItineraryGeneratorScreenState extends State<ItineraryGeneratorScreen> {
                         ),
                       ),
                       Text(
-                        'Create a personalized active day in Egypt',
+                        'Create a personalized active day anywhere',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 13,
@@ -388,29 +388,34 @@ class _ItineraryGeneratorScreenState extends State<ItineraryGeneratorScreen> {
                 children: [
                   Text(
                     itinerary.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${itinerary.destination} • ${DateFormat('MMMM d').format(_selectedDate)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.9),
                       fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       _buildStatChip(
                         Icons.schedule,
                         '${(itinerary.totalDurationMinutes / 60).toStringAsFixed(1)}h',
                         colors,
                       ),
-                      const SizedBox(width: 8),
                       _buildStatChip(
                         Icons.list,
                         '${itinerary.items.length} activities',
@@ -545,6 +550,8 @@ class _ItineraryGeneratorScreenState extends State<ItineraryGeneratorScreen> {
                         Expanded(
                           child: Text(
                             item.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,

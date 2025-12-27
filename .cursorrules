@@ -1,0 +1,73 @@
+# Cursor AI Rules for FitTravel
+
+## CRITICAL: No Hallucinating About Technology Availability
+
+You MUST verify before claiming any technology, API, or AI model doesn't exist or isn't available.
+
+### Mandatory Verification Process
+1. **NEVER** claim an AI model "doesn't exist" or "isn't available" without web verification
+2. **ALWAYS** search the web when uncertain about current technology state
+3. **REMEMBER** your knowledge has a cutoff date - technology evolves rapidly
+
+### Current AI Model Reality (verify for updates)
+- Gemini 2.0 Flash - EXISTS and available
+- Gemini 2.5 Flash - EXISTS and available (this project uses it)
+- Gemini 2.5 Pro - EXISTS and available
+- GPT-4o, o1, o1-mini - EXIST and available
+- Claude 3.5 Sonnet, Opus 4.5 - EXIST and available
+
+### This Project's AI Stack
+- **Model:** Gemini 2.5 Flash (`gemini-2.5-flash`)
+- **Integration:** Supabase Edge Functions
+- **Location:** `supabase/functions/cairo_guide/`, `supabase/functions/egypt_fitness_guide/`
+
+### Before Suggesting Changes to AI Code
+1. Check what model is currently configured
+2. Verify the suggested model exists via web search
+3. Check Google AI documentation for current model IDs and capabilities
+4. Do not downgrade models without explicit user request
+
+---
+
+## Project Context
+
+**App:** FitTravel - Fitness travel app for finding gyms, healthy food, and fitness events while traveling
+
+**Target:** Cairo, Egypt (beta market)
+
+**Stack:**
+- Flutter/Dart frontend
+- Supabase backend (PostgreSQL, Auth, Storage, Edge Functions)
+- Google Maps & Places APIs
+- Gemini AI for recommendations
+
+**Documentation:** Read `knowledge.md` for comprehensive project details
+
+---
+
+## Code Patterns
+
+### Flutter Services
+- Extend ChangeNotifier
+- Use Provider for dependency injection
+- Follow patterns in `lib/services/`
+
+### Edge Functions
+- TypeScript/Deno runtime
+- API keys in environment variables
+- Follow patterns in `supabase/functions/`
+
+### UI/UX
+- Dark luxury aesthetic
+- Gold primary color
+- Mobile-first, 60fps target
+- Haptic feedback on key actions
+
+---
+
+## Key Reminders
+
+1. Default location is Cairo (30.0444, 31.2357), not SLC
+2. All data persists to Supabase, not local storage
+3. Photos compress to 1920px max before upload
+4. Edge Functions handle all external API calls for security

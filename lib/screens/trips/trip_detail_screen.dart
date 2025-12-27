@@ -69,7 +69,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
           return [
             SliverAppBar(
               pinned: true,
-              expandedHeight: 200,
+              expandedHeight: 220,
               leading: IconButton(
                 onPressed: () => context.pop(),
                 icon: Container(
@@ -139,65 +139,104 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                 const SizedBox(width: 8),
               ],
               flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 64, 20, 20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.primary.withValues(alpha: 0.25),
-                        colors.surface,
-                      ],
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Row(
-                        children: [
-                          const Text('✈️', style: TextStyle(fontSize: 32)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  trip.destinationCity,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: textStyles.headlineMedium
-                                      ?.copyWith(fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  dateRange,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: textStyles.bodyMedium?.copyWith(
-                                      color: colors.onSurfaceVariant),
-                                ),
-                              ],
+                background: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Destination cover photo
+                    Image.network(
+                      'https://source.unsplash.com/800x600/?${Uri.encodeComponent(trip.destinationCity)},city,travel',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.primary.withValues(alpha: 0.25),
+                              colors.surface,
+                            ],
+                          ),
+                        ),
+                      ),
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: colors.surfaceContainerHighest,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                              strokeWidth: 2,
                             ),
                           ),
-                          _StatusPill(status: trip.status),
-                        ],
+                        );
+                      },
+                    ),
+                    // Gradient overlay for text readability
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.4),
+                            Colors.black.withValues(alpha: 0.85),
+                          ],
+                          stops: const [0.0, 0.4, 1.0],
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 8,
+                    ),
+                    // Content overlay - positioned above TabBar (TabBar height ~48px + padding)
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 64,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          _QuickStat(
-                              value: '${trip.durationDays}', label: 'Days'),
-                          _QuickStat(
-                              value: '${associatedPlaces.length}',
-                              label: 'Places'),
+                          // Status pill at top
+                          _StatusPill(status: trip.status),
+                          const SizedBox(height: 8),
+                          // City name
+                          Text(
+                            trip.destinationCity,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textStyles.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // Date range
+                          Text(
+                            dateRange,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textStyles.bodySmall?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.85),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Stats row
+                          Row(
+                            children: [
+                              _QuickStat(
+                                  value: '${trip.durationDays}', label: 'Days'),
+                              const SizedBox(width: 8),
+                              _QuickStat(
+                                  value: '${associatedPlaces.length}',
+                                  label: 'Places'),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               bottom: TabBar(
@@ -332,25 +371,164 @@ class _ItineraryTabState extends State<_ItineraryTab> {
         // Itinerary List
         Expanded(
           child: items.isEmpty
-              ? Center(
+              ? SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.event_note,
-                          size: 48,
-                          color: colors.outline.withValues(alpha: 0.5)),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No plans for this day',
-                        style: textStyles.titleMedium
-                            ?.copyWith(color: colors.onSurfaceVariant),
+                      // Empty state header
+                      Center(
+                        child: Column(
+                          children: [
+                            Icon(Icons.event_note,
+                                size: 48,
+                                color: colors.outline.withValues(alpha: 0.5)),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No plans for this day',
+                              style: textStyles.titleMedium
+                                  ?.copyWith(color: colors.onSurfaceVariant),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Add activities to build your itinerary',
+                              style: textStyles.bodyMedium
+                                  ?.copyWith(color: colors.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tap "Add Item" to start planning.',
-                        style: textStyles.bodyMedium
-                            ?.copyWith(color: colors.onSurfaceVariant),
+                      const SizedBox(height: 32),
+                      // Quick Add Section
+                      Text('Quick Add',
+                          style: textStyles.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _QuickAddChip(
+                            emoji: '🏋️',
+                            label: 'Gym Session',
+                            onTap: () => _quickAddItem(context, 'Gym Session', '🏋️'),
+                          ),
+                          _QuickAddChip(
+                            emoji: '🥗',
+                            label: 'Healthy Meal',
+                            onTap: () => _quickAddItem(context, 'Healthy Meal', '🥗'),
+                          ),
+                          _QuickAddChip(
+                            emoji: '🏃',
+                            label: 'Morning Run',
+                            onTap: () => _quickAddItem(context, 'Morning Run', '🏃'),
+                          ),
+                          _QuickAddChip(
+                            emoji: '🧘',
+                            label: 'Yoga Class',
+                            onTap: () => _quickAddItem(context, 'Yoga Class', '🧘'),
+                          ),
+                          _QuickAddChip(
+                            emoji: '🍳',
+                            label: 'Breakfast',
+                            onTap: () => _quickAddItem(context, 'Breakfast', '🍳'),
+                          ),
+                          _QuickAddChip(
+                            emoji: '☕',
+                            label: 'Coffee Break',
+                            onTap: () => _quickAddItem(context, 'Coffee Break', '☕'),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 24),
+                      // AI Suggestions
+                      Text('Suggestions for ${widget.trip.destinationCity}',
+                          style: textStyles.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: colors.primaryContainer.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          border: Border.all(
+                            color: colors.primary.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.psychology,
+                                    color: colors.primary, size: 24),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'AI-Powered Suggestions',
+                                  style: textStyles.titleSmall?.copyWith(
+                                    color: colors.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Get personalized fitness recommendations for your trip to ${widget.trip.destinationCity}.',
+                              style: textStyles.bodyMedium?.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            FilledButton.tonal(
+                              onPressed: () => context.push('/fitness-guide'),
+                              child: const Text('Get Recommendations'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Saved Places Section
+                      if (widget.associatedPlaces.isNotEmpty) ...[
+                        Text('Add from Saved Places',
+                            style: textStyles.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        ...widget.associatedPlaces.take(3).map((place) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: ListTile(
+                                leading: Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: colors.primaryContainer,
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadius.md),
+                                  ),
+                                  child: Center(
+                                    child: Text(place.typeEmoji,
+                                        style: const TextStyle(fontSize: 24)),
+                                  ),
+                                ),
+                                title: Text(place.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                subtitle: Text(place.type.name,
+                                    style: TextStyle(
+                                        color: colors.onSurfaceVariant)),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.add_circle_outline),
+                                  onPressed: () =>
+                                      _addPlaceToItinerary(context, place),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.lg),
+                                  side: BorderSide(
+                                      color:
+                                          colors.outline.withValues(alpha: 0.1)),
+                                ),
+                              ),
+                            )),
+                      ],
                     ],
                   ),
                 )
@@ -388,6 +566,7 @@ class _ItineraryTabState extends State<_ItineraryTab> {
                       child: _ItineraryTile(
                         item: it,
                         place: match,
+                        index: index,
                         onEdit: () => _showEditItemSheet(context, it),
                         onDelete: () => context
                             .read<TripService>()
@@ -438,6 +617,25 @@ class _ItineraryTabState extends State<_ItineraryTab> {
         existing: item,
       ),
     );
+  }
+
+  void _quickAddItem(BuildContext context, String title, String emoji) {
+    final item = ItineraryItem(
+      id: const Uuid().v4(),
+      date: _selectedDate,
+      title: '$emoji $title',
+    );
+    context.read<TripService>().addItineraryItem(widget.trip.id, item);
+  }
+
+  void _addPlaceToItinerary(BuildContext context, PlaceModel place) {
+    final item = ItineraryItem(
+      id: const Uuid().v4(),
+      date: _selectedDate,
+      title: place.name,
+      placeId: place.id,
+    );
+    context.read<TripService>().addItineraryItem(widget.trip.id, item);
   }
 }
 
@@ -551,6 +749,7 @@ class _BucketListTab extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _BucketListTile(
                   place: place,
+                  index: index,
                   onToggleVisited: () {
                     final updated = place.copyWith(
                       isVisited: !place.isVisited,
@@ -601,11 +800,15 @@ class _ItineraryTile extends StatelessWidget {
   final PlaceModel? place;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  const _ItineraryTile(
-      {required this.item,
-      required this.place,
-      required this.onEdit,
-      required this.onDelete});
+  final int index;
+
+  const _ItineraryTile({
+    required this.item,
+    required this.place,
+    required this.onEdit,
+    required this.onDelete,
+    required this.index,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -621,75 +824,108 @@ class _ItineraryTile extends StatelessWidget {
         color: colors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: colors.outline.withValues(alpha: 0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: colors.shadow.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: colors.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Row(
+        children: [
+          // Drag handle
+          ReorderableDragStartListener(
+            index: index,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+              child: Icon(Icons.drag_indicator,
+                  color: colors.outline, size: 20),
+            ),
           ),
-          child:
-              Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: colors.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(4),
+          // Leading emoji
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: colors.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Center(
+                child: Text(emoji, style: const TextStyle(fontSize: 20))),
+          ),
+          const SizedBox(width: 12),
+          // Content
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: colors.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(timeLabel,
+                            style: textStyles.labelSmall
+                                ?.copyWith(color: colors.onSurfaceVariant)),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          item.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textStyles.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (subtitle != null && subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textStyles.bodySmall
+                            ?.copyWith(color: colors.onSurfaceVariant)),
+                  ],
+                ],
               ),
-              child: Text(timeLabel,
-                  style: textStyles.labelSmall
-                      ?.copyWith(color: colors.onSurfaceVariant)),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                item.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textStyles.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          // Actions menu
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, color: colors.onSurfaceVariant),
+            padding: EdgeInsets.zero,
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Edit'),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        subtitle: subtitle == null || subtitle.isEmpty
-            ? null
-            : Text(subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textStyles.bodySmall
-                    ?.copyWith(color: colors.onSurfaceVariant)),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-                onPressed: onEdit,
-                icon:
-                    Icon(Icons.edit, size: 20, color: colors.onSurfaceVariant)),
-            IconButton(
-                onPressed: onDelete,
-                icon:
-                    Icon(Icons.delete_outline, size: 20, color: colors.error)),
-            ReorderableDragStartListener(
-              index:
-                  0, // Not used by listener, but required by parent? No, standard usage is automatic in list
-              child: Icon(Icons.drag_indicator, color: colors.outline),
-            ),
-          ],
-        ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, size: 20, color: colors.error),
+                    const SizedBox(width: 12),
+                    Text('Delete', style: TextStyle(color: colors.error)),
+                  ],
+                ),
+              ),
+            ],
+            onSelected: (value) {
+              if (value == 'edit') onEdit();
+              if (value == 'delete') onDelete();
+            },
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
     );
   }
@@ -700,77 +936,121 @@ class _BucketListTile extends StatelessWidget {
   final VoidCallback onToggleVisited;
   final VoidCallback onDelete;
   final VoidCallback onOpen;
+  final int index;
 
-  const _BucketListTile(
-      {required this.place,
-      required this.onToggleVisited,
-      required this.onDelete,
-      required this.onOpen});
+  const _BucketListTile({
+    required this.place,
+    required this.onToggleVisited,
+    required this.onDelete,
+    required this.onOpen,
+    required this.index,
+  });
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: place.isVisited
-            ? colors.surfaceContainerHighest.withValues(alpha: 0.3)
-            : colors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: colors.shadow.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        onTap: onOpen,
-        contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: place.isVisited
-                ? colors.secondary.withValues(alpha: 0.1)
-                : colors.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Center(
-              child:
-                  Text(place.typeEmoji, style: const TextStyle(fontSize: 24))),
+    return GestureDetector(
+      onTap: onOpen,
+      child: Container(
+        decoration: BoxDecoration(
+          color: place.isVisited
+              ? colors.surfaceContainerHighest.withValues(alpha: 0.3)
+              : colors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: colors.outline.withValues(alpha: 0.08)),
         ),
-        title: Text(
-          place.name,
-          style: textStyles.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            decoration: place.isVisited ? TextDecoration.lineThrough : null,
-            color: place.isVisited ? colors.onSurfaceVariant : colors.onSurface,
-          ),
-        ),
-        subtitle: Text(
-          place.typeLabel,
-          style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
-            Checkbox(
-              value: place.isVisited,
-              onChanged: (_) => onToggleVisited(),
-              activeColor: AppColors.success,
-            ),
-            IconButton(
-              icon: Icon(Icons.delete_outline, color: colors.error),
-              onPressed: onDelete,
-            ),
+            // Drag handle
             ReorderableDragStartListener(
-              index: 0,
-              child: Icon(Icons.drag_indicator, color: colors.outline),
+              index: index,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                child:
+                    Icon(Icons.drag_indicator, color: colors.outline, size: 20),
+              ),
             ),
+            // Leading emoji
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: place.isVisited
+                    ? colors.secondary.withValues(alpha: 0.1)
+                    : colors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Center(
+                  child:
+                      Text(place.typeEmoji, style: const TextStyle(fontSize: 20))),
+            ),
+            const SizedBox(width: 12),
+            // Content
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      place.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textStyles.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        decoration:
+                            place.isVisited ? TextDecoration.lineThrough : null,
+                        color: place.isVisited
+                            ? colors.onSurfaceVariant
+                            : colors.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      place.typeLabel,
+                      style: textStyles.bodySmall
+                          ?.copyWith(color: colors.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Visited checkbox
+            SizedBox(
+              width: 40,
+              child: Checkbox(
+                value: place.isVisited,
+                onChanged: (_) => onToggleVisited(),
+                activeColor: AppColors.success,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+            // Delete action
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert,
+                  color: colors.onSurfaceVariant, size: 20),
+              padding: EdgeInsets.zero,
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, size: 20, color: colors.error),
+                      const SizedBox(width: 12),
+                      Text('Remove', style: TextStyle(color: colors.error)),
+                    ],
+                  ),
+                ),
+              ],
+              onSelected: (value) {
+                if (value == 'delete') onDelete();
+              },
+            ),
+            const SizedBox(width: 4),
           ],
         ),
       ),
@@ -825,23 +1105,25 @@ class _QuickStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textStyles = Theme.of(context).textTheme;
-    final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(value,
-              style: textStyles.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(width: 8),
+              style: textStyles.labelLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              )),
+          const SizedBox(width: 4),
           Text(label,
-              style: textStyles.labelSmall
-                  ?.copyWith(color: colors.onSurfaceVariant)),
+              style: textStyles.labelSmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.8),
+              )),
         ],
       ),
     );
@@ -1167,8 +1449,9 @@ class _EditTripSheetState extends State<_EditTripSheet> {
       setState(() {
         if (start) {
           _startDate = picked;
-          if (_endDate.isBefore(_startDate))
+          if (_endDate.isBefore(_startDate)) {
             _endDate = _startDate.add(const Duration(days: 1));
+          }
         } else {
           _endDate = picked;
         }
@@ -1487,8 +1770,9 @@ class _AddOrEditItinerarySheetState extends State<_AddOrEditItinerarySheet> {
         await svc.updateItineraryItem(widget.trip.id, item);
       }
     } else {
-      if (_titleController.text.trim().isEmpty && widget.existing == null)
+      if (_titleController.text.trim().isEmpty && widget.existing == null) {
         return;
+      }
       final item = (widget.existing ??
               ItineraryItem(
                 id: const Uuid().v4(),
@@ -1514,5 +1798,52 @@ class _AddOrEditItinerarySheetState extends State<_AddOrEditItinerarySheet> {
       }
     }
     if (mounted) Navigator.pop(context);
+  }
+}
+
+/// Quick add chip for common itinerary items
+class _QuickAddChip extends StatelessWidget {
+  final String emoji;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickAddChip({
+    required this.emoji,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: colors.outline.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: colors.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

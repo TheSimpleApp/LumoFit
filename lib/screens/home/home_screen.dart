@@ -20,20 +20,17 @@ class HomeScreen extends StatelessWidget {
     final textStyles = context.textTheme;
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         heroTag: 'quick_add_fab',
         onPressed: () async {
           await HapticUtils.light();
           await _captureQuickPhoto(context);
         },
-        tooltip: 'Quick Capture',
+        tooltip: 'Log Activity Photo',
         backgroundColor: colors.primary,
         foregroundColor: Colors.white,
-        child: const Icon(Icons.camera_alt_outlined),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.15), width: 1),
-        ),
+        icon: const Icon(Icons.add_a_photo),
+        label: const Text('Log Activity'),
       ),
       body: SafeArea(
         child: CustomScrollView(
@@ -96,6 +93,89 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
 
+            // Active Trip Card (if any)
+            Consumer<TripService>(
+              builder: (context, tripService, _) {
+                final activeTrip = tripService.activeTrip;
+                if (activeTrip == null) return const SizedBox.shrink();
+
+                return SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    child: InkWell(
+                      onTap: () => context.push('/trip/${activeTrip.id}'),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: colors.primaryContainer,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: colors.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: colors.primary.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.flight_takeoff,
+                                color: colors.primary,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Active Trip',
+                                    style: textStyles.labelSmall?.copyWith(
+                                      color: colors.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    activeTrip.destinationCity,
+                                    style: textStyles.titleMedium?.copyWith(
+                                      color: colors.onPrimaryContainer,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (activeTrip.destinationCountry != null)
+                                    Text(
+                                      activeTrip.destinationCountry!,
+                                      style: textStyles.bodySmall?.copyWith(
+                                        color: colors.onPrimaryContainer
+                                            .withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              color: colors.primary.withValues(alpha: 0.6),
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                        .animate()
+                        .fadeIn(delay: 50.ms)
+                        .slideY(begin: 0.1, delay: 50.ms),
+                  ),
+                );
+              },
+            ),
+
             // Streak Card
             SliverToBoxAdapter(
               child: Padding(
@@ -107,13 +187,13 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
 
-            // Cairo Guide Card
+            // Fitness Guide Card
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                 child: InkWell(
                   onTap: () {
-                    context.push('/cairo-guide');
+                    context.push('/fitness-guide');
                   },
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
@@ -146,7 +226,7 @@ class HomeScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Ask Cairo Guide',
+                                'Fitness Guide',
                                 style: textStyles.titleMedium?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,

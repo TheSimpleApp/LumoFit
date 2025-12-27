@@ -1,6 +1,8 @@
-// AI-related models for Egypt fitness guide features
+// AI-related models for fitness guide features
+import 'dart:convert';
 
-/// Response from the Egypt fitness guide AI
+/// Response from the fitness guide AI
+/// Note: Named EgyptGuideResponse for legacy compatibility, but works globally
 class EgyptGuideResponse {
   final String text;
   final List<SuggestedPlace> suggestedPlaces;
@@ -19,22 +21,51 @@ class EgyptGuideResponse {
   });
 
   factory EgyptGuideResponse.fromJson(Map<String, dynamic> json) {
+    // Get the raw text field
+    String rawText = json['text'] as String? ?? '';
+    String text = rawText;
+    Map<String, dynamic>? nestedJson;
+
+    // Defensive: If text looks like JSON, try to extract the actual text
+    // This handles cases where Gemini returns nested JSON in the text field
+    if (rawText.trimLeft().startsWith('{')) {
+      try {
+        nestedJson = jsonDecode(rawText) as Map<String, dynamic>;
+        if (nestedJson['text'] != null) {
+          text = nestedJson['text'] as String;
+        }
+      } catch (_) {
+        // Not valid JSON, use as-is
+        nestedJson = null;
+      }
+    }
+
     return EgyptGuideResponse(
-      text: json['text'] as String? ?? '',
-      suggestedPlaces: (json['suggestedPlaces'] as List<dynamic>?)
+      text: text,
+      suggestedPlaces: (nestedJson?['suggestedPlaces'] as List<dynamic>?)
+              ?.map((e) => SuggestedPlace.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          (json['suggestedPlaces'] as List<dynamic>?)
               ?.map((e) => SuggestedPlace.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
       suggestedFilters: json['suggestedFilters'] as Map<String, dynamic>?,
-      elements: (json['elements'] as List<dynamic>?)
-          ?.map((e) => MessageElement.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      quickReplies: (json['quickReplies'] as List<dynamic>?)
-          ?.map((e) => QuickReply.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      tags: (json['tags'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
+      elements: (nestedJson?['elements'] as List<dynamic>?)
+              ?.map((e) => MessageElement.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          (json['elements'] as List<dynamic>?)
+              ?.map((e) => MessageElement.fromJson(e as Map<String, dynamic>))
+              .toList(),
+      quickReplies: (nestedJson?['quickReplies'] as List<dynamic>?)
+              ?.map((e) => QuickReply.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          (json['quickReplies'] as List<dynamic>?)
+              ?.map((e) => QuickReply.fromJson(e as Map<String, dynamic>))
+              .toList(),
+      tags: (nestedJson?['tags'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList(),
     );
   }
 
@@ -49,6 +80,9 @@ class EgyptGuideResponse {
         if (tags != null) 'tags': tags,
       };
 }
+
+/// Type alias for global fitness guide response
+typedef FitnessGuideResponse = EgyptGuideResponse;
 
 /// A place suggested by the AI guide
 class SuggestedPlace {
@@ -816,7 +850,9 @@ class AiChatMessage {
       };
 }
 
-/// Egypt destination constants with coordinates
+/// Popular fitness destination constants with coordinates
+/// Note: Currently contains Egypt destinations but app supports global search
+/// via location-based discovery and Google Places API
 class EgyptDestinations {
   static const List<EgyptDestination> all = [
     EgyptDestination(

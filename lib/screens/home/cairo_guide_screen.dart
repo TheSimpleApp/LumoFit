@@ -4,19 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'package:fittravel/services/services.dart';
 import 'package:fittravel/models/ai_models.dart';
 import 'package:fittravel/models/place_model.dart';
 
-class CairoGuideScreen extends StatefulWidget {
-  const CairoGuideScreen({super.key});
+/// Fitness Guide - AI-powered fitness recommendations for any location
+/// Formerly CairoGuideScreen, now location-aware
+class FitnessGuideScreen extends StatefulWidget {
+  const FitnessGuideScreen({super.key});
 
   @override
-  State<CairoGuideScreen> createState() => _CairoGuideScreenState();
+  State<FitnessGuideScreen> createState() => _FitnessGuideScreenState();
 }
 
-class _CairoGuideScreenState extends State<CairoGuideScreen> {
-  static const String _conversationKey = 'cairo_guide_conversation';
+class _FitnessGuideScreenState extends State<FitnessGuideScreen> {
+  static const String _conversationKey = 'fitness_guide_conversation';
 
   final AiGuideService _aiGuide = AiGuideService();
   final TextEditingController _questionController = TextEditingController();
@@ -25,14 +28,43 @@ class _CairoGuideScreenState extends State<CairoGuideScreen> {
   final List<AiChatMessage> _messages = [];
   bool _isLoading = false;
 
+  // Location-aware destination
+  String _currentDestination = 'your area';
+
   @override
   void initState() {
     super.initState();
     _loadConversation();
+    _initDestination();
+
+    // Listen for trip changes to update destination
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TripService>().addListener(_onTripChanged);
+    });
+  }
+
+  /// Initialize destination from active trip or default
+  void _initDestination() {
+    final tripService = context.read<TripService>();
+    final activeTrip = tripService.activeTrip;
+    if (activeTrip != null) {
+      setState(() {
+        _currentDestination = activeTrip.destinationCity;
+      });
+    } else {
+      setState(() {
+        _currentDestination = 'your area';
+      });
+    }
+  }
+
+  void _onTripChanged() {
+    _initDestination();
   }
 
   @override
   void dispose() {
+    context.read<TripService>().removeListener(_onTripChanged);
     _questionController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -48,9 +80,33 @@ class _CairoGuideScreenState extends State<CairoGuideScreen> {
         final messages = jsonList
             .map((e) => AiChatMessage.fromJson(e as Map<String, dynamic>))
             .toList();
-        if (mounted && messages.isNotEmpty) {
+
+        // Clean up any messages that might have raw JSON as content
+        final cleanedMessages = messages.map((msg) {
+          if (!msg.isUser && msg.content.trimLeft().startsWith('{')) {
+            // Try to extract text from raw JSON content
+            try {
+              final parsed = json.decode(msg.content);
+              if (parsed is Map && parsed['text'] != null) {
+                return AiChatMessage(
+                  id: msg.id,
+                  content: parsed['text'] as String,
+                  isUser: msg.isUser,
+                  timestamp: msg.timestamp,
+                  suggestedPlaces: msg.suggestedPlaces,
+                  elements: msg.elements,
+                );
+              }
+            } catch (_) {
+              // Not valid JSON, keep as is
+            }
+          }
+          return msg;
+        }).toList();
+
+        if (mounted && cleanedMessages.isNotEmpty) {
           setState(() {
-            _messages.addAll(messages);
+            _messages.addAll(cleanedMessages);
           });
           // Scroll to bottom after loading
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -133,7 +189,7 @@ class _CairoGuideScreenState extends State<CairoGuideScreen> {
       // Use askEgyptGuide to get structured response with suggested places
       final response = await _aiGuide.askEgyptGuide(
         question: question,
-        destination: 'Cairo', // Default to Cairo context for this screen
+        destination: _currentDestination, // Use active trip destination or user's area
       );
 
       if (mounted) {
@@ -161,9 +217,23 @@ class _CairoGuideScreenState extends State<CairoGuideScreen> {
           elements.add(MessageElement.places(response.suggestedPlaces));
         }
 
+        // Final safety check: ensure text isn't raw JSON
+        // This handles edge cases where parsing didn't catch nested JSON
+        String cleanText = response.text;
+        if (cleanText.trimLeft().startsWith('{')) {
+          try {
+            final parsed = json.decode(cleanText);
+            if (parsed is Map && parsed['text'] != null) {
+              cleanText = parsed['text'] as String;
+            }
+          } catch (_) {
+            // Not valid JSON, use as-is
+          }
+        }
+
         setState(() {
           _messages.add(AiChatMessage.assistant(
-            response.text,
+            cleanText,
             suggestedPlaces: response.suggestedPlaces,
             elements: elements.isEmpty ? null : elements,
           ));
@@ -771,14 +841,14 @@ class _CairoGuideScreenState extends State<CairoGuideScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Ask Cairo Guide',
+              'Fitness Guide',
               style: textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 12),
             Text(
-              'Get AI-powered recommendations for gyms, restaurants, events, and activities in Cairo',
+              'Get AI-powered recommendations for gyms, restaurants, events, and activities in $_currentDestination',
               textAlign: TextAlign.center,
               style: textTheme.bodyMedium?.copyWith(
                 color: colors.onSurfaceVariant,
@@ -794,9 +864,9 @@ class _CairoGuideScreenState extends State<CairoGuideScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              '• "Best gyms in Zamalek?"\n'
+              '• "Best gyms nearby?"\n'
               '• "Healthy restaurants near me?"\n'
-              '• "Where can I run in Cairo?"',
+              '• "Where can I run?"',
               textAlign: TextAlign.center,
               style: textTheme.bodyMedium?.copyWith(
                 color: colors.onSurfaceVariant,
@@ -819,7 +889,7 @@ class _CairoGuideScreenState extends State<CairoGuideScreen> {
           children: [
             Icon(Icons.psychology, color: colors.primary),
             const SizedBox(width: 8),
-            const Text('Cairo Guide'),
+            Text('Fitness Guide${_currentDestination != 'your area' ? ' - $_currentDestination' : ''}'),
           ],
         ),
         actions: [
@@ -888,7 +958,7 @@ class _CairoGuideScreenState extends State<CairoGuideScreen> {
                     child: TextField(
                       controller: _questionController,
                       decoration: InputDecoration(
-                        hintText: 'Ask about Cairo fitness...',
+                        hintText: 'Ask about fitness in $_currentDestination...',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
