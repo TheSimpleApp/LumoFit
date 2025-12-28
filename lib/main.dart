@@ -81,6 +81,14 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => FeedbackService(storage)..initialize(),
         ),
+        ChangeNotifierProvider(
+          create: (context) => UserTripEventsLoader(
+            storage: storage,
+            userService: context.read<UserService>(),
+            tripService: context.read<TripService>(),
+            eventService: context.read<EventService>(),
+          )..initialize(),
+        ),
       ],
       child: MaterialApp.router(
         title: 'LumoFit',
