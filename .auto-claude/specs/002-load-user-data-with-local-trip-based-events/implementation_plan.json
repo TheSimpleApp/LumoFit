@@ -15,9 +15,13 @@
           "id": "subtask-1-1",
           "description": "Add StorageKeys for trip events caching",
           "service": "flutter_app",
-          "files_to_modify": ["lib/services/storage_service.dart"],
+          "files_to_modify": [
+            "lib/services/storage_service.dart"
+          ],
           "files_to_create": [],
-          "patterns_from": ["lib/services/storage_service.dart"],
+          "patterns_from": [
+            "lib/services/storage_service.dart"
+          ],
           "verification": {
             "type": "command",
             "command": "grep -n 'tripEvents' lib/services/storage_service.dart",
@@ -28,7 +32,9 @@
             "Add 'static const String tripEventsUpdated = \"trip_events_updated\"' for cache timestamps",
             "Follow existing naming convention (snake_case for key values)"
           ],
-          "status": "pending"
+          "status": "completed",
+          "notes": "Added tripEvents storage key to StorageKeys class at line 24. Verification passed.",
+          "updated_at": "2025-12-28T19:26:09.215935+00:00"
         }
       ]
     },
@@ -37,7 +43,9 @@
       "name": "Core Loader Service",
       "type": "implementation",
       "description": "Create the UserTripEventsLoader service that orchestrates data loading with caching and error handling",
-      "depends_on": ["phase-1-storage"],
+      "depends_on": [
+        "phase-1-storage"
+      ],
       "parallel_safe": false,
       "subtasks": [
         {
@@ -45,7 +53,9 @@
           "description": "Create UserTripEventsLoader service class with ChangeNotifier pattern",
           "service": "flutter_app",
           "files_to_modify": [],
-          "files_to_create": ["lib/services/user_trip_events_loader.dart"],
+          "files_to_create": [
+            "lib/services/user_trip_events_loader.dart"
+          ],
           "patterns_from": [
             "lib/services/event_service.dart",
             "lib/services/trip_service.dart",
@@ -64,13 +74,17 @@
             "Create _tripEventsKey(tripId) helper for per-trip cache keys",
             "Follow existing service patterns exactly"
           ],
-          "status": "pending"
+          "status": "completed",
+          "notes": "Created UserTripEventsLoader service class with ChangeNotifier pattern. Implemented: dependency injection for StorageService/EventService/TripService/UserService, _isLoading state with getters, initialize() method loading from cache, _tripEventsKey() helper for per-trip cache keys, cache TTL constants (1h active, 24h upcoming), cache validation methods. File: lib/services/user_trip_events_loader.dart (228 lines)",
+          "updated_at": "2025-12-28T19:28:20.970629+00:00"
         },
         {
           "id": "subtask-2-2",
           "description": "Implement loadEventsForTrip() method with caching",
           "service": "flutter_app",
-          "files_to_modify": ["lib/services/user_trip_events_loader.dart"],
+          "files_to_modify": [
+            "lib/services/user_trip_events_loader.dart"
+          ],
           "files_to_create": [],
           "patterns_from": [
             "lib/services/event_service.dart",
@@ -90,15 +104,21 @@
             "Cache results with setJsonList()",
             "Return empty list on failure (fail-open)"
           ],
-          "status": "pending"
+          "status": "completed",
+          "notes": "Implemented loadEventsForTrip() method with stale-while-revalidate caching strategy. Features: cache validation using TTL (1h active, 24h upcoming), fallback to cached data on API failures (fail-open), EventService.fetchExternalEvents() integration with trip dates, trip destination city for location search, comprehensive error handling. Verification passed: grep confirms method exists at line 241.",
+          "updated_at": "2025-12-28T19:30:38.139189+00:00"
         },
         {
           "id": "subtask-2-3",
           "description": "Implement loadAllTripEvents() method for bulk loading",
           "service": "flutter_app",
-          "files_to_modify": ["lib/services/user_trip_events_loader.dart"],
+          "files_to_modify": [
+            "lib/services/user_trip_events_loader.dart"
+          ],
           "files_to_create": [],
-          "patterns_from": ["lib/services/trip_service.dart"],
+          "patterns_from": [
+            "lib/services/trip_service.dart"
+          ],
           "verification": {
             "type": "command",
             "command": "grep -n 'loadAllTripEvents' lib/services/user_trip_events_loader.dart",
@@ -117,9 +137,13 @@
           "id": "subtask-2-4",
           "description": "Implement cache refresh and invalidation",
           "service": "flutter_app",
-          "files_to_modify": ["lib/services/user_trip_events_loader.dart"],
+          "files_to_modify": [
+            "lib/services/user_trip_events_loader.dart"
+          ],
           "files_to_create": [],
-          "patterns_from": ["lib/openai/openai_config.dart"],
+          "patterns_from": [
+            "lib/openai/openai_config.dart"
+          ],
           "verification": {
             "type": "command",
             "command": "grep -n 'refreshEventsForTrip\\|invalidateCache' lib/services/user_trip_events_loader.dart",
@@ -138,9 +162,13 @@
           "id": "subtask-2-5",
           "description": "Add comprehensive error handling and logging",
           "service": "flutter_app",
-          "files_to_modify": ["lib/services/user_trip_events_loader.dart"],
+          "files_to_modify": [
+            "lib/services/user_trip_events_loader.dart"
+          ],
           "files_to_create": [],
-          "patterns_from": ["lib/services/event_service.dart"],
+          "patterns_from": [
+            "lib/services/event_service.dart"
+          ],
           "verification": {
             "type": "command",
             "command": "grep -c 'debugPrint\\|try\\|catch' lib/services/user_trip_events_loader.dart",
@@ -162,16 +190,22 @@
       "name": "Service Integration",
       "type": "integration",
       "description": "Export the new service and register it in the Provider tree",
-      "depends_on": ["phase-2-loader-service"],
+      "depends_on": [
+        "phase-2-loader-service"
+      ],
       "parallel_safe": false,
       "subtasks": [
         {
           "id": "subtask-3-1",
           "description": "Export UserTripEventsLoader in services barrel file",
           "service": "flutter_app",
-          "files_to_modify": ["lib/services/services.dart"],
+          "files_to_modify": [
+            "lib/services/services.dart"
+          ],
           "files_to_create": [],
-          "patterns_from": ["lib/services/services.dart"],
+          "patterns_from": [
+            "lib/services/services.dart"
+          ],
           "verification": {
             "type": "command",
             "command": "grep 'user_trip_events_loader' lib/services/services.dart",
@@ -187,9 +221,13 @@
           "id": "subtask-3-2",
           "description": "Register UserTripEventsLoader in Provider tree",
           "service": "flutter_app",
-          "files_to_modify": ["lib/main.dart"],
+          "files_to_modify": [
+            "lib/main.dart"
+          ],
           "files_to_create": [],
-          "patterns_from": ["lib/main.dart"],
+          "patterns_from": [
+            "lib/main.dart"
+          ],
           "verification": {
             "type": "command",
             "command": "grep 'UserTripEventsLoader' lib/main.dart",
@@ -229,7 +267,9 @@
       "name": "Unit and Integration Tests",
       "type": "implementation",
       "description": "Create comprehensive tests for the new loader service",
-      "depends_on": ["phase-3-integration"],
+      "depends_on": [
+        "phase-3-integration"
+      ],
       "parallel_safe": false,
       "subtasks": [
         {
@@ -237,7 +277,9 @@
           "description": "Create unit tests for UserTripEventsLoader",
           "service": "flutter_app",
           "files_to_modify": [],
-          "files_to_create": ["test/services/user_trip_events_loader_test.dart"],
+          "files_to_create": [
+            "test/services/user_trip_events_loader_test.dart"
+          ],
           "patterns_from": [],
           "verification": {
             "type": "command",
@@ -260,7 +302,9 @@
           "description": "Create integration test for full data flow",
           "service": "flutter_app",
           "files_to_modify": [],
-          "files_to_create": ["test/integration/user_trip_events_integration_test.dart"],
+          "files_to_create": [
+            "test/integration/user_trip_events_integration_test.dart"
+          ],
           "patterns_from": [],
           "verification": {
             "type": "command",
@@ -281,7 +325,9 @@
   "summary": {
     "total_phases": 4,
     "total_subtasks": 11,
-    "services_involved": ["flutter_app"],
+    "services_involved": [
+      "flutter_app"
+    ],
     "parallelism": {
       "max_parallel_phases": 1,
       "parallel_groups": [],
@@ -294,7 +340,10 @@
     "risk_level": "medium",
     "skip_validation": false,
     "test_creation_phase": "phase-4-testing",
-    "test_types_required": ["unit", "integration"],
+    "test_types_required": [
+      "unit",
+      "integration"
+    ],
     "security_scanning_required": false,
     "staging_deployment_required": false,
     "acceptance_criteria": [
@@ -337,13 +386,20 @@
   "qa_acceptance": {
     "unit_tests": {
       "required": true,
-      "commands": ["flutter test test/services/user_trip_events_loader_test.dart"],
+      "commands": [
+        "flutter test test/services/user_trip_events_loader_test.dart"
+      ],
       "minimum_coverage": null
     },
     "integration_tests": {
       "required": true,
-      "commands": ["flutter test test/integration/user_trip_events_integration_test.dart"],
-      "services_to_test": ["UserTripEventsLoader", "StorageService"]
+      "commands": [
+        "flutter test test/integration/user_trip_events_integration_test.dart"
+      ],
+      "services_to_test": [
+        "UserTripEventsLoader",
+        "StorageService"
+      ]
     },
     "e2e_tests": {
       "required": false,
@@ -365,5 +421,6 @@
   "qa_signoff": null,
   "created_at": "2025-12-28T19:06:07.806Z",
   "updated_at": "2025-12-28T19:50:00.000Z",
-  "status": "pending"
+  "status": "pending",
+  "last_updated": "2025-12-28T19:30:38.139196+00:00"
 }

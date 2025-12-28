@@ -1,0 +1,10 @@
+{
+  "discovered_files": {
+    "lib/services/user_trip_events_loader.dart": {
+      "description": "New UserTripEventsLoader service orchestrating user/trip/event data loading with stale-while-revalidate caching. Uses StorageKeys.tripEvents with tripId suffix for per-trip caching. Cache TTL: 1h active trips, 24h upcoming.",
+      "category": "service",
+      "discovered_at": "2025-12-28T19:28:20.988528+00:00"
+    }
+  },
+  "last_updated": "2025-12-28T19:28:20.988536+00:00"
+}

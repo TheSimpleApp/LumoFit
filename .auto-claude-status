@@ -3,23 +3,23 @@
   "spec": "002-load-user-data-with-local-trip-based-events",
   "state": "building",
   "subtasks": {
-    "completed": 0,
+    "completed": 3,
     "total": 11,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Storage Foundation",
+    "current": "Core Loader Service",
     "id": null,
-    "total": 1
+    "total": 5
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 1,
+    "number": 4,
     "started_at": "2025-12-28T12:25:26.702090"
   },
-  "last_update": "2025-12-28T12:25:26.706489"
+  "last_update": "2025-12-28T12:31:01.236713"
 }

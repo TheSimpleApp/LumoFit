@@ -305,4 +305,62 @@ class UserTripEventsLoader extends ChangeNotifier {
       return const [];
     }
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Bulk Loading
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Load events for all relevant trips (active and upcoming).
+  ///
+  /// Fetches events for each trip in parallel where possible, updating the
+  /// cache for each. Returns a map of tripId -> events for all trips.
+  ///
+  /// This is useful for initial data population or full refresh scenarios.
+  /// Uses [_isRefreshing] flag to indicate background refresh activity.
+  Future<Map<String, List<EventModel>>> loadAllTripEvents() async {
+    _isRefreshing = true;
+    _lastError = null;
+    notifyListeners();
+
+    final results = <String, List<EventModel>>{};
+
+    try {
+      // Get all trips that need event loading
+      final trips = _getRelevantTrips();
+
+      if (trips.isEmpty) {
+        debugPrint('UserTripEventsLoader.loadAllTripEvents: No relevant trips found');
+        _isRefreshing = false;
+        notifyListeners();
+        return results;
+      }
+
+      debugPrint(
+          'UserTripEventsLoader.loadAllTripEvents: Loading events for ${trips.length} trips');
+
+      // Load events for each trip
+      for (final trip in trips) {
+        try {
+          final events = await loadEventsForTrip(trip);
+          results[trip.id] = events;
+        } catch (e) {
+          debugPrint(
+              'UserTripEventsLoader.loadAllTripEvents: Error loading events for trip ${trip.id}: $e');
+          // Continue loading other trips even if one fails
+          // Use cached data if available, otherwise empty list
+          results[trip.id] = _tripEvents[trip.id] ?? const [];
+        }
+      }
+
+      debugPrint(
+          'UserTripEventsLoader.loadAllTripEvents: Completed loading events for ${results.length} trips');
+    } catch (e) {
+      debugPrint('UserTripEventsLoader.loadAllTripEvents error: $e');
+      _lastError = 'Failed to load trip events: $e';
+    }
+
+    _isRefreshing = false;
+    notifyListeners();
+    return results;
+  }
 }
