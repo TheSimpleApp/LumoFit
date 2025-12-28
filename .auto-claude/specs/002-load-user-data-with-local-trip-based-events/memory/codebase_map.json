@@ -4,7 +4,17 @@
       "description": "New UserTripEventsLoader service orchestrating user/trip/event data loading with stale-while-revalidate caching. Uses StorageKeys.tripEvents with tripId suffix for per-trip caching. Cache TTL: 1h active trips, 24h upcoming.",
       "category": "service",
       "discovered_at": "2025-12-28T19:28:20.988528+00:00"
+    },
+    "test/services/user_trip_events_loader_test.dart": {
+      "description": "Comprehensive unit test suite for UserTripEventsLoader with 38 test cases. Uses manual mock classes (MockStorageService, MockEventService, MockTripService, MockUserService) since project doesn't include mockito/mocktail. Test fixtures: createTestTrip, createUpcomingTrip, createTestEvent, createTestEventList, createTestUser.",
+      "category": "testing",
+      "discovered_at": "2025-12-28T19:45:36.099668+00:00"
+    },
+    "test/integration/user_trip_events_integration_test.dart": {
+      "description": "Comprehensive integration test suite for UserTripEventsLoader with 20 test cases. Uses IntegrationMockStorageService with custom JSON encoding/decoding for in-memory storage simulation. Test groups: StorageService integration, cache persistence, concurrent load prevention, full data flow, Provider coordination.",
+      "category": "testing",
+      "discovered_at": "2025-12-28T19:49:58.294591+00:00"
     }
   },
-  "last_updated": "2025-12-28T19:28:20.988536+00:00"
+  "last_updated": "2025-12-28T19:49:58.294598+00:00"
 }

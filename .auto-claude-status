@@ -1,11 +1,11 @@
 {
   "active": true,
   "spec": "002-load-user-data-with-local-trip-based-events",
-  "state": "building",
+  "state": "complete",
   "subtasks": {
-    "completed": 9,
+    "completed": 11,
     "total": 11,
-    "in_progress": 1,
+    "in_progress": 0,
     "failed": 0
   },
   "phase": {
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 10,
+    "number": 11,
     "started_at": "2025-12-28T12:25:26.702090"
   },
-  "last_update": "2025-12-28T12:41:41.411545"
+  "last_update": "2025-12-28T12:50:22.680156"
 }
