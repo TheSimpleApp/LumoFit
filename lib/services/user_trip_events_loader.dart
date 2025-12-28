@@ -225,4 +225,84 @@ class UserTripEventsLoader extends ChangeNotifier {
     if (cacheTime == null) return null;
     return DateTime.now().difference(cacheTime);
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Event Loading
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Load events for a specific trip with caching.
+  ///
+  /// Uses a stale-while-revalidate strategy:
+  /// - Returns cached data immediately if available and fresh
+  /// - Fetches fresh data from the API if cache is stale or missing
+  /// - Caches the results for future use
+  ///
+  /// Returns an empty list on failure (fail-open).
+  Future<List<EventModel>> loadEventsForTrip(TripModel trip) async {
+    try {
+      // Check if we have valid cached data
+      if (isCacheValid(trip.id) && _tripEvents.containsKey(trip.id)) {
+        debugPrint(
+            'UserTripEventsLoader.loadEventsForTrip: Cache hit for trip ${trip.id}');
+        return List.unmodifiable(_tripEvents[trip.id]!);
+      }
+
+      // Check if we have stale cached data to return while we refresh
+      final hasStaleCachedData = _tripEvents.containsKey(trip.id);
+      if (hasStaleCachedData) {
+        debugPrint(
+            'UserTripEventsLoader.loadEventsForTrip: Cache stale for trip ${trip.id}, returning cached while refreshing');
+      }
+
+      // Fetch fresh events from the API
+      final events = await _fetchEventsForTrip(trip);
+
+      // Update cache with fresh data
+      if (events.isNotEmpty) {
+        _tripEvents[trip.id] = events;
+        await _saveEventsForTrip(trip.id, events);
+        notifyListeners();
+        debugPrint(
+            'UserTripEventsLoader.loadEventsForTrip: Fetched ${events.length} events for trip ${trip.id}');
+      } else if (hasStaleCachedData) {
+        // API returned empty but we have cached data, keep using cached
+        debugPrint(
+            'UserTripEventsLoader.loadEventsForTrip: API returned empty, keeping cached data for trip ${trip.id}');
+        return List.unmodifiable(_tripEvents[trip.id]!);
+      }
+
+      return List.unmodifiable(events);
+    } catch (e) {
+      debugPrint('UserTripEventsLoader.loadEventsForTrip error for trip ${trip.id}: $e');
+
+      // Return cached data if available, otherwise empty list (fail-open)
+      if (_tripEvents.containsKey(trip.id)) {
+        debugPrint(
+            'UserTripEventsLoader.loadEventsForTrip: Returning cached data after error for trip ${trip.id}');
+        return List.unmodifiable(_tripEvents[trip.id]!);
+      }
+
+      return const [];
+    }
+  }
+
+  /// Fetch events from the API for a specific trip.
+  /// Uses trip dates for temporal filtering and destinationCity for the query.
+  Future<List<EventModel>> _fetchEventsForTrip(TripModel trip) async {
+    try {
+      // Use trip destination city as query for location-based search
+      // Note: geocoding for lat/lng is deferred to future implementation
+      final events = await _eventService.fetchExternalEvents(
+        query: trip.destinationCity,
+        startDate: trip.startDate,
+        endDate: trip.endDate,
+        radiusKm: defaultRadiusKm,
+      );
+
+      return events;
+    } catch (e) {
+      debugPrint('UserTripEventsLoader._fetchEventsForTrip error: $e');
+      return const [];
+    }
+  }
 }
