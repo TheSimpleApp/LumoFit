@@ -286,6 +286,111 @@ class UserTripEventsLoader extends ChangeNotifier {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Cache Refresh and Invalidation
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Force refresh events for a specific trip, bypassing cache.
+  ///
+  /// This method always fetches fresh data from the API, regardless of cache
+  /// validity. Updates both in-memory and persistent cache on success.
+  /// Returns the fetched events or cached data on failure (fail-open).
+  Future<List<EventModel>> refreshEventsForTrip(String tripId) async {
+    final trip = _tripService.getTripById(tripId);
+    if (trip == null) {
+      debugPrint(
+          'UserTripEventsLoader.refreshEventsForTrip: Trip not found: $tripId');
+      return _tripEvents[tripId] ?? const [];
+    }
+
+    _isRefreshing = true;
+    notifyListeners();
+
+    try {
+      // Fetch fresh events from the API
+      final events = await _fetchEventsForTrip(trip);
+
+      // Update cache with fresh data
+      if (events.isNotEmpty) {
+        _tripEvents[tripId] = events;
+        await _saveEventsForTrip(tripId, events);
+        debugPrint(
+            'UserTripEventsLoader.refreshEventsForTrip: Refreshed ${events.length} events for trip $tripId');
+      } else if (_tripEvents.containsKey(tripId)) {
+        // API returned empty, keep existing cached data
+        debugPrint(
+            'UserTripEventsLoader.refreshEventsForTrip: API returned empty, keeping cached data for trip $tripId');
+      }
+
+      _isRefreshing = false;
+      notifyListeners();
+      return List.unmodifiable(events.isNotEmpty ? events : (_tripEvents[tripId] ?? const []));
+    } catch (e) {
+      debugPrint('UserTripEventsLoader.refreshEventsForTrip error for trip $tripId: $e');
+      _lastError = 'Failed to refresh events for trip: $e';
+
+      _isRefreshing = false;
+      notifyListeners();
+
+      // Return cached data on failure (fail-open)
+      return List.unmodifiable(_tripEvents[tripId] ?? const []);
+    }
+  }
+
+  /// Invalidate cache for a specific trip.
+  ///
+  /// Clears both in-memory and persistent cache for the specified trip.
+  /// After invalidation, the next call to [loadEventsForTrip] will fetch
+  /// fresh data from the API.
+  Future<void> invalidateCache(String tripId) async {
+    try {
+      // Remove from in-memory cache
+      _tripEvents.remove(tripId);
+      _tripEventsCacheTime.remove(tripId);
+
+      // Remove from persistent storage
+      await _storage.remove(_tripEventsKey(tripId));
+      await _storage.remove(_tripEventsCacheTimeKey(tripId));
+
+      debugPrint(
+          'UserTripEventsLoader.invalidateCache: Cache invalidated for trip $tripId');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('UserTripEventsLoader.invalidateCache error for trip $tripId: $e');
+    }
+  }
+
+  /// Invalidate cache for all trips.
+  ///
+  /// Clears both in-memory and persistent cache for all trips.
+  /// Useful when user logs out or data needs complete refresh.
+  Future<void> invalidateAllCache() async {
+    try {
+      // Get all trip IDs before clearing
+      final tripIds = _tripEvents.keys.toList();
+
+      // Clear in-memory cache
+      _tripEvents.clear();
+      _tripEventsCacheTime.clear();
+
+      // Clear persistent storage for each trip
+      for (final tripId in tripIds) {
+        await _storage.remove(_tripEventsKey(tripId));
+        await _storage.remove(_tripEventsCacheTimeKey(tripId));
+      }
+
+      debugPrint(
+          'UserTripEventsLoader.invalidateAllCache: Cache invalidated for ${tripIds.length} trips');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('UserTripEventsLoader.invalidateAllCache error: $e');
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Event Fetching
+  // ─────────────────────────────────────────────────────────────────────────
+
   /// Fetch events from the API for a specific trip.
   /// Uses trip dates for temporal filtering and destinationCity for the query.
   Future<List<EventModel>> _fetchEventsForTrip(TripModel trip) async {
