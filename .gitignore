@@ -59,3 +59,8 @@ ios/fastlane/apple_session_cookie.yml
 
 # OpenMemory - IDE/Assistant specific rules
 .cursor/rules/openmemory.mdc
+
+# Auto Claude data directory
+.auto-claude/
+.worktrees/
+.claude_settings.json

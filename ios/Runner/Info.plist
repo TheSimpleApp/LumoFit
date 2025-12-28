@@ -45,15 +45,21 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-  <key>NSCameraUsageDescription</key>
-  <string>We use the camera so you can quickly capture photos for your trips.</string>
-  <key>NSPhotoLibraryUsageDescription</key>
-  <string>We access your photo library so you can choose images for your trips.</string>
-  <key>NSPhotoLibraryAddUsageDescription</key>
-  <string>We save captured photos to your library when requested.</string>
-  <key>NSLocationWhenInUseUsageDescription</key>
-  <string>We use your location to show nearby places, events, and improve recommendations.</string>
-  <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-  <string>We use your location to track your activities during trips, show nearby places and events, and provide location-based recommendations even when the app is in the background.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>We use the camera so you can quickly capture photos for your trips.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We access your photo library so you can choose images for your trips.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We save captured photos to your library when requested.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We use your location to show nearby places, events, and improve recommendations.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We use your location to track your activities during trips, show nearby places and events, and provide location-based recommendations even when the app is in the background.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>This app uses the local network for Flutter debugging and hot reload during development.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_dartVmService._tcp</string>
+	</array>
 </dict>
 </plist>
