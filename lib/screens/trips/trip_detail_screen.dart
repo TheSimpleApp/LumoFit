@@ -55,7 +55,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     }
 
     final dateRange =
-        '${DateFormat('MMM d, yyyy').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}';
+        '${DateFormat('MMM d').format(trip.startDate)} - ${DateFormat('MMM d, yyyy').format(trip.endDate)}';
 
     // Sort saved places based on the order in trip.savedPlaceIds
     final associatedPlaces = trip.savedPlaceIds
@@ -64,203 +64,109 @@ class _TripDetailScreenState extends State<TripDetailScreen>
         .toList();
 
     return Scaffold(
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverAppBar(
-              pinned: true,
-              expandedHeight: 220,
-              leading: IconButton(
-                onPressed: () => context.pop(),
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: colors.surface.withValues(alpha: 0.9),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.arrow_back, color: colors.onSurface),
-                ),
-              ),
-              actions: [
-                IconButton(
-                  tooltip: 'Edit trip',
-                  onPressed: () => _showEditTripSheet(context, trip),
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: colors.surface.withValues(alpha: 0.9),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.edit, color: colors.onSurface),
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  itemBuilder: (context) => [
-                    if (!trip.isActive)
-                      const PopupMenuItem(
-                          value: 'activate', child: Text('Set Active Trip')),
-                    const PopupMenuItem(
-                        value: 'delete', child: Text('Delete Trip')),
-                  ],
-                  onSelected: (value) async {
-                    if (value == 'activate') {
-                      await context.read<TripService>().setActiveTrip(trip.id);
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Active trip set'),
-                              behavior: SnackBarBehavior.floating),
-                        );
-                      }
-                    }
-                    if (value == 'delete') {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Delete Trip?'),
-                          content: const Text('This action cannot be undone.'),
-                          actions: [
-                            TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Cancel')),
-                            TextButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text('Delete')),
-                          ],
-                        ),
-                      );
-                      if (confirm == true) {
-                        await context.read<TripService>().deleteTrip(trip.id);
-                        if (mounted) context.pop();
-                      }
-                    }
-                  },
-                ),
-                const SizedBox(width: 8),
-              ],
-              flexibleSpace: FlexibleSpaceBar(
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Destination cover photo
-                    Image.network(
-                      'https://source.unsplash.com/800x600/?${Uri.encodeComponent(trip.destinationCity)},city,travel',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              AppColors.primary.withValues(alpha: 0.25),
-                              colors.surface,
-                            ],
-                          ),
-                        ),
-                      ),
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          color: colors.surfaceContainerHighest,
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    // Gradient overlay for text readability
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.4),
-                            Colors.black.withValues(alpha: 0.85),
-                          ],
-                          stops: const [0.0, 0.4, 1.0],
-                        ),
-                      ),
-                    ),
-                    // Content overlay - positioned above TabBar (TabBar height ~48px + padding)
-                    Positioned(
-                      left: 16,
-                      right: 16,
-                      bottom: 64,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Status pill at top
-                          _StatusPill(status: trip.status),
-                          const SizedBox(height: 8),
-                          // City name
-                          Text(
-                            trip.destinationCity,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: textStyles.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          // Date range
-                          Text(
-                            dateRange,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: textStyles.bodySmall?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.85),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          // Stats row
-                          Row(
-                            children: [
-                              _QuickStat(
-                                  value: '${trip.durationDays}', label: 'Days'),
-                              const SizedBox(width: 8),
-                              _QuickStat(
-                                  value: '${associatedPlaces.length}',
-                                  label: 'Places'),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              bottom: TabBar(
-                controller: _tabController,
-                labelColor: colors.primary,
-                unselectedLabelColor: colors.onSurfaceVariant,
-                indicatorColor: colors.primary,
-                tabs: const [
-                  Tab(text: 'Itinerary'),
-                  Tab(text: 'Bucket List'),
-                  Tab(text: 'Activity'),
-                ],
+      appBar: AppBar(
+        leading: IconButton(
+          onPressed: () => context.pop(),
+          icon: const Icon(Icons.arrow_back),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              trip.destinationCity,
+              style: textStyles.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ];
-        },
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _ItineraryTab(trip: trip, associatedPlaces: associatedPlaces),
-            _BucketListTab(trip: trip, associatedPlaces: associatedPlaces),
-            _ActivityTab(trip: trip, allPlaces: placeService.savedPlaces),
+            Text(
+              dateRange,
+              style: textStyles.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Edit trip',
+            onPressed: () => _showEditTripSheet(context, trip),
+            icon: const Icon(Icons.edit_outlined),
+          ),
+          PopupMenuButton<String>(
+            itemBuilder: (context) => [
+              if (!trip.isActive)
+                const PopupMenuItem(
+                    value: 'activate', child: Text('Set Active Trip')),
+              const PopupMenuItem(
+                  value: 'delete', child: Text('Delete Trip')),
+            ],
+            onSelected: (value) async {
+              if (value == 'activate') {
+                await context.read<TripService>().setActiveTrip(trip.id);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Active trip set'),
+                        behavior: SnackBarBehavior.floating),
+                  );
+                }
+              }
+              if (value == 'delete') {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Delete Trip?'),
+                    content: const Text('This action cannot be undone.'),
+                    actions: [
+                      TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancel')),
+                      TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Delete')),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await context.read<TripService>().deleteTrip(trip.id);
+                  if (mounted) context.pop();
+                }
+              }
+            },
+          ),
+          const SizedBox(width: 4),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: colors.primary,
+          unselectedLabelColor: colors.onSurfaceVariant,
+          indicatorColor: colors.primary,
+          tabs: const [
+            Tab(text: 'Itinerary'),
+            Tab(text: 'Bucket List'),
+            Tab(text: 'Activity'),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          // Trip info header
+          _TripInfoHeader(
+            trip: trip,
+            placesCount: associatedPlaces.length,
+          ),
+          // Tab content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _ItineraryTab(trip: trip, associatedPlaces: associatedPlaces),
+                _BucketListTab(trip: trip, associatedPlaces: associatedPlaces),
+                _ActivityTab(trip: trip, allPlaces: placeService.savedPlaces),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -310,272 +216,256 @@ class _ItineraryTabState extends State<_ItineraryTab> {
           .add(Duration(days: i)),
     );
 
-    return Column(
-      children: [
-        // Day Picker pinned at top of tab
-        Container(
-          color: colors.surface,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: SizedBox(
-            height: 42,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              scrollDirection: Axis.horizontal,
-              itemCount: days.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final d = days[index];
-                final isSel = _isSameDay(d, _selectedDate);
-                return ChoiceChip(
-                  showCheckmark: false,
-                  selected: isSel,
-                  label: Text(DateFormat('EEE, MMM d').format(d)),
-                  onSelected: (_) => setState(() => _selectedDate = d),
-                  selectedColor: colors.primaryContainer,
-                  labelStyle: textStyles.labelMedium?.copyWith(
-                    color: isSel ? colors.onPrimaryContainer : colors.onSurface,
-                    fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+    return CustomScrollView(
+      slivers: [
+        // Pinned Day Picker Header
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _DayPickerHeaderDelegate(
+            days: days,
+            selectedDate: _selectedDate,
+            onDateSelected: (d) => setState(() => _selectedDate = d),
+            colors: colors,
+            textStyles: textStyles,
+          ),
+        ),
+
+        // Date Header & Add Button
+        SliverToBoxAdapter(
+          child: Container(
+            color: colors.surface,
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(DateFormat('EEEE, MMMM d').format(_selectedDate),
+                    style: textStyles.titleMedium
+                        ?.copyWith(color: colors.onSurfaceVariant)),
+                FilledButton.icon(
+                  onPressed: () => _showAddItemSheet(context),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add Item'),
+                  style: FilledButton.styleFrom(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                    visualDensity: VisualDensity.compact,
                   ),
-                  side: BorderSide.none,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.full)),
-                );
-              },
+                ),
+              ],
             ),
           ),
         ),
 
-        // Add Button & Date Header
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(DateFormat('EEEE, MMMM d').format(_selectedDate),
-                  style: textStyles.titleMedium
-                      ?.copyWith(color: colors.onSurfaceVariant)),
-              FilledButton.icon(
-                onPressed: () => _showAddItemSheet(context),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add Item'),
-                style: FilledButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Itinerary List
-        Expanded(
-          child: items.isEmpty
-              ? SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Empty state header
-                      Center(
-                        child: Column(
-                          children: [
-                            Icon(Icons.event_note,
-                                size: 48,
-                                color: colors.outline.withValues(alpha: 0.5)),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No plans for this day',
-                              style: textStyles.titleMedium
-                                  ?.copyWith(color: colors.onSurfaceVariant),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Add activities to build your itinerary',
-                              style: textStyles.bodyMedium
-                                  ?.copyWith(color: colors.onSurfaceVariant),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      // Quick Add Section
-                      Text('Quick Add',
+        // Itinerary Content
+        if (items.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Empty state header
+                  Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.event_note,
+                            size: 48,
+                            color: colors.outline.withValues(alpha: 0.5)),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No plans for this day',
                           style: textStyles.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _QuickAddChip(
-                            emoji: '🏋️',
-                            label: 'Gym Session',
-                            onTap: () => _quickAddItem(context, 'Gym Session', '🏋️'),
-                          ),
-                          _QuickAddChip(
-                            emoji: '🥗',
-                            label: 'Healthy Meal',
-                            onTap: () => _quickAddItem(context, 'Healthy Meal', '🥗'),
-                          ),
-                          _QuickAddChip(
-                            emoji: '🏃',
-                            label: 'Morning Run',
-                            onTap: () => _quickAddItem(context, 'Morning Run', '🏃'),
-                          ),
-                          _QuickAddChip(
-                            emoji: '🧘',
-                            label: 'Yoga Class',
-                            onTap: () => _quickAddItem(context, 'Yoga Class', '🧘'),
-                          ),
-                          _QuickAddChip(
-                            emoji: '🍳',
-                            label: 'Breakfast',
-                            onTap: () => _quickAddItem(context, 'Breakfast', '🍳'),
-                          ),
-                          _QuickAddChip(
-                            emoji: '☕',
-                            label: 'Coffee Break',
-                            onTap: () => _quickAddItem(context, 'Coffee Break', '☕'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      // AI Suggestions
-                      Text('Suggestions for ${widget.trip.destinationCity}',
-                          style: textStyles.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: colors.primaryContainer.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          border: Border.all(
-                            color: colors.primary.withValues(alpha: 0.2),
-                          ),
+                              ?.copyWith(color: colors.onSurfaceVariant),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.psychology,
-                                    color: colors.primary, size: 24),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'AI-Powered Suggestions',
-                                  style: textStyles.titleSmall?.copyWith(
-                                    color: colors.primary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Get personalized fitness recommendations for your trip to ${widget.trip.destinationCity}.',
-                              style: textStyles.bodyMedium?.copyWith(
-                                color: colors.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            FilledButton.tonal(
-                              onPressed: () => context.push('/fitness-guide'),
-                              child: const Text('Get Recommendations'),
-                            ),
-                          ],
+                        const SizedBox(height: 8),
+                        Text(
+                          'Add activities to build your itinerary',
+                          style: textStyles.bodyMedium
+                              ?.copyWith(color: colors.onSurfaceVariant),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Saved Places Section
-                      if (widget.associatedPlaces.isNotEmpty) ...[
-                        Text('Add from Saved Places',
-                            style: textStyles.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 12),
-                        ...widget.associatedPlaces.take(3).map((place) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: ListTile(
-                                leading: Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: colors.primaryContainer,
-                                    borderRadius:
-                                        BorderRadius.circular(AppRadius.md),
-                                  ),
-                                  child: Center(
-                                    child: Text(place.typeEmoji,
-                                        style: const TextStyle(fontSize: 24)),
-                                  ),
-                                ),
-                                title: Text(place.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                                subtitle: Text(place.type.name,
-                                    style: TextStyle(
-                                        color: colors.onSurfaceVariant)),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.add_circle_outline),
-                                  onPressed: () =>
-                                      _addPlaceToItinerary(context, place),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.lg),
-                                  side: BorderSide(
-                                      color:
-                                          colors.outline.withValues(alpha: 0.1)),
-                                ),
-                              ),
-                            )),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  // Quick Add Section
+                  Text('Quick Add',
+                      style: textStyles.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _QuickAddChip(
+                        emoji: '🏋️',
+                        label: 'Gym Session',
+                        onTap: () => _quickAddItem(context, 'Gym Session', '🏋️'),
+                      ),
+                      _QuickAddChip(
+                        emoji: '🥗',
+                        label: 'Healthy Meal',
+                        onTap: () => _quickAddItem(context, 'Healthy Meal', '🥗'),
+                      ),
+                      _QuickAddChip(
+                        emoji: '🏃',
+                        label: 'Morning Run',
+                        onTap: () => _quickAddItem(context, 'Morning Run', '🏃'),
+                      ),
+                      _QuickAddChip(
+                        emoji: '🧘',
+                        label: 'Yoga Class',
+                        onTap: () => _quickAddItem(context, 'Yoga Class', '🧘'),
+                      ),
+                      _QuickAddChip(
+                        emoji: '🍳',
+                        label: 'Breakfast',
+                        onTap: () => _quickAddItem(context, 'Breakfast', '🍳'),
+                      ),
+                      _QuickAddChip(
+                        emoji: '☕',
+                        label: 'Coffee Break',
+                        onTap: () => _quickAddItem(context, 'Coffee Break', '☕'),
+                      ),
                     ],
                   ),
-                )
-              : ReorderableListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 80),
-                  itemCount: items.length,
-                  proxyDecorator: (child, index, animation) => Material(
-                    elevation: 4,
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                    child: child,
-                  ),
-                  onReorder: (oldIndex, newIndex) {
-                    final list = List<ItineraryItem>.from(items);
-                    if (newIndex > oldIndex) newIndex -= 1;
-                    final item = list.removeAt(oldIndex);
-                    list.insert(newIndex, item);
-                    context
-                        .read<TripService>()
-                        .reorderItinerary(widget.trip.id, _mergeDay(list));
-                  },
-                  itemBuilder: (context, index) {
-                    final it = items[index];
-                    PlaceModel? match;
-                    if (it.placeId != null) {
-                      try {
-                        match = widget.associatedPlaces
-                            .firstWhere((p) => p.id == it.placeId);
-                      } catch (_) {
-                        match = null;
-                      }
-                    }
-                    return Padding(
-                      key: ValueKey(it.id),
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _ItineraryTile(
-                        item: it,
-                        place: match,
-                        index: index,
-                        onEdit: () => _showEditItemSheet(context, it),
-                        onDelete: () => context
-                            .read<TripService>()
-                            .removeItineraryItem(widget.trip.id, it.id),
+                  const SizedBox(height: 24),
+                  // AI Suggestions
+                  Text('Suggestions for ${widget.trip.destinationCity}',
+                      style: textStyles.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: colors.primaryContainer.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      border: Border.all(
+                        color: colors.primary.withValues(alpha: 0.2),
                       ),
-                    );
-                  },
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.psychology,
+                                color: colors.primary, size: 24),
+                            const SizedBox(width: 8),
+                            Text(
+                              'AI-Powered Suggestions',
+                              style: textStyles.titleSmall?.copyWith(
+                                color: colors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Get personalized fitness recommendations for your trip to ${widget.trip.destinationCity}.',
+                          style: textStyles.bodyMedium?.copyWith(
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton.tonal(
+                          onPressed: () => context.push('/fitness-guide'),
+                          child: const Text('Get Recommendations'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Saved Places Section
+                  if (widget.associatedPlaces.isNotEmpty) ...[
+                    Text('Add from Saved Places',
+                        style: textStyles.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    ...widget.associatedPlaces.take(3).map((place) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: colors.primaryContainer,
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.md),
+                              ),
+                              child: Center(
+                                child: Text(place.typeEmoji,
+                                    style: const TextStyle(fontSize: 24)),
+                              ),
+                            ),
+                            title: Text(place.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            subtitle: Text(place.type.name,
+                                style: TextStyle(
+                                    color: colors.onSurfaceVariant)),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.add_circle_outline),
+                              onPressed: () =>
+                                  _addPlaceToItinerary(context, place),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.lg),
+                              side: BorderSide(
+                                  color:
+                                      colors.outline.withValues(alpha: 0.1)),
+                            ),
+                          ),
+                        )),
+                  ],
+                  const SizedBox(height: 80),
+                ],
+              ),
+            ),
+          )
+        else
+          SliverReorderableList(
+            itemCount: items.length,
+            proxyDecorator: (child, index, animation) => Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              child: child,
+            ),
+            onReorder: (oldIndex, newIndex) {
+              final list = List<ItineraryItem>.from(items);
+              if (newIndex > oldIndex) newIndex -= 1;
+              final item = list.removeAt(oldIndex);
+              list.insert(newIndex, item);
+              context
+                  .read<TripService>()
+                  .reorderItinerary(widget.trip.id, _mergeDay(list));
+            },
+            itemBuilder: (context, index) {
+              final it = items[index];
+              PlaceModel? match;
+              if (it.placeId != null) {
+                try {
+                  match = widget.associatedPlaces
+                      .firstWhere((p) => p.id == it.placeId);
+                } catch (_) {
+                  match = null;
+                }
+              }
+              return Padding(
+                key: ValueKey(it.id),
+                padding: EdgeInsets.fromLTRB(
+                    20, 0, 20, index == items.length - 1 ? 80 : 12),
+                child: _ItineraryTile(
+                  item: it,
+                  place: match,
+                  index: index,
+                  onEdit: () => _showEditItemSheet(context, it),
+                  onDelete: () => context
+                      .read<TripService>()
+                      .removeItineraryItem(widget.trip.id, it.id),
                 ),
-        ),
+              );
+            },
+          ),
       ],
     );
   }
@@ -636,6 +526,85 @@ class _ItineraryTabState extends State<_ItineraryTab> {
       placeId: place.id,
     );
     context.read<TripService>().addItineraryItem(widget.trip.id, item);
+  }
+}
+
+/// Sliver persistent header delegate for pinned day picker
+class _DayPickerHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final List<DateTime> days;
+  final DateTime selectedDate;
+  final ValueChanged<DateTime> onDateSelected;
+  final ColorScheme colors;
+  final TextTheme textStyles;
+
+  _DayPickerHeaderDelegate({
+    required this.days,
+    required this.selectedDate,
+    required this.onDateSelected,
+    required this.colors,
+    required this.textStyles,
+  });
+
+  @override
+  double get minExtent => 66;
+
+  @override
+  double get maxExtent => 66;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: colors.surface,
+      child: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                scrollDirection: Axis.horizontal,
+                itemCount: days.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final d = days[index];
+                  final isSel = d.year == selectedDate.year &&
+                      d.month == selectedDate.month &&
+                      d.day == selectedDate.day;
+                  return ChoiceChip(
+                    showCheckmark: false,
+                    selected: isSel,
+                    label: Text(DateFormat('EEE, MMM d').format(d)),
+                    onSelected: (_) => onDateSelected(d),
+                    selectedColor: colors.primaryContainer,
+                    labelStyle: textStyles.labelMedium?.copyWith(
+                      color:
+                          isSel ? colors.onPrimaryContainer : colors.onSurface,
+                      fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    side: BorderSide.none,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.full)),
+                  );
+                },
+              ),
+            ),
+          ),
+          // Bottom border to prevent content overlap appearance
+          Container(
+            height: 1,
+            color: colors.outline.withValues(alpha: 0.1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _DayPickerHeaderDelegate oldDelegate) {
+    return days != oldDelegate.days ||
+        selectedDate != oldDelegate.selectedDate ||
+        colors != oldDelegate.colors;
   }
 }
 
@@ -794,6 +763,128 @@ class _ActivityTab extends StatelessWidget {
 }
 
 // ----------------- Components -----------------
+
+class _TripInfoHeader extends StatelessWidget {
+  final TripModel trip;
+  final int placesCount;
+
+  const _TripInfoHeader({
+    required this.trip,
+    required this.placesCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textStyles = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: colors.outline.withValues(alpha: 0.1),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Status pill
+          _buildStatusChip(context, trip.status),
+          const SizedBox(width: 12),
+          // Stats
+          _buildStat(context, '${trip.durationDays}', 'days'),
+          const SizedBox(width: 12),
+          _buildStat(context, '$placesCount', 'places'),
+          const Spacer(),
+          // Active indicator
+          if (trip.isActive)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.full),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle, size: 14, color: AppColors.success),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Active',
+                    style: textStyles.labelSmall?.copyWith(
+                      color: AppColors.success,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(BuildContext context, String status) {
+    final textStyles = Theme.of(context).textTheme;
+    final color = _colorForStatus(status);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+      ),
+      child: Text(
+        status,
+        style: textStyles.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStat(BuildContext context, String value, String label) {
+    final colors = Theme.of(context).colorScheme;
+    final textStyles = Theme.of(context).textTheme;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: textStyles.labelLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: colors.onSurface,
+          ),
+        ),
+        const SizedBox(width: 3),
+        Text(
+          label,
+          style: textStyles.labelSmall?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _colorForStatus(String status) {
+    switch (status) {
+      case 'Active':
+        return AppColors.success;
+      case 'Current':
+        return AppColors.primary;
+      case 'Upcoming':
+        return AppColors.info;
+      case 'Past':
+      default:
+        return AppColors.muted;
+    }
+  }
+}
 
 class _ItineraryTile extends StatelessWidget {
   final ItineraryItem item;
@@ -1053,78 +1144,6 @@ class _BucketListTile extends StatelessWidget {
             const SizedBox(width: 4),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// Reuse existing components with minor updates if needed
-// _StatusPill, _QuickStat, _DividerDot, _TimelineList, _AddPlacesSheet, _EditTripSheet, _DateSelector, _AddOrEditItinerarySheet
-// I will copy them back in to ensure the file is complete.
-
-class _StatusPill extends StatelessWidget {
-  final String status;
-  const _StatusPill({required this.status});
-
-  Color _colorFor(String s) {
-    switch (s) {
-      case 'Active':
-        return AppColors.success;
-      case 'Current':
-        return AppColors.primary;
-      case 'Upcoming':
-        return AppColors.info;
-      case 'Past':
-      default:
-        return AppColors.muted;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final textStyles = Theme.of(context).textTheme;
-    final c = _colorFor(status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: c.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.full),
-      ),
-      child: Text(status,
-          style: textStyles.labelSmall
-              ?.copyWith(color: c, fontWeight: FontWeight.w600)),
-    );
-  }
-}
-
-class _QuickStat extends StatelessWidget {
-  final String value;
-  final String label;
-  const _QuickStat({required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final textStyles = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppRadius.full),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(value,
-              style: textStyles.labelLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              )),
-          const SizedBox(width: 4),
-          Text(label,
-              style: textStyles.labelSmall?.copyWith(
-                color: Colors.white.withValues(alpha: 0.8),
-              )),
-        ],
       ),
     );
   }

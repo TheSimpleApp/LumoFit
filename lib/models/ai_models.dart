@@ -21,51 +21,114 @@ class EgyptGuideResponse {
   });
 
   factory EgyptGuideResponse.fromJson(Map<String, dynamic> json) {
-    // Get the raw text field
-    String rawText = json['text'] as String? ?? '';
-    String text = rawText;
-    Map<String, dynamic>? nestedJson;
-
-    // Defensive: If text looks like JSON, try to extract the actual text
-    // This handles cases where Gemini returns nested JSON in the text field
-    if (rawText.trimLeft().startsWith('{')) {
-      try {
-        nestedJson = jsonDecode(rawText) as Map<String, dynamic>;
-        if (nestedJson['text'] != null) {
-          text = nestedJson['text'] as String;
+    // Recursively extract text from potentially nested JSON structures
+    String extractText(dynamic obj, int depth) {
+      if (depth > 5) return '';
+      if (obj is String) {
+        final trimmed = obj.trim();
+        if (trimmed.startsWith('{')) {
+          try {
+            final parsed = jsonDecode(trimmed);
+            final nested = extractText(parsed, depth + 1);
+            if (nested.isNotEmpty) return nested;
+          } catch (_) {
+            // Not valid JSON, return as-is if it looks like text
+            if (trimmed.length > 5 && !trimmed.contains('"text"')) {
+              return trimmed;
+            }
+          }
         }
-      } catch (_) {
-        // Not valid JSON, use as-is
-        nestedJson = null;
+        return obj;
       }
+      if (obj is Map) {
+        final textVal = obj['text'];
+        if (textVal is String && textVal.trim().isNotEmpty) {
+          final trimmedText = textVal.trim();
+          if (trimmedText.startsWith('{')) {
+            try {
+              final parsed = jsonDecode(trimmedText);
+              final nested = extractText(parsed, depth + 1);
+              if (nested.isNotEmpty) return nested;
+            } catch (_) {
+              // Not nested JSON
+            }
+          }
+          return textVal;
+        }
+      }
+      return '';
     }
+
+    // Recursively extract array from potentially nested JSON
+    List<T> extractArray<T>(dynamic obj, String key, T Function(Map<String, dynamic>) fromJson, int depth) {
+      if (depth > 5 || obj == null) return [];
+      if (obj is Map) {
+        final arr = obj[key];
+        if (arr is List) {
+          return arr
+              .whereType<Map<String, dynamic>>()
+              .map((e) {
+                try {
+                  return fromJson(e);
+                } catch (_) {
+                  return null;
+                }
+              })
+              .whereType<T>()
+              .toList();
+        }
+        // Check nested text field
+        final textVal = obj['text'];
+        if (textVal is String && textVal.trim().startsWith('{')) {
+          try {
+            final parsed = jsonDecode(textVal.trim());
+            return extractArray(parsed, key, fromJson, depth + 1);
+          } catch (_) {}
+        }
+      }
+      return [];
+    }
+
+    // Extract text, handling multiple levels of nesting
+    String text = extractText(json, 0);
+
+    // Final fallback: if text still looks like JSON, provide default
+    if (text.isEmpty || text.trimLeft().startsWith('{') || text.trimLeft().startsWith('[')) {
+      text = "I'd be happy to help you find fitness spots! What are you looking for?";
+    }
+
+    // Extract arrays, checking both top-level and nested
+    final suggestedPlaces = extractArray<SuggestedPlace>(json, 'suggestedPlaces', SuggestedPlace.fromJson, 0);
+    final elements = extractArray<MessageElement>(json, 'elements', MessageElement.fromJson, 0);
+    final quickReplies = extractArray<QuickReply>(json, 'quickReplies', QuickReply.fromJson, 0);
+
+    // Extract tags (simple strings)
+    List<String> extractStringArray(dynamic obj, String key, int depth) {
+      if (depth > 5 || obj == null) return [];
+      if (obj is Map) {
+        final arr = obj[key];
+        if (arr is List) {
+          return arr.whereType<String>().toList();
+        }
+        final textVal = obj['text'];
+        if (textVal is String && textVal.trim().startsWith('{')) {
+          try {
+            return extractStringArray(jsonDecode(textVal.trim()), key, depth + 1);
+          } catch (_) {}
+        }
+      }
+      return [];
+    }
+
+    final tags = extractStringArray(json, 'tags', 0);
 
     return EgyptGuideResponse(
       text: text,
-      suggestedPlaces: (nestedJson?['suggestedPlaces'] as List<dynamic>?)
-              ?.map((e) => SuggestedPlace.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          (json['suggestedPlaces'] as List<dynamic>?)
-              ?.map((e) => SuggestedPlace.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
+      suggestedPlaces: suggestedPlaces,
       suggestedFilters: json['suggestedFilters'] as Map<String, dynamic>?,
-      elements: (nestedJson?['elements'] as List<dynamic>?)
-              ?.map((e) => MessageElement.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          (json['elements'] as List<dynamic>?)
-              ?.map((e) => MessageElement.fromJson(e as Map<String, dynamic>))
-              .toList(),
-      quickReplies: (nestedJson?['quickReplies'] as List<dynamic>?)
-              ?.map((e) => QuickReply.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          (json['quickReplies'] as List<dynamic>?)
-              ?.map((e) => QuickReply.fromJson(e as Map<String, dynamic>))
-              .toList(),
-      tags: (nestedJson?['tags'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      elements: elements.isEmpty ? null : elements,
+      quickReplies: quickReplies.isEmpty ? null : quickReplies,
+      tags: tags.isEmpty ? null : tags,
     );
   }
 

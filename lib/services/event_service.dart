@@ -7,28 +7,134 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fittravel/supabase/supabase_config.dart';
 
-/// EventService fetches events from Supabase Edge Functions.
-/// Demo events are seeded in memory on initialize.
+/// EventService fetches events from Supabase database and Edge Functions.
+/// Events are shared across all users and fetched per destination.
 class EventService extends ChangeNotifier {
   List<EventModel> _events = [];
+  List<EventModel> _destinationEvents = [];
   bool _isLoading = false;
+  String? _currentCity;
 
   EventService();
 
   bool get isLoading => _isLoading;
-  List<EventModel> get all => List.unmodifiable(_events);
+  List<EventModel> get all => List.unmodifiable([..._destinationEvents, ..._events]);
+
+  /// Events for the current destination
+  List<EventModel> get destinationEvents => List.unmodifiable(_destinationEvents);
 
   Future<void> initialize() async {
     _isLoading = true;
     notifyListeners();
     try {
-      // Seed demo events in memory (not persisted)
+      // Seed demo events as fallback
       _seed();
     } catch (e) {
       debugPrint('EventService.initialize error: $e');
       _events = [];
     }
     _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Fetch events for a specific city from Supabase
+  /// Called when active trip changes or on demand
+  Future<void> fetchEventsForCity({
+    required String city,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    if (_currentCity == city && _destinationEvents.isNotEmpty) {
+      // Already have events for this city
+      return;
+    }
+
+    _isLoading = true;
+    _currentCity = city;
+    notifyListeners();
+
+    try {
+      final now = DateTime.now();
+      final start = startDate ?? now;
+      final end = endDate ?? DateTime(now.year, now.month + 3, now.day);
+
+      // Query events from Supabase
+      var query = SupabaseConfig.client
+          .from('events')
+          .select()
+          .ilike('city', '%$city%')
+          .gte('start_date', start.toIso8601String())
+          .lte('start_date', end.toIso8601String())
+          .order('start_date', ascending: true)
+          .limit(50);
+
+      final response = await query;
+      final List<dynamic> data = response as List<dynamic>;
+
+      _destinationEvents = data.map((json) {
+        final map = json as Map<String, dynamic>;
+        return EventModel(
+          id: map['id'] as String,
+          title: map['title'] as String? ?? 'Untitled Event',
+          category: eventCategoryFromString(map['category'] as String? ?? 'other'),
+          start: DateTime.parse(map['start_date'] as String),
+          end: map['end_date'] != null ? DateTime.tryParse(map['end_date'] as String) : null,
+          description: map['description'] as String?,
+          venueName: map['venue_name'] as String? ?? 'TBA',
+          address: map['address'] as String?,
+          latitude: (map['latitude'] as num?)?.toDouble(),
+          longitude: (map['longitude'] as num?)?.toDouble(),
+          websiteUrl: map['website_url'] as String?,
+          registrationUrl: map['registration_url'] as String?,
+          imageUrl: map['image_url'] as String?,
+          source: map['source'] as String?,
+        );
+      }).toList();
+
+      debugPrint('EventService: Fetched ${_destinationEvents.length} events for $city');
+    } catch (e) {
+      debugPrint('EventService.fetchEventsForCity error: $e');
+      // Keep existing events on error
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Trigger backend to fetch new events for a destination
+  /// This calls the edge function that uses AI to find events
+  Future<void> refreshEventsForCity({
+    required String city,
+    String? country,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      debugPrint('EventService: Triggering event refresh for $city...');
+
+      final now = DateTime.now();
+      await SupabaseConfig.client.functions.invoke(
+        'fetch_destination_events',
+        body: {
+          'city': city,
+          if (country != null) 'country': country,
+          'start_date': (startDate ?? now).toIso8601String().split('T')[0],
+          'end_date': (endDate ?? DateTime(now.year, now.month + 3, now.day)).toIso8601String().split('T')[0],
+          'max_events': 50,
+        },
+      );
+
+      // Re-fetch events after refresh
+      await fetchEventsForCity(city: city, startDate: startDate, endDate: endDate);
+    } catch (e) {
+      debugPrint('EventService.refreshEventsForCity error: $e');
+    }
+  }
+
+  /// Clear destination events (e.g., when switching cities)
+  void clearDestinationEvents() {
+    _destinationEvents = [];
+    _currentCity = null;
     notifyListeners();
   }
 

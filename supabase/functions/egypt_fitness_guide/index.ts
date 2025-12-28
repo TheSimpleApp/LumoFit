@@ -175,15 +175,29 @@ function parseAIResponse(rawText: string): EgyptGuideResponse {
     }
   }
 
-  // Fallback: extract just the conversational text without JSON artifacts
-  // Remove any JSON-like content and return clean text
-  let fallbackText = rawText
-    .replace(/```[\s\S]*?```/g, '') // Remove code blocks
-    .replace(/\{[\s\S]*\}/g, '') // Remove JSON objects
-    .trim();
+  // Fallback: try to extract text from truncated/malformed JSON
+  let fallbackText = "";
 
-  // If nothing remains, use a generic response
+  // Try to extract text value from partial JSON like {"text": "Hello..." (truncated)
+  const textValueMatch = rawText.match(/"text"\s*:\s*"([^"]+)/);
+  if (textValueMatch && textValueMatch[1]) {
+    fallbackText = textValueMatch[1].trim();
+  }
+
+  // If no text extracted, try removing JSON artifacts
   if (!fallbackText) {
+    fallbackText = rawText
+      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+      .replace(/\{[\s\S]*\}/g, '') // Remove complete JSON objects
+      .replace(/\{[^}]*$/g, '') // Remove truncated JSON (opening { without closing })
+      .replace(/"[a-zA-Z_]+"\s*:\s*/g, '') // Remove JSON keys like "text":
+      .replace(/^\s*[\[\{,]/gm, '') // Remove leading JSON punctuation
+      .replace(/[\]\},]\s*$/gm, '') // Remove trailing JSON punctuation
+      .trim();
+  }
+
+  // If nothing remains or still looks like JSON, use a generic response
+  if (!fallbackText || fallbackText.startsWith('{') || fallbackText.startsWith('[') || fallbackText.startsWith('"')) {
     fallbackText = "I'd be happy to help you find fitness spots! What are you looking for?";
   }
 
@@ -270,7 +284,7 @@ async function handler(req: Request): Promise<Response> {
           temperature: 0.8,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 512, // Reduced for shorter responses
+          maxOutputTokens: 1024, // Increased to avoid JSON truncation
         },
         safetySettings: [
           { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },

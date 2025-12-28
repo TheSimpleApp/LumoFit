@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:fittravel/models/models.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
 import 'package:fittravel/services/google_places_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class TripService extends ChangeNotifier {
   List<TripModel> _trips = [];
@@ -144,28 +145,40 @@ class TripService extends ChangeNotifier {
 
       final result = await SupabaseService.insert('trips', data);
 
+      TripModel? trip;
       if (result.isNotEmpty) {
-        final trip = TripModel.fromSupabaseJson(result.first, savedPlaceIds: []);
+        trip = TripModel.fromSupabaseJson(result.first, savedPlaceIds: []);
         _trips.insert(0, trip);
         _error = null;
         notifyListeners();
-        return trip;
       } else {
         // Some RLS setups allow insert but deny select on returning rows.
         // As a resilient fallback, reload trips from backend and try to find the new one.
         debugPrint('TripService.createTrip: insert returned empty, attempting fallback reload');
         await initialize();
         try {
-          final maybe = _trips.firstWhere((t) =>
+          trip = _trips.firstWhere((t) =>
               t.userId == userId &&
               t.destinationCity.toLowerCase() == destinationCity.toLowerCase() &&
               t.startDate.year == startDate.year && t.startDate.month == startDate.month && t.startDate.day == startDate.day &&
               t.endDate.year == endDate.year && t.endDate.month == endDate.month && t.endDate.day == endDate.day);
-          return maybe;
         } catch (_) {
           throw Exception('Trip created but could not load it due to RLS');
         }
       }
+
+      // Trigger async event fetching for this destination
+      _fetchEventsForDestination(
+        city: destinationCity,
+        country: destinationCountry,
+        startDate: startDate,
+        endDate: endDate,
+        latitude: destinationLatitude,
+        longitude: destinationLongitude,
+        tripId: trip.id,
+      );
+
+      return trip;
     } catch (e) {
       _error = 'Failed to create trip';
       debugPrint('TripService.createTrip error: $e');
@@ -179,17 +192,38 @@ class TripService extends ChangeNotifier {
     if (userId == null) return;
 
     try {
+      // Check if destination or dates changed (need to fetch new events)
+      final index = _trips.indexWhere((t) => t.id == trip.id);
+      final oldTrip = index >= 0 ? _trips[index] : null;
+      final destinationChanged = oldTrip != null && (
+        oldTrip.destinationCity != trip.destinationCity ||
+        oldTrip.startDate != trip.startDate ||
+        oldTrip.endDate != trip.endDate
+      );
+
       await SupabaseService.update(
         'trips',
         trip.toSupabaseJson(userId),
         filters: {'id': trip.id},
       );
 
-      final index = _trips.indexWhere((t) => t.id == trip.id);
       if (index >= 0) {
         _trips[index] = trip.copyWith(updatedAt: DateTime.now());
         _error = null;
         notifyListeners();
+      }
+
+      // If destination or dates changed, fetch new events
+      if (destinationChanged) {
+        _fetchEventsForDestination(
+          city: trip.destinationCity,
+          country: trip.destinationCountry,
+          startDate: trip.startDate,
+          endDate: trip.endDate,
+          latitude: trip.destinationLatitude,
+          longitude: trip.destinationLongitude,
+          tripId: trip.id,
+        );
       }
     } catch (e) {
       _error = 'Failed to update trip';
@@ -245,10 +279,63 @@ class TripService extends ChangeNotifier {
           trip.destinationLongitude == null) {
         await _geocodeTripDestination(trip);
       }
+
+      // Fetch events for the active trip destination
+      // This ensures events are fetched for any trip, including previously created ones
+      if (trip != null) {
+        _fetchEventsForDestination(
+          city: trip.destinationCity,
+          country: trip.destinationCountry,
+          startDate: trip.startDate,
+          endDate: trip.endDate,
+          latitude: trip.destinationLatitude,
+          longitude: trip.destinationLongitude,
+          tripId: trip.id,
+        );
+      }
     } catch (e) {
       _error = 'Failed to set active trip';
       debugPrint('TripService.setActiveTrip error: $e');
       notifyListeners();
+    }
+  }
+
+  /// Trigger async event fetching for a destination
+  /// This calls the edge function to fetch fitness events using AI
+  Future<void> _fetchEventsForDestination({
+    required String city,
+    String? country,
+    required DateTime startDate,
+    required DateTime endDate,
+    double? latitude,
+    double? longitude,
+    String? tripId,
+  }) async {
+    try {
+      debugPrint('TripService: Fetching events for $city...');
+      final FunctionsClient functions = SupabaseConfig.client.functions;
+
+      // Fire and forget - don't await, let it run in background
+      functions.invoke(
+        'fetch_destination_events',
+        body: {
+          'city': city,
+          'country': country,
+          'start_date': startDate.toIso8601String().split('T')[0],
+          'end_date': endDate.toIso8601String().split('T')[0],
+          if (latitude != null) 'latitude': latitude,
+          if (longitude != null) 'longitude': longitude,
+          if (tripId != null) 'trip_id': tripId,
+          'max_events': 50,
+        },
+      ).then((response) {
+        debugPrint('TripService: Event fetch response: ${response.data}');
+      }).catchError((e) {
+        debugPrint('TripService: Event fetch error (non-blocking): $e');
+      });
+    } catch (e) {
+      // Non-fatal: don't fail trip creation if event fetching fails
+      debugPrint('TripService._fetchEventsForDestination error: $e');
     }
   }
 
