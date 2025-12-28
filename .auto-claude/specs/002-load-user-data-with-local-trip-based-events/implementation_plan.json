@@ -1,0 +1,369 @@
+{
+  "feature": "Load User Data with Local Trip-Based Events",
+  "workflow_type": "feature",
+  "workflow_rationale": "This is a new feature that creates an orchestration layer connecting existing UserService, TripService, and EventService. It follows the FEATURE workflow because it builds new functionality on top of existing services with clear implementation phases.",
+  "phases": [
+    {
+      "id": "phase-1-storage",
+      "name": "Storage Foundation",
+      "type": "implementation",
+      "description": "Add storage keys and infrastructure for caching trip-specific events",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Add StorageKeys for trip events caching",
+          "service": "flutter_app",
+          "files_to_modify": ["lib/services/storage_service.dart"],
+          "files_to_create": [],
+          "patterns_from": ["lib/services/storage_service.dart"],
+          "verification": {
+            "type": "command",
+            "command": "grep -n 'tripEvents' lib/services/storage_service.dart",
+            "expected": "tripEvents storage key exists in StorageKeys class"
+          },
+          "implementation_notes": [
+            "Add 'static const String tripEvents = \"trip_events\"' to StorageKeys class",
+            "Add 'static const String tripEventsUpdated = \"trip_events_updated\"' for cache timestamps",
+            "Follow existing naming convention (snake_case for key values)"
+          ],
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-loader-service",
+      "name": "Core Loader Service",
+      "type": "implementation",
+      "description": "Create the UserTripEventsLoader service that orchestrates data loading with caching and error handling",
+      "depends_on": ["phase-1-storage"],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Create UserTripEventsLoader service class with ChangeNotifier pattern",
+          "service": "flutter_app",
+          "files_to_modify": [],
+          "files_to_create": ["lib/services/user_trip_events_loader.dart"],
+          "patterns_from": [
+            "lib/services/event_service.dart",
+            "lib/services/trip_service.dart",
+            "lib/openai/openai_config.dart"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "dart analyze lib/services/user_trip_events_loader.dart",
+            "expected": "No issues found"
+          },
+          "implementation_notes": [
+            "Extend ChangeNotifier for Provider integration",
+            "Inject StorageService, EventService, TripService, and UserService dependencies",
+            "Implement _isLoading state with getter",
+            "Implement initialize() that loads from cache first",
+            "Create _tripEventsKey(tripId) helper for per-trip cache keys",
+            "Follow existing service patterns exactly"
+          ],
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Implement loadEventsForTrip() method with caching",
+          "service": "flutter_app",
+          "files_to_modify": ["lib/services/user_trip_events_loader.dart"],
+          "files_to_create": [],
+          "patterns_from": [
+            "lib/services/event_service.dart",
+            "lib/openai/openai_config.dart"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "grep -n 'loadEventsForTrip' lib/services/user_trip_events_loader.dart",
+            "expected": "Method exists with proper signature"
+          },
+          "implementation_notes": [
+            "Accept TripModel parameter",
+            "Check cache first: _storage.getJsonList(_tripEventsKey(trip.id))",
+            "Return cached immediately if fresh (within 1 hour for active, 24 hours for upcoming)",
+            "Call EventService.fetchExternalEvents() with trip.startDate, trip.endDate",
+            "Use trip.destinationCity for location (geocoding deferred to future)",
+            "Cache results with setJsonList()",
+            "Return empty list on failure (fail-open)"
+          ],
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-3",
+          "description": "Implement loadAllTripEvents() method for bulk loading",
+          "service": "flutter_app",
+          "files_to_modify": ["lib/services/user_trip_events_loader.dart"],
+          "files_to_create": [],
+          "patterns_from": ["lib/services/trip_service.dart"],
+          "verification": {
+            "type": "command",
+            "command": "grep -n 'loadAllTripEvents' lib/services/user_trip_events_loader.dart",
+            "expected": "Method exists"
+          },
+          "implementation_notes": [
+            "Get active and upcoming trips from TripService",
+            "Loop through trips and call loadEventsForTrip() for each",
+            "Store results in Map<String, List<EventModel>> keyed by tripId",
+            "Handle concurrent load prevention with debounce flag",
+            "Notify listeners after all loads complete"
+          ],
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-4",
+          "description": "Implement cache refresh and invalidation",
+          "service": "flutter_app",
+          "files_to_modify": ["lib/services/user_trip_events_loader.dart"],
+          "files_to_create": [],
+          "patterns_from": ["lib/openai/openai_config.dart"],
+          "verification": {
+            "type": "command",
+            "command": "grep -n 'refreshEventsForTrip\\|invalidateCache' lib/services/user_trip_events_loader.dart",
+            "expected": "Both methods exist"
+          },
+          "implementation_notes": [
+            "refreshEventsForTrip(tripId) - Force fresh fetch ignoring cache",
+            "invalidateCache(tripId) - Clear cache for specific trip",
+            "invalidateAllCaches() - Clear all trip event caches",
+            "Implement cache TTL check using tripEventsUpdated timestamp",
+            "Use 3-retry exponential backoff (600ms -> 1200ms -> 2400ms) for refresh"
+          ],
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-5",
+          "description": "Add comprehensive error handling and logging",
+          "service": "flutter_app",
+          "files_to_modify": ["lib/services/user_trip_events_loader.dart"],
+          "files_to_create": [],
+          "patterns_from": ["lib/services/event_service.dart"],
+          "verification": {
+            "type": "command",
+            "command": "grep -c 'debugPrint\\|try\\|catch' lib/services/user_trip_events_loader.dart",
+            "expected": "Multiple error handling points (count > 5)"
+          },
+          "implementation_notes": [
+            "Wrap all async operations in try-catch",
+            "Use debugPrint() for all error logging with service prefix",
+            "Never throw exceptions to callers - return cached/empty data",
+            "Log cache hits/misses for debugging",
+            "Log network failures but don't block UI"
+          ],
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-integration",
+      "name": "Service Integration",
+      "type": "integration",
+      "description": "Export the new service and register it in the Provider tree",
+      "depends_on": ["phase-2-loader-service"],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Export UserTripEventsLoader in services barrel file",
+          "service": "flutter_app",
+          "files_to_modify": ["lib/services/services.dart"],
+          "files_to_create": [],
+          "patterns_from": ["lib/services/services.dart"],
+          "verification": {
+            "type": "command",
+            "command": "grep 'user_trip_events_loader' lib/services/services.dart",
+            "expected": "Export statement exists"
+          },
+          "implementation_notes": [
+            "Add: export 'user_trip_events_loader.dart';",
+            "Place alphabetically among other exports"
+          ],
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Register UserTripEventsLoader in Provider tree",
+          "service": "flutter_app",
+          "files_to_modify": ["lib/main.dart"],
+          "files_to_create": [],
+          "patterns_from": ["lib/main.dart"],
+          "verification": {
+            "type": "command",
+            "command": "grep 'UserTripEventsLoader' lib/main.dart",
+            "expected": "Provider registration exists"
+          },
+          "implementation_notes": [
+            "Add ChangeNotifierProxyProvider or ProxyProvider for dependency injection",
+            "Inject StorageService, EventService, TripService, UserService",
+            "Call initialize() after creation",
+            "Place after EventService and TripService providers (dependencies)"
+          ],
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-3",
+          "description": "Verify service initialization and data flow",
+          "service": "flutter_app",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "dart analyze lib/main.dart lib/services/",
+            "expected": "No issues found"
+          },
+          "implementation_notes": [
+            "Run dart analyze to verify no compilation errors",
+            "Check that all imports resolve correctly",
+            "Verify Provider tree ordering is correct"
+          ],
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-testing",
+      "name": "Unit and Integration Tests",
+      "type": "implementation",
+      "description": "Create comprehensive tests for the new loader service",
+      "depends_on": ["phase-3-integration"],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Create unit tests for UserTripEventsLoader",
+          "service": "flutter_app",
+          "files_to_modify": [],
+          "files_to_create": ["test/services/user_trip_events_loader_test.dart"],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "flutter test test/services/user_trip_events_loader_test.dart",
+            "expected": "All tests pass"
+          },
+          "implementation_notes": [
+            "Test initialization with mock dependencies",
+            "Test loadEventsForTrip() returns cached data",
+            "Test loadEventsForTrip() fetches when cache expired",
+            "Test error handling returns empty list on failure",
+            "Test cache invalidation clears stored data",
+            "Test loadAllTripEvents() processes active and upcoming trips",
+            "Use mockito or mocktail for service mocks"
+          ],
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Create integration test for full data flow",
+          "service": "flutter_app",
+          "files_to_modify": [],
+          "files_to_create": ["test/integration/user_trip_events_integration_test.dart"],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "flutter test test/integration/user_trip_events_integration_test.dart",
+            "expected": "All tests pass"
+          },
+          "implementation_notes": [
+            "Test StorageService + UserTripEventsLoader integration",
+            "Test cache persistence across service restarts",
+            "Test concurrent load prevention",
+            "Use real StorageService with in-memory SharedPreferences mock"
+          ],
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 4,
+    "total_subtasks": 11,
+    "services_involved": ["flutter_app"],
+    "parallelism": {
+      "max_parallel_phases": 1,
+      "parallel_groups": [],
+      "recommended_workers": 1,
+      "speedup_estimate": "Sequential execution (single service, dependencies between phases)"
+    },
+    "startup_command": "source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 002 --parallel 1"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "phase-4-testing",
+    "test_types_required": ["unit", "integration"],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All dart analyze passes with no issues",
+      "UserTripEventsLoader service created and exports correctly",
+      "Service loads cached events immediately on initialize",
+      "Service fetches fresh events in background",
+      "API failures handled gracefully with fallback to cache",
+      "All unit tests pass",
+      "All integration tests pass"
+    ],
+    "verification_steps": [
+      {
+        "name": "Static Analysis",
+        "command": "dart analyze lib/",
+        "expected_outcome": "No issues found",
+        "type": "lint",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Unit Tests",
+        "command": "flutter test test/services/",
+        "expected_outcome": "All tests pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Integration Tests",
+        "command": "flutter test test/integration/",
+        "expected_outcome": "All tests pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Medium risk data orchestration layer requires unit tests for business logic and integration tests to verify service coordination. Static analysis ensures code quality."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": ["flutter test test/services/user_trip_events_loader_test.dart"],
+      "minimum_coverage": null
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": ["flutter test test/integration/user_trip_events_integration_test.dart"],
+      "services_to_test": ["UserTripEventsLoader", "StorageService"]
+    },
+    "e2e_tests": {
+      "required": false,
+      "commands": [],
+      "flows": []
+    },
+    "browser_verification": {
+      "required": false,
+      "pages": []
+    },
+    "database_verification": {
+      "required": true,
+      "checks": [
+        "StorageService.getJsonList('trip_events_<tripId>') returns cached events",
+        "StorageService.getString('trip_events_<tripId>_updated') returns valid timestamp"
+      ]
+    }
+  },
+  "qa_signoff": null,
+  "created_at": "2025-12-28T19:06:07.806Z",
+  "updated_at": "2025-12-28T19:50:00.000Z",
+  "status": "pending"
+}

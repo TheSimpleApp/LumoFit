@@ -1,0 +1,4 @@
+{
+  "task_description": "We need a bulletproof way to load users' data with local events based on their active or planned trips. We should use the start and end date of their trip to find the events until we get other API sources. Any AI/ML API calls should be done through using AI/ML API research. The latest models and schemas that we need to send and data.",
+  "workflow_type": "feature"
+}

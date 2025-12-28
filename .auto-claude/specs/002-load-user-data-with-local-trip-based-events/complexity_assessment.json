@@ -1,0 +1,94 @@
+{
+  "complexity": "standard",
+  "workflow_type": "feature",
+  "confidence": 0.85,
+  "reasoning": "This is a standard feature integrating existing services (User, Trip, Event) into a unified data loading layer. The codebase already has patterns for ChangeNotifier services, storage, and date-based event filtering. The 'bulletproof' requirement means robust error handling but doesn't add architectural complexity. AI/ML mention requires clarification but existing OpenAI patterns can be extended.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 6,
+      "estimated_services": 1,
+      "is_cross_cutting": true,
+      "notes": "Connects user, trip, and event domains. Need new orchestration service plus potential updates to existing services and UI integration points."
+    },
+    "integrations": {
+      "external_services": ["OpenAI/AI-ML (existing pattern)", "Supabase Edge Functions (existing)"],
+      "new_dependencies": [],
+      "research_needed": true,
+      "notes": "AI/ML API research mentioned but vague. Existing OpenAI client handles moderation. May need to clarify if event recommendation/personalization is needed."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "Local-first Flutter app using SharedPreferences via StorageService. No infrastructure changes required."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": true,
+      "unfamiliar_tech": [],
+      "notes": "Service patterns, date filtering, and error handling patterns all exist. Need to clarify AI/ML use case (recommendations? personalization? data augmentation?)."
+    },
+    "risk": {
+      "level": "medium",
+      "concerns": [
+        "Bulletproof requirement demands comprehensive error handling",
+        "Data consistency between user/trip/event services",
+        "Network failure scenarios for external event fetch",
+        "AI/ML API failure fallback strategy"
+      ],
+      "notes": "Primary risk is ensuring data loading is truly robust across all edge cases."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "research",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": true,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "minimal_mode": false,
+    "test_types_required": ["unit", "integration"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "Data orchestration layer requires unit tests for business logic and integration tests to verify service coordination. No security-sensitive changes (API keys already handled). Medium risk due to 'bulletproof' reliability requirement."
+  },
+
+  "rationale": {
+    "why_standard_not_simple": "Task involves multiple services (User, Trip, Event) and requires creating a new orchestration layer. More than 3 files affected.",
+    "why_standard_not_complex": "No new infrastructure, no new external integrations (uses existing patterns), no architectural changes. Core functionality is connecting existing pieces.",
+    "research_justification": "AI/ML API research mentioned in requirements but use case unclear. Need to understand if this is for recommendations, personalization, or data augmentation."
+  },
+
+  "key_implementation_points": [
+    "Create UserDataLoader service/class to orchestrate loading",
+    "Leverage TripService.activeTrip and upcomingTrips for trip selection",
+    "Use EventService.search() with trip.startDate/endDate/destinationCity",
+    "Implement retry logic and fallback strategies for 'bulletproof' requirement",
+    "Consider caching loaded data to reduce API calls",
+    "Clarify AI/ML integration scope before implementation"
+  ],
+
+  "existing_code_assets": {
+    "trip_model": "Has startDate, endDate, destinationCity, isActive - all needed for filtering",
+    "event_service_search": "Already supports date range and location filtering",
+    "event_service_external": "fetchExternalEvents() connects to Supabase Edge Functions",
+    "openai_client": "Pattern exists for AI/ML API calls with retry logic",
+    "storage_service": "LocalStorage patterns for caching"
+  },
+
+  "created_at": "2025-12-28T19:38:00.000Z"
+}

@@ -1,0 +1,557 @@
+{
+  "integrations_researched": [
+    {
+      "name": "supabase_flutter",
+      "type": "library",
+      "verified_package": {
+        "name": "supabase_flutter",
+        "install_command": "flutter pub add supabase_flutter",
+        "version": ">=1.10.0 (currently in pubspec.yaml)",
+        "verified": true,
+        "verification_method": "codebase_analysis"
+      },
+      "api_patterns": {
+        "imports": [
+          "import 'package:supabase_flutter/supabase_flutter.dart';"
+        ],
+        "initialization": "await Supabase.initialize(url: supabaseUrl, anonKey: anonKey, debug: kDebugMode);",
+        "key_functions": [
+          "Supabase.instance.client",
+          "client.from(table).select()",
+          "client.from(table).insert(data).select()",
+          "client.from(table).update(data)",
+          "client.from(table).delete()",
+          "client.functions.invoke(functionName, body: payload)",
+          "client.auth"
+        ],
+        "verified_against": "lib/supabase/supabase_config.dart"
+      },
+      "configuration": {
+        "env_vars": [
+          "SUPABASE_URL (hardcoded in config)",
+          "SUPABASE_ANON_KEY (hardcoded in config)",
+          "SUPABASE_FUNCTIONS_BASE_URL (via --dart-define)"
+        ],
+        "config_files": [
+          "lib/supabase/supabase_config.dart"
+        ],
+        "dependencies": []
+      },
+      "infrastructure": {
+        "requires_docker": false,
+        "external_service": "Supabase Cloud",
+        "features_used": [
+          "PostgreSQL database",
+          "Row Level Security (RLS)",
+          "Edge Functions",
+          "Authentication"
+        ]
+      },
+      "gotchas": [
+        "Edge Functions require SUPABASE_FUNCTIONS_BASE_URL for direct HTTP fallback",
+        "Auth state needs to be managed for protected Edge Functions",
+        "functions.invoke uses user session auth automatically"
+      ],
+      "research_sources": [
+        "lib/supabase/supabase_config.dart",
+        "lib/services/event_service.dart",
+        "pubspec.yaml"
+      ]
+    },
+    {
+      "name": "shared_preferences",
+      "type": "library",
+      "verified_package": {
+        "name": "shared_preferences",
+        "install_command": "flutter pub add shared_preferences",
+        "version": "^2.0.0",
+        "verified": true,
+        "verification_method": "codebase_analysis"
+      },
+      "api_patterns": {
+        "imports": [
+          "import 'package:shared_preferences/shared_preferences.dart';"
+        ],
+        "initialization": "SharedPreferences prefs = await SharedPreferences.getInstance();",
+        "key_functions": [
+          "prefs.setString(key, value)",
+          "prefs.getString(key)",
+          "prefs.setStringList(key, value)",
+          "prefs.getStringList(key)",
+          "prefs.setBool(key, value)",
+          "prefs.getBool(key)",
+          "prefs.remove(key)",
+          "prefs.clear()"
+        ],
+        "verified_against": "lib/services/storage_service.dart"
+      },
+      "configuration": {
+        "env_vars": [],
+        "config_files": [],
+        "dependencies": []
+      },
+      "infrastructure": {
+        "requires_docker": false,
+        "storage_type": "Local device storage",
+        "platforms": [
+          "iOS",
+          "Android",
+          "Web",
+          "macOS",
+          "Linux",
+          "Windows"
+        ]
+      },
+      "gotchas": [
+        "Must call getInstance() before accessing preferences",
+        "StorageService wrapper provides JSON serialization layer",
+        "Data persists across app restarts",
+        "Limited storage capacity compared to SQLite"
+      ],
+      "research_sources": [
+        "lib/services/storage_service.dart",
+        "pubspec.yaml"
+      ]
+    },
+    {
+      "name": "geolocator",
+      "type": "library",
+      "verified_package": {
+        "name": "geolocator",
+        "install_command": "flutter pub add geolocator",
+        "version": "13.0.4",
+        "verified": true,
+        "verification_method": "pubspec_yaml"
+      },
+      "api_patterns": {
+        "imports": [
+          "import 'package:geolocator/geolocator.dart';"
+        ],
+        "initialization": "N/A - direct static method calls",
+        "key_functions": [
+          "Geolocator.getCurrentPosition()",
+          "Geolocator.getLastKnownPosition()",
+          "Geolocator.checkPermission()",
+          "Geolocator.requestPermission()",
+          "Geolocator.isLocationServiceEnabled()",
+          "Geolocator.distanceBetween(lat1, lon1, lat2, lon2)"
+        ],
+        "verified_against": "pubspec.yaml (package listed, usage patterns from documentation)"
+      },
+      "configuration": {
+        "env_vars": [],
+        "config_files": [
+          "ios/Runner/Info.plist (NSLocationWhenInUseUsageDescription)",
+          "android/app/src/main/AndroidManifest.xml (ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION)"
+        ],
+        "dependencies": []
+      },
+      "infrastructure": {
+        "requires_docker": false,
+        "platform_specific": true,
+        "platforms": [
+          "iOS",
+          "Android",
+          "Web",
+          "macOS"
+        ]
+      },
+      "gotchas": [
+        "Requires runtime permission handling",
+        "iOS requires Info.plist location usage descriptions",
+        "Android requires manifest permissions",
+        "May need location services enabled on device",
+        "getCurrentPosition can throw if permissions denied"
+      ],
+      "research_sources": [
+        "pubspec.yaml"
+      ]
+    },
+    {
+      "name": "http",
+      "type": "library",
+      "verified_package": {
+        "name": "http",
+        "install_command": "flutter pub add http",
+        "version": "^1.0.0",
+        "verified": true,
+        "verification_method": "codebase_analysis"
+      },
+      "api_patterns": {
+        "imports": [
+          "import 'package:http/http.dart' as http;"
+        ],
+        "initialization": "N/A - direct method calls",
+        "key_functions": [
+          "http.get(uri, headers: {...})",
+          "http.post(uri, headers: {...}, body: jsonEncode(data))",
+          "response.statusCode",
+          "response.body",
+          "utf8.decode(response.bodyBytes)"
+        ],
+        "verified_against": "lib/openai/openai_config.dart, lib/services/google_places_service.dart"
+      },
+      "configuration": {
+        "env_vars": [],
+        "config_files": [],
+        "dependencies": []
+      },
+      "infrastructure": {
+        "requires_docker": false
+      },
+      "gotchas": [
+        "Use utf8.decode(response.bodyBytes) for proper unicode handling",
+        "Always check statusCode before parsing body",
+        "Consider retry logic for transient failures (implemented in OpenAI client)"
+      ],
+      "research_sources": [
+        "lib/openai/openai_config.dart",
+        "lib/services/google_places_service.dart",
+        "lib/services/event_service.dart",
+        "pubspec.yaml"
+      ]
+    },
+    {
+      "name": "OpenAI API",
+      "type": "service",
+      "verified_package": {
+        "name": "Custom HTTP client (no SDK)",
+        "install_command": "N/A - uses http package",
+        "version": "gpt-4o-mini / gpt-4o models",
+        "verified": true,
+        "verification_method": "codebase_analysis"
+      },
+      "api_patterns": {
+        "imports": [
+          "import 'package:http/http.dart' as http;",
+          "import 'dart:convert';"
+        ],
+        "initialization": "OpenAIClient client = OpenAIClient();",
+        "key_functions": [
+          "moderateText({required String text, String context})",
+          "moderateImage({required String imageUrlOrData, String context})"
+        ],
+        "request_format": {
+          "endpoint": "Environment variable OPENAI_PROXY_ENDPOINT",
+          "headers": {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer ${apiKey}"
+          },
+          "body": {
+            "model": "gpt-4o-mini or gpt-4o",
+            "response_format": {"type": "json_object"},
+            "messages": [
+              {"role": "system", "content": "..."},
+              {"role": "user", "content": "..."}
+            ]
+          }
+        },
+        "verified_against": "lib/openai/openai_config.dart"
+      },
+      "configuration": {
+        "env_vars": [
+          "OPENAI_PROXY_API_KEY (via --dart-define)",
+          "OPENAI_PROXY_ENDPOINT (via --dart-define)"
+        ],
+        "config_files": [
+          "lib/openai/openai_config.dart"
+        ],
+        "dependencies": [
+          "http package"
+        ]
+      },
+      "infrastructure": {
+        "requires_docker": false,
+        "external_service": "OpenAI API (via proxy)",
+        "features_used": [
+          "Chat completions",
+          "JSON mode",
+          "Vision (for image moderation)"
+        ]
+      },
+      "gotchas": [
+        "Fail-open on errors (allows content if API fails)",
+        "Retry logic with exponential backoff (3 attempts)",
+        "Uses proxy endpoint, not direct OpenAI API",
+        "Currently only used for content moderation"
+      ],
+      "research_sources": [
+        "lib/openai/openai_config.dart"
+      ]
+    },
+    {
+      "name": "Google Places API (New)",
+      "type": "service",
+      "verified_package": {
+        "name": "Custom HTTP client (no SDK)",
+        "install_command": "N/A - uses http package",
+        "version": "Places API (New) - v1",
+        "verified": true,
+        "verification_method": "codebase_analysis"
+      },
+      "api_patterns": {
+        "imports": [
+          "import 'package:http/http.dart' as http;",
+          "import 'dart:convert';"
+        ],
+        "initialization": "GooglePlacesService service = GooglePlacesService();",
+        "key_functions": [
+          "autocompleteCities(input, {languageCode, regionCode})",
+          "searchNearbyPlaces({latitude, longitude, placeType, radiusMeters})",
+          "searchPlacesByText({query, placeType, latitude, longitude})",
+          "getPlaceDetails(googlePlaceId, placeType)",
+          "getPhotoUrl(photoReference, {maxWidth})"
+        ],
+        "api_endpoints": [
+          "https://places.googleapis.com/v1/places:autocomplete",
+          "https://places.googleapis.com/v1/places:searchNearby",
+          "https://places.googleapis.com/v1/places:searchText",
+          "https://places.googleapis.com/v1/places/{placeId}"
+        ],
+        "verified_against": "lib/services/google_places_service.dart"
+      },
+      "configuration": {
+        "env_vars": [
+          "GOOGLE_PLACES_API_KEY (via --dart-define)"
+        ],
+        "config_files": [
+          "lib/config/app_config.dart"
+        ],
+        "dependencies": [
+          "http package",
+          "uuid package"
+        ]
+      },
+      "infrastructure": {
+        "requires_docker": false,
+        "external_service": "Google Cloud Platform",
+        "apis_enabled": [
+          "Places API (New)"
+        ]
+      },
+      "gotchas": [
+        "Uses X-Goog-Api-Key header for authentication",
+        "Uses X-Goog-FieldMask header to limit response fields",
+        "Does NOT currently support geocoding (city name to coordinates)",
+        "Autocomplete focuses on 'locality' type for city-level results",
+        "Dev fallback API key hardcoded in config (needs removal for production)"
+      ],
+      "research_sources": [
+        "lib/services/google_places_service.dart",
+        "lib/config/app_config.dart"
+      ]
+    },
+    {
+      "name": "Supabase Edge Functions (list_events_combined)",
+      "type": "service",
+      "verified_package": {
+        "name": "Supabase Edge Function",
+        "install_command": "N/A - deployed to Supabase",
+        "version": "Custom function",
+        "verified": true,
+        "verification_method": "codebase_analysis"
+      },
+      "api_patterns": {
+        "imports": [],
+        "initialization": "Via SupabaseConfig.client.functions.invoke()",
+        "key_functions": [
+          "invoke('list_events_combined', body: payload)"
+        ],
+        "request_format": {
+          "q": "search query (optional)",
+          "lat": "latitude (number)",
+          "lon": "longitude (number)",
+          "radiusKm": "search radius in km",
+          "startDate": "ISO 8601 date string",
+          "endDate": "ISO 8601 date string",
+          "page": "page number (default 1)",
+          "perPage": "results per page (default 50)",
+          "providers": ["eventbrite", "runsignup"]
+        },
+        "response_format": {
+          "events": [
+            {
+              "id": "string",
+              "title": "string",
+              "start": "ISO 8601 datetime",
+              "end": "ISO 8601 datetime (optional)",
+              "category": "running|yoga|hiking|cycling|crossfit|other",
+              "venue": "string",
+              "address": "string (optional)",
+              "lat": "number (optional)",
+              "lon": "number (optional)",
+              "url": "string (optional)",
+              "registrationUrl": "string (optional)",
+              "imageUrl": "string (optional)",
+              "source": "eventbrite|runsignup|etc"
+            }
+          ]
+        },
+        "verified_against": "lib/services/event_service.dart"
+      },
+      "configuration": {
+        "env_vars": [
+          "SUPABASE_FUNCTIONS_BASE_URL (for HTTP fallback)"
+        ],
+        "config_files": [
+          "lib/config/app_config.dart"
+        ],
+        "dependencies": [
+          "supabase_flutter"
+        ]
+      },
+      "infrastructure": {
+        "requires_docker": false,
+        "external_service": "Supabase Edge Functions",
+        "event_providers": [
+          "Eventbrite API",
+          "RunSignUp API"
+        ]
+      },
+      "gotchas": [
+        "Falls back to HTTP POST if functions.invoke fails",
+        "Returns empty array on errors (fail-safe)",
+        "Requires lat/lon coordinates - no city name search",
+        "Event category mapping is case-insensitive",
+        "verify_jwt setting determines auth requirements"
+      ],
+      "research_sources": [
+        "lib/services/event_service.dart"
+      ]
+    },
+    {
+      "name": "provider",
+      "type": "library",
+      "verified_package": {
+        "name": "provider",
+        "install_command": "flutter pub add provider",
+        "version": "^6.1.2",
+        "verified": true,
+        "verification_method": "pubspec_yaml"
+      },
+      "api_patterns": {
+        "imports": [
+          "import 'package:provider/provider.dart';",
+          "import 'package:flutter/foundation.dart';"
+        ],
+        "initialization": "MultiProvider(providers: [...], child: App())",
+        "key_functions": [
+          "ChangeNotifierProvider(create: (_) => Service())",
+          "context.watch<T>()",
+          "context.read<T>()",
+          "Provider.of<T>(context)",
+          "notifyListeners()"
+        ],
+        "verified_against": "pubspec.yaml, lib/services/*.dart (all extend ChangeNotifier)"
+      },
+      "configuration": {
+        "env_vars": [],
+        "config_files": [],
+        "dependencies": []
+      },
+      "infrastructure": {
+        "requires_docker": false
+      },
+      "gotchas": [
+        "All services extend ChangeNotifier",
+        "Must call notifyListeners() after state changes",
+        "Use context.watch() for reactive rebuilds",
+        "Use context.read() for one-time reads (event handlers)"
+      ],
+      "research_sources": [
+        "pubspec.yaml",
+        "lib/services/*.dart"
+      ]
+    }
+  ],
+  "unverified_claims": [
+    {
+      "claim": "Geocoding (city name to coordinates) API availability",
+      "reason": "Current codebase uses Google Places Autocomplete for city suggestions but does NOT implement geocoding. The EventService.fetchExternalEvents() requires lat/lon coordinates, but TripModel only stores destinationCity string. A geocoding solution is needed.",
+      "risk_level": "high",
+      "recommendation": "Implement Google Geocoding API or use Places API getPlaceDetails() to extract coordinates from placeId"
+    },
+    {
+      "claim": "AI/ML API beyond moderation",
+      "reason": "Requirements mention 'AI/ML API research' but current implementation only uses OpenAI for content moderation. Specific AI/ML use cases for event recommendation or personalization are not implemented.",
+      "risk_level": "medium",
+      "recommendation": "Define specific AI/ML requirements - event recommendation, personalization, or semantic search"
+    },
+    {
+      "claim": "External event API rate limits and quotas",
+      "reason": "Eventbrite and RunSignUp APIs accessed via Supabase Edge Function, but rate limits and quotas are not documented in client code",
+      "risk_level": "medium",
+      "recommendation": "Review Supabase Edge Function implementation for rate limiting and caching"
+    },
+    {
+      "claim": "'Bulletproof' reliability requirements",
+      "reason": "Requirements specify 'bulletproof' data loading but specific reliability patterns (retry, circuit breaker, offline support) are not fully defined",
+      "risk_level": "medium",
+      "recommendation": "Define specific reliability requirements: retry counts, timeout values, offline caching strategy"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "high",
+      "title": "Implement City-to-Coordinates Geocoding",
+      "description": "TripModel stores destinationCity as string, but fetchExternalEvents() requires lat/lon coordinates. Need to implement geocoding via Google Geocoding API or extract coordinates from Places API placeId during trip creation.",
+      "suggested_approach": "Use Google Geocoding API: https://maps.googleapis.com/maps/api/geocode/json?address={city}&key={API_KEY}"
+    },
+    {
+      "priority": "high",
+      "title": "Create Unified User Data Loading Service",
+      "description": "Combine UserService, TripService, and EventService into a coordinated loading flow that: 1) loads user profile, 2) loads trips, 3) fetches events for active/planned trips based on trip dates and location",
+      "suggested_approach": "Create UserDataLoader service that orchestrates the loading sequence with error handling and retry logic"
+    },
+    {
+      "priority": "medium",
+      "title": "Add Latitude/Longitude to TripModel",
+      "description": "Store geocoded coordinates in TripModel to avoid repeated geocoding API calls",
+      "suggested_approach": "Add optional latitude/longitude fields to TripModel, populate during trip creation via geocoding"
+    },
+    {
+      "priority": "medium",
+      "title": "Implement Offline Caching for Events",
+      "description": "Cache fetched events locally so the app works when offline",
+      "suggested_approach": "Extend StorageService to cache events by trip ID with timestamp for staleness check"
+    },
+    {
+      "priority": "low",
+      "title": "Define AI/ML Integration Scope",
+      "description": "Requirements mention AI/ML API research but specific use cases are unclear",
+      "suggested_approach": "Clarify requirements: event recommendation based on user fitness level, personalized suggestions, semantic search for events"
+    }
+  ],
+  "existing_patterns": {
+    "state_management": "Provider with ChangeNotifier",
+    "local_storage": "SharedPreferences via StorageService wrapper",
+    "remote_data": "Supabase for persistence, Edge Functions for external APIs",
+    "http_client": "dart:http package with JSON serialization",
+    "error_handling": "Try-catch with debugPrint logging, fail-safe defaults",
+    "models": "Immutable with copyWith(), fromJson/toJson serialization"
+  },
+  "data_flow_analysis": {
+    "current_trip_loading": "TripService.initialize() → StorageService.getJsonList() → List<TripModel>",
+    "current_user_loading": "UserService.initialize() → StorageService.getJson() → UserModel",
+    "current_event_fetching": "EventService.fetchExternalEvents({lat, lon, startDate, endDate}) → Supabase Edge Function → List<EventModel>",
+    "gap_identified": "No mechanism to convert TripModel.destinationCity to coordinates for event fetching"
+  },
+  "schema_summary": {
+    "UserModel": {
+      "key_fields": ["id", "email", "displayName", "homeCity", "fitnessLevel", "dietaryPreferences"],
+      "source": "lib/models/user_model.dart"
+    },
+    "TripModel": {
+      "key_fields": ["id", "userId", "destinationCity", "destinationCountry", "startDate", "endDate", "isActive", "savedPlaceIds"],
+      "computed_fields": ["isUpcoming", "isPast", "isCurrent", "durationDays", "status"],
+      "missing_fields": ["latitude", "longitude"],
+      "source": "lib/models/trip_model.dart"
+    },
+    "EventModel": {
+      "key_fields": ["id", "title", "category", "start", "end", "venueName", "address", "latitude", "longitude", "websiteUrl", "registrationUrl", "source"],
+      "categories": ["running", "yoga", "hiking", "cycling", "crossfit", "other"],
+      "source": "lib/models/event_model.dart"
+    }
+  },
+  "created_at": "2025-01-28T00:00:00Z"
+}

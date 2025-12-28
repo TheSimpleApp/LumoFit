@@ -1,0 +1,27 @@
+{
+  "project_root": "/Users/daviddotson/Documents/FitTravel-flutter",
+  "project_type": "single",
+  "services": {
+    "flutter_app": {
+      "path": ".",
+      "tech_stack": ["dart", "flutter", "provider", "supabase"],
+      "port": null,
+      "dev_command": "flutter run --dart-define=GOOGLE_PLACES_API_KEY=your_key --dart-define=SUPABASE_FUNCTIONS_BASE_URL=your_url",
+      "test_command": "flutter test",
+      "entry_point": "lib/main.dart"
+    }
+  },
+  "infrastructure": {
+    "docker": false,
+    "database": "supabase",
+    "external_services": ["supabase_edge_functions", "google_places_api", "openai_proxy"]
+  },
+  "conventions": {
+    "linter": "dart_analyzer",
+    "formatter": "dart_format",
+    "testing": "flutter_test",
+    "state_management": "provider_change_notifier",
+    "service_pattern": "ChangeNotifier with StorageService injection",
+    "error_handling": "debugPrint for logging, try-catch with fallback"
+  }
+}

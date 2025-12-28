@@ -21,6 +21,7 @@ class StorageKeys {
   static const String reviews = 'reviews';
   static const String events = 'events';
   static const String feedbackItems = 'feedback_items';
+  static const String tripEvents = 'trip_events';
 }
 
 /// Wrapper service for SharedPreferences

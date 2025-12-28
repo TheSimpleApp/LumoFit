@@ -1,0 +1,40 @@
+{
+  "task_description": "Build a bulletproof system to load user data with local events based on active/planned trips, using trip start/end dates for event filtering",
+  "scoped_services": ["flutter_app"],
+  "files_to_modify": {
+    "flutter_app": [
+      "lib/services/storage_service.dart",
+      "lib/services/services.dart",
+      "lib/main.dart"
+    ]
+  },
+  "files_to_create": {
+    "flutter_app": [
+      "lib/services/user_trip_events_loader.dart"
+    ]
+  },
+  "files_to_reference": [
+    "lib/services/event_service.dart",
+    "lib/services/trip_service.dart",
+    "lib/services/user_service.dart",
+    "lib/services/storage_service.dart",
+    "lib/openai/openai_config.dart",
+    "lib/models/event_model.dart",
+    "lib/models/trip_model.dart"
+  ],
+  "patterns": {
+    "service_pattern": "Extend ChangeNotifier, inject StorageService, implement initialize() method",
+    "storage_pattern": "Use StorageKeys static const strings, setJsonList/getJsonList for lists",
+    "retry_pattern": "3 attempts, exponential backoff (600ms -> 1200ms -> 2400ms), fail-open on errors",
+    "api_pattern": "Try Supabase client.functions.invoke first, fallback to HTTP, use utf8.decode()"
+  },
+  "existing_implementations": {
+    "description": "EventService.fetchExternalEvents() already connects to list_events_combined Supabase Edge Function with date/location filtering. TripService provides activeTrip and upcomingTrips getters.",
+    "relevant_files": [
+      "lib/services/event_service.dart",
+      "lib/services/trip_service.dart"
+    ]
+  },
+  "created_at": "2025-12-28T12:12:25.485609",
+  "updated_at": "2025-12-28T19:45:00.000Z"
+}
