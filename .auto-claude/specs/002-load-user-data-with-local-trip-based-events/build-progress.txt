@@ -79,3 +79,50 @@ Or manually:
   3. dart analyze lib/
 
 === END SESSION 1 ===
+
+=== SESSION 2 (subtask-4-1) ===
+Date: 2025-12-28
+Task: Create unit tests for UserTripEventsLoader
+
+Work Completed:
+- Created test/services/user_trip_events_loader_test.dart
+- Implemented comprehensive unit tests covering:
+  * Initialization (5 tests)
+  * loadEventsForTrip (6 tests)
+  * Error Handling (4 tests)
+  * Handle Empty Trips (3 tests)
+  * Cache Invalidation (3 tests)
+  * loadAllTripEvents (3 tests)
+  * refreshEventsForTrip (5 tests)
+  * Cache Validation (6 tests)
+  * Static Constants (3 tests)
+- Total: 38 test cases
+
+Test Coverage:
+- Service initialization with dependencies
+- Loading events for active trips
+- Loading events for upcoming trips
+- Cache validation (TTL for active vs upcoming)
+- API failure handling with fallback to cache
+- Empty trips handling (returns empty list)
+- Cache invalidation (single and all)
+- Force refresh bypassing cache
+- Listener notifications
+
+Mock Classes Created:
+- MockStorageService: In-memory storage for testing
+- MockEventService: Controllable event fetching
+- MockTripService: Configurable trips
+- MockUserService: Mock user data
+
+Test Fixtures:
+- createTestTrip(): Creates test TripModel
+- createUpcomingTrip(): Creates upcoming TripModel
+- createTestEvent(): Creates test EventModel
+- createTestEventList(): Creates list of test events
+- createTestUser(): Creates test UserModel
+
+Note: flutter test command not available in this environment.
+Verification must be done manually by running flutter test in local environment.
+
+=== END SESSION 2 ===
