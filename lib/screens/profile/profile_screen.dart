@@ -16,6 +16,7 @@ import 'package:fittravel/services/community_photo_service.dart';
 import 'package:fittravel/services/review_service.dart';
 import 'package:fittravel/models/review_model.dart';
 import 'package:fittravel/services/quick_photo_service.dart';
+import 'package:fittravel/widgets/empty_state_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -52,62 +53,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: RefreshIndicator(
           onRefresh: _onRefresh,
           child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: Row(
-                  children: [
-                    Expanded(child: Text('Profile', style: textStyles.headlineMedium).animate().fadeIn().slideX(begin: -0.1)),
-                    IconButton(onPressed: () => _showSettings(context), icon: const Icon(Icons.settings_outlined)).animate().fadeIn(delay: 200.ms),
-                  ],
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text('Profile', style: textStyles.headlineMedium).animate().fadeIn().slideX(begin: -0.1)),
+                      IconButton(onPressed: () => _showSettings(context), icon: const Icon(Icons.settings_outlined)).animate().fadeIn(delay: 200.ms),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                child: _ProfileCard(user: user).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: _ProfileCard(user: user).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                child: _StatsSection(activities: activityService.activities, user: user).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: _StatsSection(activities: activityService.activities, user: user).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                child: _BadgesSection(earnedBadges: gamificationService.getEarnedBadges(), allBadges: gamificationService.allBadges).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: _BadgesSection(earnedBadges: gamificationService.getEarnedBadges(), allBadges: gamificationService.allBadges).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
+                ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                child: _QuickAddedPhotosSection(userId: user.id).animate().fadeIn(delay: 320.ms).slideY(begin: 0.1),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: _QuickAddedPhotosSection(userId: user.id).animate().fadeIn(delay: 320.ms).slideY(begin: 0.1),
+                ),
               ),
-            ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-              child: _ContributionsSection(userId: user.id).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1),
-            ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: _ContributionsSection(userId: user.id).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: const _StravaSection().animate().fadeIn(delay: 380.ms).slideY(begin: 0.1),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                  child: _QuickSettings().animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+                ),
+              ),
+            ],
           ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                child: const _StravaSection().animate().fadeIn(delay: 380.ms).slideY(begin: 0.1),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                child: _QuickSettings().animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
-              ),
-            ),
-          ],
-        ),
         ),
       ),
     );
@@ -394,12 +395,12 @@ class _BadgeItem extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.15), shape: BoxShape.circle),
-                child: Icon(_getIconData(badge.iconName), color: badgeColor, size: 20),
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: Icon(_getIconData(badge.iconName), color: badgeColor, size: 24),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(badge.name, style: textStyles.labelSmall, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
             ],
           ),
@@ -409,246 +410,171 @@ class _BadgeItem extends StatelessWidget {
   }
 
   void _showBadgeDetails(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textStyles = Theme.of(context).textTheme;
-    final badgeColor = _getBadgeColor(badge.tier);
-
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Drag handle
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: colors.outline.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                )
-                    .animate()
-                    .fadeIn(duration: 200.ms)
-                    .slideY(begin: -0.5, duration: 200.ms),
-                const SizedBox(height: 32),
-                
-                // Badge icon with glow effect
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Outer glow
-                    if (isEarned)
-                      Container(
-                        width: 140,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              badgeColor.withValues(alpha: 0.3),
-                              badgeColor.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                      )
-                          .animate(onPlay: (controller) => controller.repeat())
-                          .scale(
-                            begin: const Offset(0.8, 0.8),
-                            end: const Offset(1.1, 1.1),
-                            duration: 2000.ms,
-                          )
-                          .then()
-                          .scale(
-                            begin: const Offset(1.1, 1.1),
-                            end: const Offset(0.8, 0.8),
-                            duration: 2000.ms,
-                          ),
-                    // Badge container
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            badgeColor.withValues(alpha: 0.2),
-                            badgeColor.withValues(alpha: 0.1),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: badgeColor.withValues(alpha: isEarned ? 0.6 : 0.3),
-                          width: 4,
-                        ),
-                        boxShadow: isEarned
-                            ? [
-                                BoxShadow(
-                                  color: badgeColor.withValues(alpha: 0.4),
-                                  blurRadius: 20,
-                                  spreadRadius: 2,
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Icon(
-                        _getIconData(badge.iconName),
-                        color: badgeColor,
-                        size: 48,
-                      ),
-                    )
-                        .animate()
-                        .scale(delay: 100.ms, duration: 400.ms, curve: Curves.elasticOut)
-                        .then()
-                        .shimmer(delay: 200.ms, duration: 1000.ms, color: Colors.white.withValues(alpha: 0.3)),
-                  ],
-                ),
-                const SizedBox(height: 28),
-                
-                // Tier badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: badgeColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                    border: Border.all(
-                      color: badgeColor.withValues(alpha: 0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    badge.tier.toUpperCase(),
-                    style: textStyles.labelSmall?.copyWith(
-                      color: badgeColor,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                )
-                    .animate()
-                    .fadeIn(delay: 300.ms)
-                    .slideY(begin: 0.5, delay: 300.ms),
-                const SizedBox(height: 16),
-                
-                // Badge name
-                Text(
-                  badge.name,
-                  style: textStyles.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                )
-                    .animate()
-                    .fadeIn(delay: 350.ms)
-                    .slideY(begin: 0.3, delay: 350.ms),
-                const SizedBox(height: 12),
-                
-                // Description
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                  ),
-                  child: Text(
-                    badge.description,
-                    style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
-                    textAlign: TextAlign.center,
-                  ),
-                )
-                    .animate()
-                    .fadeIn(delay: 400.ms)
-                    .slideY(begin: 0.3, delay: 400.ms),
-                const SizedBox(height: 24),
-                
-                // XP Reward
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.xp.withValues(alpha: 0.2),
-                        AppColors.xp.withValues(alpha: 0.1),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                    border: Border.all(
-                      color: AppColors.xp.withValues(alpha: 0.3),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.bolt, color: AppColors.xp, size: 22),
-                      const SizedBox(width: 8),
-                      Text(
-                        '+${badge.xpReward} XP',
-                        style: textStyles.titleMedium?.copyWith(
-                          color: AppColors.xp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-                    .animate()
-                    .fadeIn(delay: 450.ms)
-                    .scale(delay: 450.ms, curve: Curves.elasticOut),
-                const SizedBox(height: 20),
-                
-                // Status indicator
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isEarned
-                        ? AppColors.success.withValues(alpha: 0.15)
-                        : colors.surfaceContainerHighest.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(
-                      color: isEarned
-                          ? AppColors.success.withValues(alpha: 0.3)
-                          : colors.outline.withValues(alpha: 0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isEarned ? Icons.check_circle : Icons.lock_outline,
-                        color: isEarned ? AppColors.success : colors.onSurfaceVariant,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        isEarned ? 'Earned!' : 'Not yet earned',
-                        style: textStyles.titleSmall?.copyWith(
-                          color: isEarned ? AppColors.success : colors.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-                    .animate()
-                    .fadeIn(delay: 500.ms)
-                    .slideY(begin: 0.3, delay: 500.ms),
-              ],
+      builder: (context) => AlertDialog(
+        title: Text(badge.name),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(color: _getBadgeColor(badge.tier).withValues(alpha: 0.1), shape: BoxShape.circle),
+              child: Icon(_getIconData(badge.iconName), color: _getBadgeColor(badge.tier), size: 40),
             ),
-          ),
+            const SizedBox(height: 16),
+            Text(badge.description),
+            const SizedBox(height: 8),
+            Text('Tier: ${badge.tier.toUpperCase()}', style: Theme.of(context).textTheme.labelSmall),
+          ],
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+        ],
       ),
+    );
+  }
+}
+
+class _QuickAddedPhotosSection extends StatelessWidget {
+  final String userId;
+
+  const _QuickAddedPhotosSection({required this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<dynamic>>(
+      future: context.read<QuickPhotoService>().getPhotosByUserId(userId),
+      builder: (context, snapshot) {
+        final textStyles = Theme.of(context).textTheme;
+        final colors = Theme.of(context).colorScheme;
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return EmptyStateWidget(
+            icon: Icons.photo_camera_back,
+            title: 'No Photos Yet',
+            description: 'Start adding photos to your quick gallery',
+            actionLabel: 'Add Photo',
+            onAction: () {},
+          );
+        }
+
+        final photos = snapshot.data!;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Recently Added Photos', style: textStyles.titleMedium),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 120,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: photos.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: EdgeInsets.only(right: index < photos.length - 1 ? 12 : 0),
+                    child: Container(
+                      width: 120,
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        child: Image.network(
+                          photos[index]['url'],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Center(
+                            child: Icon(Icons.image_not_supported, color: colors.onSurface),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ContributionsSection extends StatelessWidget {
+  final String userId;
+
+  const _ContributionsSection({required this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<dynamic>>(
+      future: context.read<CommunityPhotoService>().getPhotosByUserId(userId),
+      builder: (context, snapshot) {
+        final textStyles = Theme.of(context).textTheme;
+        final colors = Theme.of(context).colorScheme;
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return EmptyStateWidget(
+            icon: Icons.public,
+            title: 'No Contributions Yet',
+            description: 'Share your photos with the community',
+            actionLabel: 'Contribute',
+            onAction: () {},
+          );
+        }
+
+        final photos = snapshot.data!;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Community Contributions', style: textStyles.titleMedium),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 120,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: photos.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: EdgeInsets.only(right: index < photos.length - 1 ? 12 : 0),
+                    child: Container(
+                      width: 120,
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        child: Image.network(
+                          photos[index]['url'],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Center(
+                            child: Icon(Icons.image_not_supported, color: colors.onSurface),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -660,142 +586,59 @@ class _StravaSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
+    final stravaService = context.watch<StravaService>();
 
-    return Consumer<StravaService>(
-      builder: (context, strava, _) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Connected Apps', style: textStyles.titleMedium),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: colors.surface,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
-              ),
-              child: InkWell(
-                onTap: () => strava.isAuthenticated
-                    ? _showDisconnectDialog(context, strava)
-                    : strava.authenticate(),
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      // Strava logo placeholder
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFC4C02).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                        ),
-                        child: const Icon(
-                          Icons.directions_run,
-                          color: Color(0xFFFC4C02),
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  'Strava',
-                                  style: textStyles.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                                ),
-                                if (strava.isAuthenticated) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.success.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(AppRadius.full),
-                                    ),
-                                    child: Text(
-                                      'Connected',
-                                      style: textStyles.labelSmall?.copyWith(
-                                        color: AppColors.success,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              strava.isAuthenticated
-                                  ? strava.athlete?.fullName ?? 'Connected'
-                                  : 'See popular running routes nearby',
-                              style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        strava.isAuthenticated ? Icons.link_off : Icons.link,
-                        color: strava.isAuthenticated ? colors.error : colors.primary,
-                        size: 22,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Strava Integration', style: textStyles.titleMedium),
+        const SizedBox(height: 12),
+        if (stravaService.isConnected)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
             ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showDisconnectDialog(BuildContext context, StravaService strava) {
-    final colors = Theme.of(context).colorScheme;
-    final textStyles = Theme.of(context).textTheme;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: colors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xl)),
-        title: Text('Disconnect Strava?', style: textStyles.titleLarge),
-        content: Text(
-          'You will no longer see Strava segments on the map. You can reconnect anytime.',
-          style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel', style: TextStyle(color: colors.onSurfaceVariant)),
-          ),
-          TextButton(
-            onPressed: () {
-              strava.logout();
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Strava disconnected'),
-                  behavior: SnackBarBehavior.floating,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Connected', style: textStyles.bodyMedium?.copyWith(color: Colors.green)),
+                    ElevatedButton(
+                      onPressed: () => stravaService.disconnect(),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      child: const Text('Disconnect'),
+                    ),
+                  ],
                 ),
-              );
-            },
-            child: Text('Disconnect', style: TextStyle(color: colors.error)),
+              ],
+            ),
+          )
+        else
+          EmptyStateWidget(
+            icon: Icons.fitness_center,
+            title: 'Connect Strava',
+            description: 'Sync your Strava activities to FitTravel',
+            actionLabel: 'Connect Now',
+            onAction: () => stravaService.authenticate(),
           ),
-        ],
-      ),
+      ],
     );
   }
 }
 
 class _QuickSettings extends StatelessWidget {
+  const _QuickSettings();
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
+    final userService = context.watch<UserService>();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -803,102 +646,6 @@ class _QuickSettings extends StatelessWidget {
         Text('Quick Settings', style: textStyles.titleMedium),
         const SizedBox(height: 12),
         Container(
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
-          ),
-          child: Column(
-            children: [
-              _SettingsTile(icon: Icons.person_outline, title: 'Edit Profile', onTap: () {}),
-              Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
-              _SettingsTile(icon: Icons.notifications_outlined, title: 'Notifications', onTap: () {}),
-              Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
-              _SettingsTile(icon: Icons.restaurant_menu, title: 'Dietary Preferences', onTap: () {}),
-              Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
-              _SettingsTile(
-                icon: Icons.feedback_outlined,
-                title: 'Send Feedback',
-                onTap: () {
-                  // Use push so the user can navigate back to Profile
-                  context.push('/feedback');
-                },
-              ),
-              Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
-              _SettingsTile(icon: Icons.help_outline, title: 'Help & Support', onTap: () {}),
-              Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
-              _SettingsTile(
-                icon: Icons.logout,
-                title: 'Sign Out',
-                color: colors.error,
-                onTap: () async {
-                  try {
-                    // Using Supabase directly avoids needing an injected AuthManager here
-                    await SupabaseConfig.auth.signOut();
-                  } catch (e) {
-                    debugPrint('Sign out error: $e');
-                  } finally {
-                    if (context.mounted) {
-                      context.go('/login');
-                    }
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-  final Color? color;
-
-  const _SettingsTile({required this.icon, required this.title, required this.onTap, this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textStyles = Theme.of(context).textTheme;
-
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Icon(icon, color: color ?? colors.onSurfaceVariant, size: 22),
-            const SizedBox(width: 12),
-            Expanded(child: Text(title, style: textStyles.bodyMedium?.copyWith(color: color))),
-            Icon(Icons.chevron_right, color: colors.outline, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickAddedPhotosSection extends StatelessWidget {
-  final String userId;
-  const _QuickAddedPhotosSection({required this.userId});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textStyles = Theme.of(context).textTheme;
-    final quickSvc = context.watch<QuickPhotoService>();
-    final myQuick = quickSvc.photos.where((p) => p.userId == userId || p.userId == null).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Quick Added Photos', style: textStyles.titleMedium),
-        const SizedBox(height: 12),
-        Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: colors.surface,
@@ -909,31 +656,26 @@ class _QuickAddedPhotosSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.camera_alt_outlined, size: 18, color: colors.primary),
-                  const SizedBox(width: 8),
-                  Text('Unassigned', style: textStyles.labelLarge),
-                  const Spacer(),
-                  Text('${myQuick.length}', style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                  Text('Notifications', style: textStyles.bodyMedium),
+                  Switch(
+                    value: userService.currentUser?.notificationsEnabled ?? false,
+                    onChanged: (value) => userService.updateNotifications(value),
+                  ),
                 ],
               ),
-              const SizedBox(height: 8),
-              if (myQuick.isEmpty)
-                Text('Nothing yet — use the camera on Home to add.', style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant))
-              else
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 6, crossAxisSpacing: 6),
-                  itemCount: myQuick.length.clamp(0, 12),
-                  itemBuilder: (context, index) => ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: _ProfilePhotoThumb(imageUrl: myQuick[index].imageUrl),
+              const Divider(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Private Profile', style: textStyles.bodyMedium),
+                  Switch(
+                    value: userService.currentUser?.isPrivate ?? false,
+                    onChanged: (value) => userService.updatePrivacy(value),
                   ),
-                ),
-              const SizedBox(height: 8),
-              if (myQuick.isNotEmpty)
-                Text('You can assign these to places later.', style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                ],
+              ),
             ],
           ),
         ),
@@ -941,133 +683,3 @@ class _QuickAddedPhotosSection extends StatelessWidget {
     );
   }
 }
-
-class _ContributionsSection extends StatelessWidget {
-  final String userId;
-  const _ContributionsSection({required this.userId});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textStyles = Theme.of(context).textTheme;
-    final photoSvc = context.watch<CommunityPhotoService>();
-    final reviewSvc = context.watch<ReviewService>();
-    final myPhotos = photoSvc.photos.where((p) => p.userId == userId || p.userId == null).take(9).toList();
-    final myReviews = reviewSvc.reviews.where((r) => r.userId == userId || r.userId == null).take(5).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Your Contributions', style: textStyles.titleMedium),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.photo_library_outlined, size: 18, color: colors.primary),
-                  const SizedBox(width: 8),
-                  Text('Photos', style: textStyles.labelLarge),
-                  const Spacer(),
-                  Text('${myPhotos.length}', style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (myPhotos.isEmpty)
-                Text('No photos yet', style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant))
-              else
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 6, crossAxisSpacing: 6),
-                  itemCount: myPhotos.length,
-                  itemBuilder: (context, index) => ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: _ProfilePhotoThumb(imageUrl: myPhotos[index].imageUrl),
-                  ),
-                ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Icon(Icons.rate_review_outlined, size: 18, color: colors.primary),
-                  const SizedBox(width: 8),
-                  Text('Reviews', style: textStyles.labelLarge),
-                  const Spacer(),
-                  Text('${myReviews.length}', style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (myReviews.isEmpty)
-                Text('No reviews yet', style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant))
-              else
-                Column(children: myReviews.map((r) => _MiniReviewTile(review: r)).toList()),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ProfilePhotoThumb extends StatelessWidget {
-  final String imageUrl;
-  const _ProfilePhotoThumb({required this.imageUrl});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    if (imageUrl.startsWith('data:image/')) {
-      try {
-        final base64Data = imageUrl.substring(imageUrl.indexOf(',') + 1);
-        final bytes = base64Decode(base64Data);
-        return Image.memory(bytes, fit: BoxFit.cover);
-      } catch (_) {
-        return Container(color: colors.surfaceContainerHighest);
-      }
-    }
-    return Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: colors.surfaceContainerHighest));
-  }
-}
-
-class _MiniReviewTile extends StatelessWidget {
-  final ReviewModel review;
-  const _MiniReviewTile({required this.review});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textStyles = Theme.of(context).textTheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.star, size: 14, color: AppColors.xp),
-          const SizedBox(width: 4),
-          Text('${review.rating}', style: textStyles.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              (review.text ?? '').isEmpty ? 'No comment' : review.text!,
-              style: textStyles.labelSmall,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-

@@ -18,12 +18,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Future<void> _onRefresh() async {
-    final userService = context.read<UserService>();
-    final tripService = context.read<TripService>();
+    await HapticUtils.light();
 
+    // Re-initialize services to fetch fresh data from Supabase
     await Future.wait([
-      userService.initialize(),
-      tripService.initialize(),
+      context.read<UserService>().initialize(),
+      context.read<ActivityService>().initialize(),
+      context.read<GamificationService>().initialize(),
+      context.read<TripService>().initialize(),
     ]);
   }
 
@@ -50,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _onRefresh,
+          color: colors.primary,
           child: CustomScrollView(
             slivers: [
             // App Bar
@@ -312,11 +315,11 @@ class _HomeScreenState extends State<HomeScreen> {
               child: SizedBox(height: 96),
             ),
           ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   String _getGreeting() {
     final hour = DateTime.now().hour;

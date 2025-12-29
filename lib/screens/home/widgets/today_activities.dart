@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/activity_service.dart';
 import 'package:fittravel/models/activity_model.dart';
+import 'package:fittravel/widgets/empty_state_widget.dart';
 
 class TodayActivities extends StatelessWidget {
   const TodayActivities({super.key});
@@ -42,7 +43,18 @@ class TodayActivities extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (todayActivities.isEmpty)
-          _EmptyState()
+          EmptyStateWidget.activities(
+            streakMessage: 'Log your first activity to keep your streak!',
+            ctaLabel: 'Log Activity',
+            onCtaPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Use the camera button below to log your activity!'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+          )
         else
           ...todayActivities.map(
             (activity) => Padding(
@@ -55,36 +67,6 @@ class TodayActivities extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textStyles = Theme.of(context).textTheme;
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      alignment: Alignment.center,
-      child: Column(
-        children: [
-          const Text('🎯', style: TextStyle(fontSize: 40)),
-          const SizedBox(height: 12),
-          Text('No activities yet today', style: textStyles.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Log your first activity to keep your streak!',
-            style:
-                textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _ActivityTile extends StatelessWidget {
   final ActivityModel activity;

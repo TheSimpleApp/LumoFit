@@ -439,6 +439,15 @@ class TripService extends ChangeNotifier {
     }
   }
 
+  List<TripModel> searchTrips(String query) {
+    final lowerQuery = query.toLowerCase();
+    return _trips.where((t) {
+      return t.destinationCity.toLowerCase().contains(lowerQuery) ||
+          (t.destinationCountry?.toLowerCase().contains(lowerQuery) ?? false) ||
+          (t.notes?.toLowerCase().contains(lowerQuery) ?? false);
+    }).toList();
+  }
+
   // ---------- Itinerary APIs ----------
 
   List<ItineraryItem> getItinerary(String tripId, {DateTime? forDate}) {

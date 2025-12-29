@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/gamification_service.dart';
 import 'package:fittravel/models/challenge_model.dart';
+import 'package:fittravel/widgets/empty_state_widget.dart';
 
 class ActiveChallenges extends StatelessWidget {
   const ActiveChallenges({super.key});
@@ -10,11 +11,16 @@ class ActiveChallenges extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final gamificationService = context.watch<GamificationService>();
-    final userChallenges = gamificationService.userChallenges
+    final allUserChallenges = gamificationService.userChallenges;
+    final activeChallenges = allUserChallenges
         .where((uc) => !uc.isCompleted)
         .take(3)
         .toList();
     final textStyles = Theme.of(context).textTheme;
+
+    // Determine if user has completed challenges vs no challenges at all
+    final hasCompletedChallenges = allUserChallenges.any((uc) => uc.isCompleted);
+    final allCompleted = activeChallenges.isEmpty && hasCompletedChallenges;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -27,10 +33,22 @@ class ActiveChallenges extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        if (userChallenges.isEmpty)
-          _EmptyState()
+        if (activeChallenges.isEmpty)
+          EmptyStateWidget.challenges(
+            allCompleted: allCompleted,
+            ctaLabel: allCompleted ? 'View Completed' : null,
+            onCtaPressed: allCompleted ? () {
+              // TODO: Navigate to completed challenges view
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Completed challenges coming soon!'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            } : null,
+          )
         else
-          ...userChallenges.map((uc) {
+          ...activeChallenges.map((uc) {
             final challenge = gamificationService.getChallengeById(uc.challengeId);
             if (challenge == null) return const SizedBox.shrink();
             return Padding(
@@ -39,37 +57,6 @@ class ActiveChallenges extends StatelessWidget {
             );
           }),
       ],
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textStyles = Theme.of(context).textTheme;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Text('🏆', style: TextStyle(fontSize: 40)),
-          const SizedBox(height: 12),
-          Text('All challenges completed!', style: textStyles.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Check back for new challenges',
-            style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
     );
   }
 }
