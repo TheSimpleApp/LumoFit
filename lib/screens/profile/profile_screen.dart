@@ -373,313 +373,63 @@ class _BadgeItem extends StatelessWidget {
     }
   }
 
+  void _showBadgeDetails(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(badge.name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text(badge.description, style: Theme.of(context).textTheme.bodyMedium),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
     final badgeColor = _getBadgeColor(badge.tier);
 
-    return GestureDetector(
-      onTap: () => _showBadgeDetails(context),
-      child: Opacity(
-        opacity: isEarned ? 1.0 : 0.4,
-        child: Container(
-          width: 80,
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: isEarned ? badgeColor.withValues(alpha: 0.5) : colors.outline.withValues(alpha: 0.1), width: isEarned ? 2 : 1),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: Icon(_getIconData(badge.iconName), color: badgeColor, size: 24),
-              ),
-              const SizedBox(height: 8),
-              Text(badge.name, style: textStyles.labelSmall, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showBadgeDetails(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(badge.name),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(color: _getBadgeColor(badge.tier).withValues(alpha: 0.1), shape: BoxShape.circle),
-              child: Icon(_getIconData(badge.iconName), color: _getBadgeColor(badge.tier), size: 40),
-            ),
-            const SizedBox(height: 16),
-            Text(badge.description),
-            const SizedBox(height: 8),
-            Text('Tier: ${badge.tier.toUpperCase()}', style: Theme.of(context).textTheme.labelSmall),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickAddedPhotosSection extends StatelessWidget {
-  final String userId;
-
-  const _QuickAddedPhotosSection({required this.userId});
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<dynamic>>(
-      future: context.read<QuickPhotoService>().getPhotosByUserId(userId),
-      builder: (context, snapshot) {
-        final textStyles = Theme.of(context).textTheme;
-        final colors = Theme.of(context).colorScheme;
-
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        }
-
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return EmptyStateWidget(
-            icon: Icons.photo_camera_back,
-            title: 'No Photos Yet',
-            description: 'Start adding photos to your quick gallery',
-            actionLabel: 'Add Photo',
-            onAction: () {},
-          );
-        }
-
-        final photos = snapshot.data!;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Recently Added Photos', style: textStyles.titleMedium),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 120,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: photos.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: EdgeInsets.only(right: index < photos.length - 1 ? 12 : 0),
-                    child: Container(
-                      width: 120,
-                      decoration: BoxDecoration(
-                        color: colors.surface,
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                        border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                        child: Image.network(
-                          photos[index]['url'],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Center(
-                            child: Icon(Icons.image_not_supported, color: colors.onSurface),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _ContributionsSection extends StatelessWidget {
-  final String userId;
-
-  const _ContributionsSection({required this.userId});
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<dynamic>>(
-      future: context.read<CommunityPhotoService>().getPhotosByUserId(userId),
-      builder: (context, snapshot) {
-        final textStyles = Theme.of(context).textTheme;
-        final colors = Theme.of(context).colorScheme;
-
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        }
-
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return EmptyStateWidget(
-            icon: Icons.public,
-            title: 'No Contributions Yet',
-            description: 'Share your photos with the community',
-            actionLabel: 'Contribute',
-            onAction: () {},
-          );
-        }
-
-        final photos = snapshot.data!;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Community Contributions', style: textStyles.titleMedium),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 120,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: photos.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: EdgeInsets.only(right: index < photos.length - 1 ? 12 : 0),
-                    child: Container(
-                      width: 120,
-                      decoration: BoxDecoration(
-                        color: colors.surface,
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                        border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                        child: Image.network(
-                          photos[index]['url'],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Center(
-                            child: Icon(Icons.image_not_supported, color: colors.onSurface),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _StravaSection extends StatelessWidget {
-  const _StravaSection();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textStyles = Theme.of(context).textTheme;
-    final stravaService = context.watch<StravaService>();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Strava Integration', style: textStyles.titleMedium),
-        const SizedBox(height: 12),
-        if (stravaService.isConnected)
-          Container(
-            padding: const EdgeInsets.all(16),
+    return Material(
+      color: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: () => _showBadgeDetails(context),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Opacity(
+          opacity: isEarned ? 1.0 : 0.4,
+          child: Container(
+            width: 80,
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: colors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: isEarned ? badgeColor.withValues(alpha: 0.5) : colors.outline.withValues(alpha: 0.2), width: 1),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Connected', style: textStyles.bodyMedium?.copyWith(color: Colors.green)),
-                    ElevatedButton(
-                      onPressed: () => stravaService.disconnect(),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      child: const Text('Disconnect'),
-                    ),
-                  ],
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppRadius.sm)),
+                  child: Icon(_getIconData(badge.icon), color: badgeColor, size: 24),
                 ),
+                const SizedBox(height: 8),
+                Text(badge.name, style: textStyles.labelSmall?.copyWith(fontWeight: FontWeight.w600), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
               ],
             ),
-          )
-        else
-          EmptyStateWidget(
-            icon: Icons.fitness_center,
-            title: 'Connect Strava',
-            description: 'Sync your Strava activities to FitTravel',
-            actionLabel: 'Connect Now',
-            onAction: () => stravaService.authenticate(),
-          ),
-      ],
-    );
-  }
-}
-
-class _QuickSettings extends StatelessWidget {
-  const _QuickSettings();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final textStyles = Theme.of(context).textTheme;
-    final userService = context.watch<UserService>();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Quick Settings', style: textStyles.titleMedium),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Notifications', style: textStyles.bodyMedium),
-                  Switch(
-                    value: userService.currentUser?.notificationsEnabled ?? false,
-                    onChanged: (value) => userService.updateNotifications(value),
-                  ),
-                ],
-              ),
-              const Divider(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Private Profile', style: textStyles.bodyMedium),
-                  Switch(
-                    value: userService.currentUser?.isPrivate ?? false,
-                    onChanged: (value) => userService.updatePrivacy(value),
-                  ),
-                ],
-              ),
-            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
