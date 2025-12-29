@@ -1216,11 +1216,17 @@ class _CommunityPhotosSection extends StatelessWidget {
             itemCount: photos.length.clamp(0, 9),
             itemBuilder: (context, index) {
               final p = photos[index];
-              return GestureDetector(
-                onTap: () => _openLightbox(context, photos, index),
-                child: ClipRRect(
+              return Material(
+                color: Colors.transparent,
+                clipBehavior: Clip.antiAlias,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: InkWell(
+                  onTap: () => _openLightbox(context, photos, index),
                   borderRadius: BorderRadius.circular(AppRadius.md),
-                  child: _CommunityImage(imageUrl: p.imageUrl),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    child: _CommunityImage(imageUrl: p.imageUrl),
+                  ),
                 ),
               );
             },

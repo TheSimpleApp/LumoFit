@@ -74,13 +74,12 @@ class _TripsScreenState extends State<TripsScreen> {
                       children: [
                         Text('Active Trip', style: textStyles.titleMedium),
                         const SizedBox(height: 12),
-                        GestureDetector(
+                        _ActiveTripCard(
+                          trip: tripService.activeTrip!,
                           onTap: () {
                             HapticUtils.light();
                             context.push('/trip/${tripService.activeTrip!.id}');
                           },
-                          behavior: HitTestBehavior.opaque,
-                          child: _ActiveTripCard(trip: tripService.activeTrip!),
                         )
                             .animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
                       ],
@@ -194,79 +193,89 @@ class _TripsScreenState extends State<TripsScreen> {
 
 class _ActiveTripCard extends StatelessWidget {
   final TripModel trip;
+  final VoidCallback? onTap;
 
-  const _ActiveTripCard({required this.trip});
+  const _ActiveTripCard({required this.trip, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final textStyles = Theme.of(context).textTheme;
     final dateFormat = DateFormat('MMM d');
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: AppColors.goldShimmer,
+    return Material(
+      color: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.xl),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: AppColors.goldShimmer,
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle)),
+                        const SizedBox(width: 6),
+                        Text('Active Now', style: textStyles.labelSmall?.copyWith(color: Colors.black, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  const Icon(Icons.arrow_forward_ios, color: Colors.black, size: 16),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Text('✈️', style: TextStyle(fontSize: 32)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(trip.destinationCity, style: textStyles.titleLarge?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
+                        if (trip.destinationCountry != null)
+                          Text(trip.destinationCountry!, style: textStyles.bodyMedium?.copyWith(color: Colors.black.withValues(alpha: 0.8))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(AppRadius.full),
+                  color: Colors.black.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle)),
-                    const SizedBox(width: 6),
-                    Text('Active Now', style: textStyles.labelSmall?.copyWith(color: Colors.black, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              const Icon(Icons.arrow_forward_ios, color: Colors.black, size: 16),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              const Text('✈️', style: TextStyle(fontSize: 32)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(trip.destinationCity, style: textStyles.titleLarge?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
-                    if (trip.destinationCountry != null)
-                      Text(trip.destinationCountry!, style: textStyles.bodyMedium?.copyWith(color: Colors.black.withValues(alpha: 0.8))),
+                    Expanded(child: _StatColumn(value: '${trip.durationDays}', label: 'Days')),
+                    Container(width: 1, height: 40, color: Colors.black.withValues(alpha: 0.3)),
+                    Expanded(child: _StatColumn(value: '${trip.savedPlaceIds.length}', label: 'Places')),
+                    Container(width: 1, height: 40, color: Colors.black.withValues(alpha: 0.3)),
+                    Expanded(child: _StatColumn(value: dateFormat.format(trip.endDate), label: 'Ends')),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Row(
-              children: [
-                Expanded(child: _StatColumn(value: '${trip.durationDays}', label: 'Days')),
-                Container(width: 1, height: 40, color: Colors.black.withValues(alpha: 0.3)),
-                Expanded(child: _StatColumn(value: '${trip.savedPlaceIds.length}', label: 'Places')),
-                Container(width: 1, height: 40, color: Colors.black.withValues(alpha: 0.3)),
-                Expanded(child: _StatColumn(value: dateFormat.format(trip.endDate), label: 'Ends')),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -370,19 +379,19 @@ class _CreateTripSheet extends StatefulWidget {
 }
 
 class _CreateTripSheetState extends State<_CreateTripSheet> {
-  final _cityController = TextEditingController();
-  final _countryController = TextEditingController();
-  DateTime _startDate = DateTime.now();
-  DateTime _endDate = DateTime.now().add(const Duration(days: 7));
-  final _places = GooglePlacesService();
-  List<CitySuggestion> _suggestions = [];
-  bool _loading = false;
-  DateTime? _lastQueryAt;
+  final _destinationController = TextEditingController();
+  final _startDateController = TextEditingController();
+  final _endDateController = TextEditingController();
+  DateTime? _startDate;
+  DateTime? _endDate;
+  GooglePlace? _selectedPlace;
+  bool _isLoading = false;
 
   @override
   void dispose() {
-    _cityController.dispose();
-    _countryController.dispose();
+    _destinationController.dispose();
+    _startDateController.dispose();
+    _endDateController.dispose();
     super.dispose();
   }
 
@@ -391,194 +400,247 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: const BorderRadius.only(topLeft: Radius.circular(AppRadius.xl), topRight: Radius.circular(AppRadius.xl)),
-      ),
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20, 24, 20, MediaQuery.of(context).viewInsets.bottom + 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Plan a new trip', style: textStyles.headlineSmall),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Text('Destination City', style: textStyles.labelLarge),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _cityController,
-                decoration: InputDecoration(
-                  hintText: 'Where are you going?',
-                  prefixIcon: const Icon(Icons.location_on),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
-                ),
-                onChanged: _onCityChanged,
-              ),
-              if (_suggestions.isNotEmpty)
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  decoration: BoxDecoration(
-                    color: colors.secondaryContainer,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _suggestions.length,
-                    itemBuilder: (context, index) {
-                      final suggestion = _suggestions[index];
-                      return ListTile(
-                        title: Text(suggestion.description),
-                        onTap: () => _selectCity(suggestion),
-                      );
-                    },
+    return DraggableScrollableSheet(
+      expand: false,
+      builder: (context, scrollController) => Container(
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SingleChildScrollView(
+          controller: scrollController,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colors.outline,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              const SizedBox(height: 16),
-              Text('Country', style: textStyles.labelLarge),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _countryController,
-                decoration: InputDecoration(
-                  hintText: 'Country',
-                  prefixIcon: const Icon(Icons.public),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+                const SizedBox(height: 20),
+                Text('Plan Your Trip', style: textStyles.headlineSmall),
+                const SizedBox(height: 24),
+                _DestinationSearchField(
+                  controller: _destinationController,
+                  onPlaceSelected: (place) => setState(() => _selectedPlace = place),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text('Start Date', style: textStyles.labelLarge),
-              const SizedBox(height: 8),
-              _DatePickerButton(
-                date: _startDate,
-                onDateChanged: (date) => setState(() => _startDate = date),
-              ),
-              const SizedBox(height: 16),
-              Text('End Date', style: textStyles.labelLarge),
-              const SizedBox(height: 8),
-              _DatePickerButton(
-                date: _endDate,
-                onDateChanged: (date) => setState(() => _endDate = date),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _loading ? null : _createTrip,
-                  child: _loading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Create Trip'),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DatePickerField(
+                        label: 'Start Date',
+                        controller: _startDateController,
+                        onDateSelected: (date) => setState(() => _startDate = date),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _DatePickerField(
+                        label: 'End Date',
+                        controller: _endDateController,
+                        onDateSelected: (date) => setState(() => _endDate = date),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _isLoading || _selectedPlace == null || _startDate == null || _endDate == null
+                        ? null
+                        : _createTrip,
+                    child: _isLoading
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Text('Create Trip'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Future<void> _onCityChanged(String query) async {
-    if (query.isEmpty) {
-      setState(() => _suggestions = []);
-      return;
-    }
-
-    final now = DateTime.now();
-    if (_lastQueryAt != null && now.difference(_lastQueryAt!).inMilliseconds < 500) {
-      return;
-    }
-
-    _lastQueryAt = now;
-
-    try {
-      final results = await _places.getPlacePredictions(query);
-      if (mounted) {
-        setState(() => _suggestions = results);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    }
-  }
-
-  void _selectCity(CitySuggestion suggestion) {
-    _cityController.text = suggestion.mainText;
-    _countryController.text = suggestion.secondaryText;
-    setState(() => _suggestions = []);
-  }
-
   Future<void> _createTrip() async {
-    if (_cityController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a city')));
-      return;
-    }
+    if (_selectedPlace == null || _startDate == null || _endDate == null) return;
 
-    setState(() => _loading = true);
+    setState(() => _isLoading = true);
 
     try {
       final tripService = context.read<TripService>();
-      await tripService.createTrip(
-        destinationCity: _cityController.text,
-        destinationCountry: _countryController.text,
-        startDate: _startDate,
-        endDate: _endDate,
+      await tripService.addTrip(
+        destination: _selectedPlace!.description ?? _selectedPlace!.mainText ?? '',
+        startDate: _startDate!,
+        endDate: _endDate!,
+        place: _selectedPlace!,
       );
 
       if (mounted) {
         Navigator.pop(context);
+        HapticUtils.success();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error creating trip: $e')),
+        );
       }
     } finally {
       if (mounted) {
-        setState(() => _loading = false);
+        setState(() => _isLoading = false);
       }
     }
   }
 }
 
-class _DatePickerButton extends StatelessWidget {
-  final DateTime date;
-  final ValueChanged<DateTime> onDateChanged;
+class _DestinationSearchField extends StatefulWidget {
+  final TextEditingController controller;
+  final Function(GooglePlace) onPlaceSelected;
 
-  const _DatePickerButton({required this.date, required this.onDateChanged});
+  const _DestinationSearchField({
+    required this.controller,
+    required this.onPlaceSelected,
+  });
+
+  @override
+  State<_DestinationSearchField> createState() => _DestinationSearchFieldState();
+}
+
+class _DestinationSearchFieldState extends State<_DestinationSearchField> {
+  List<GooglePlace> _predictions = [];
+  bool _isSearching = false;
+  final _debounce = Debounce();
+
+  @override
+  void dispose() {
+    _debounce.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return OutlinedButton(
-      onPressed: () async {
-        final picked = await showDatePicker(
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: widget.controller,
+          decoration: InputDecoration(
+            hintText: 'Search destination',
+            prefixIcon: const Icon(Icons.location_on_outlined),
+            suffixIcon: _isSearching ? const SizedBox(width: 20, height: 20, child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2))) : null,
+          ),
+          onChanged: (value) {
+            if (value.isEmpty) {
+              setState(() => _predictions = []);
+              return;
+            }
+
+            _isSearching = true;
+            _debounce.run(() async {
+              try {
+                final googlePlacesService = context.read<GooglePlacesService>();
+                final predictions = await googlePlacesService.searchPlaces(value);
+                if (mounted) {
+                  setState(() {
+                    _predictions = predictions;
+                    _isSearching = false;
+                  });
+                }
+              } catch (e) {
+                if (mounted) {
+                  setState(() => _isSearching = false);
+                }
+              }
+            });
+          },
+        ),
+        if (_predictions.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _predictions.length,
+              itemBuilder: (context, index) {
+                final prediction = _predictions[index];
+                return ListTile(
+                  leading: const Icon(Icons.location_on_outlined, size: 18),
+                  title: Text(prediction.mainText ?? ''),
+                  subtitle: Text(prediction.secondaryText ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                  onTap: () {
+                    widget.controller.text = prediction.description ?? prediction.mainText ?? '';
+                    widget.onPlaceSelected(prediction);
+                    setState(() => _predictions = []);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _DatePickerField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final Function(DateTime) onDateSelected;
+
+  const _DatePickerField({
+    required this.label,
+    required this.controller,
+    required this.onDateSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      readOnly:true,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: const Icon(Icons.calendar_today_outlined),
+      ),
+      onTap: () async {
+        final date = await showDatePicker(
           context: context,
-          initialDate: date,
+          initialDate: DateTime.now(),
           firstDate: DateTime.now(),
           lastDate: DateTime.now().add(const Duration(days: 365)),
         );
-        if (picked != null) {
-          onDateChanged(picked);
+        if (date != null) {
+          controller.text = DateFormat('MMM d, yyyy').format(date);
+          onDateSelected(date);
         }
       },
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        side: BorderSide(color: colors.outline),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(DateFormat('MMM d, yyyy').format(date)),
-          Icon(Icons.calendar_today, color: colors.primary, size: 20),
-        ],
-      ),
     );
   }
+}
+
+class Debounce {
+  Timer? _timer;
+
+  void run(VoidCallback callback) {
+    _timer?.cancel();
+    _timer = Timer(const Duration(milliseconds: 500), callback);
+  }
+
+  void cancel() => _timer?.cancel();
 }
