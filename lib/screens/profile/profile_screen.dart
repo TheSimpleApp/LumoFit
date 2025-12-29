@@ -17,8 +17,25 @@ import 'package:fittravel/services/review_service.dart';
 import 'package:fittravel/models/review_model.dart';
 import 'package:fittravel/services/quick_photo_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  Future<void> _onRefresh() async {
+    final userService = context.read<UserService>();
+    final activityService = context.read<ActivityService>();
+    final gamificationService = context.read<GamificationService>();
+
+    await Future.wait([
+      userService.initialize(),
+      activityService.initialize(),
+      gamificationService.initialize(),
+    ]);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +49,9 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: CustomScrollView(
+        child: RefreshIndicator(
+          onRefresh: _onRefresh,
+          child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
@@ -88,6 +107,7 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

@@ -9,8 +9,18 @@ import 'package:fittravel/services/google_places_service.dart';
 import 'package:fittravel/models/trip_model.dart';
 import 'package:fittravel/utils/haptic_utils.dart';
 
-class TripsScreen extends StatelessWidget {
+class TripsScreen extends StatefulWidget {
   const TripsScreen({super.key});
+
+  @override
+  State<TripsScreen> createState() => _TripsScreenState();
+}
+
+class _TripsScreenState extends State<TripsScreen> {
+  Future<void> _onRefresh() async {
+    final tripService = context.read<TripService>();
+    await tripService.initialize();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,8 +31,10 @@ class TripsScreen extends StatelessWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
+        child: RefreshIndicator(
+          onRefresh: _onRefresh,
+          child: CustomScrollView(
+            slivers: [
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -157,6 +169,7 @@ class TripsScreen extends StatelessWidget {
               SliverFillRemaining(child: _EmptyState(onCreateTrip: () => _showCreateTripSheet(context))),
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
           ],
+        ),
         ),
       ),
     );

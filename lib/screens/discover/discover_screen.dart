@@ -274,6 +274,15 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     }
   }
 
+  Future<void> _onRefresh() async {
+    final placeService = context.read<PlaceService>();
+
+    await Future.wait([
+      _loadNearbyPlaces(),
+      placeService.initialize(),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -595,6 +604,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                     filterHasPhotos: _filterHasPhotos,
                     nearbyPlaces: _nearbyGyms,
                     isLoadingNearby: _isLoadingNearby,
+                    onRefresh: _onRefresh,
                   ),
                   _PlacesList(
                     type: PlaceType.restaurant,
@@ -605,6 +615,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                     filterHasPhotos: _filterHasPhotos,
                     nearbyPlaces: _nearbyRestaurants,
                     isLoadingNearby: _isLoadingNearby,
+                    onRefresh: _onRefresh,
                   ),
                   _EventsList(
                     searchQuery: _searchQuery,
@@ -615,6 +626,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                     centerLat: _centerLat,
                     centerLng: _centerLng,
                     activeTripDestination: _activeTripDestination,
+                    onRefresh: _onRefresh,
                   ),
                   _PlacesList(
                     type: PlaceType.trail,
@@ -625,8 +637,9 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                     filterHasPhotos: _filterHasPhotos,
                     nearbyPlaces: _nearbyTrails,
                     isLoadingNearby: _isLoadingNearby,
+                    onRefresh: _onRefresh,
                   ),
-                  const _SavedPlacesList(),
+                  _SavedPlacesList(onRefresh: _onRefresh),
                 ],
               ),
             ),
@@ -701,6 +714,7 @@ class _PlacesList extends StatelessWidget {
   final bool filterHasPhotos;
   final List<PlaceModel> nearbyPlaces;
   final bool isLoadingNearby;
+  final Future<void> Function() onRefresh;
 
   const _PlacesList({
     required this.type,
@@ -711,6 +725,7 @@ class _PlacesList extends StatelessWidget {
     required this.filterHasPhotos,
     required this.nearbyPlaces,
     required this.isLoadingNearby,
+    required this.onRefresh,
   });
 
   @override
@@ -728,20 +743,32 @@ class _PlacesList extends StatelessWidget {
       }
 
       if (filtered.isEmpty) {
-        return _EmptySearchState(type: type, query: searchQuery);
+        return RefreshIndicator(
+          onRefresh: onRefresh,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height * 0.5,
+              child: _EmptySearchState(type: type, query: searchQuery),
+            ),
+          ),
+        );
       }
 
       // Apply filters to search results
       final filtered2 = _applyFilters(filtered, reviewService, photoService);
-      return ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: filtered2.length,
-        itemBuilder: (context, index) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: PlaceCard(place: filtered2[index])
-              .animate()
-              .fadeIn(delay: (index * 50).ms)
-              .slideY(begin: 0.1, delay: (index * 50).ms),
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          itemCount: filtered2.length,
+          itemBuilder: (context, index) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: PlaceCard(place: filtered2[index])
+                .animate()
+                .fadeIn(delay: (index * 50).ms)
+                .slideY(begin: 0.1, delay: (index * 50).ms),
+          ),
         ),
       );
     }
@@ -757,17 +784,31 @@ class _PlacesList extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (places.isEmpty) return _EmptyState(type: type);
+    if (places.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.5,
+            child: _EmptyState(type: type),
+          ),
+        ),
+      );
+    }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: places.length,
-      itemBuilder: (context, index) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: PlaceCard(place: places[index])
-            .animate()
-            .fadeIn(delay: (index * 100).ms)
-            .slideY(begin: 0.1, delay: (index * 100).ms),
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: places.length,
+        itemBuilder: (context, index) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: PlaceCard(place: places[index])
+              .animate()
+              .fadeIn(delay: (index * 100).ms)
+              .slideY(begin: 0.1, delay: (index * 100).ms),
+        ),
       ),
     );
   }
@@ -809,6 +850,7 @@ class _EventsList extends StatelessWidget {
   final double centerLat;
   final double centerLng;
   final String? activeTripDestination;
+  final Future<void> Function() onRefresh;
 
   const _EventsList({
     required this.searchQuery,
@@ -818,6 +860,7 @@ class _EventsList extends StatelessWidget {
     required this.eventResults,
     required this.centerLat,
     required this.centerLng,
+    required this.onRefresh,
     this.activeTripDestination,
   });
 
@@ -872,35 +915,47 @@ class _EventsList extends StatelessWidget {
     }
 
     if (data.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.event_busy, size: 48, color: colors.onSurfaceVariant),
-            const SizedBox(height: 12),
-            Text('No events found', style: text.titleMedium),
-            const SizedBox(height: 6),
-            Text(
-                activeTripDestination != null
-                    ? 'No fitness events found in $activeTripDestination. Try searching for local running clubs or yoga classes!'
-                    : 'Search for fitness events, running clubs, or yoga classes in your area!',
-                textAlign: TextAlign.center,
-                style:
-                    text.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
-          ],
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.5,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.event_busy, size: 48, color: colors.onSurfaceVariant),
+                  const SizedBox(height: 12),
+                  Text('No events found', style: text.titleMedium),
+                  const SizedBox(height: 6),
+                  Text(
+                      activeTripDestination != null
+                          ? 'No fitness events found in $activeTripDestination. Try searching for local running clubs or yoga classes!'
+                          : 'Search for fitness events, running clubs, or yoga classes in your area!',
+                      textAlign: TextAlign.center,
+                      style:
+                          text.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
+                ],
+              ),
+            ),
+          ),
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      itemCount: data.length,
-      itemBuilder: (context, index) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: EventCard(event: data[index])
-            .animate()
-            .fadeIn(delay: (index * 60).ms)
-            .slideY(begin: 0.06, delay: (index * 60).ms),
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: data.length,
+        itemBuilder: (context, index) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: EventCard(event: data[index])
+              .animate()
+              .fadeIn(delay: (index * 60).ms)
+              .slideY(begin: 0.06, delay: (index * 60).ms),
+        ),
       ),
     );
   }
@@ -1076,7 +1131,9 @@ class EventCard extends StatelessWidget {
 }
 
 class _SavedPlacesList extends StatelessWidget {
-  const _SavedPlacesList();
+  final Future<void> Function() onRefresh;
+
+  const _SavedPlacesList({required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -1086,21 +1143,30 @@ class _SavedPlacesList extends StatelessWidget {
     final textStyles = Theme.of(context).textTheme;
 
     if (places.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('📍', style: TextStyle(fontSize: 48)),
-            const SizedBox(height: 16),
-            Text('Nothing saved yet', style: textStyles.titleMedium),
-            const SizedBox(height: 8),
-            Text(
-              'Discover places in the tabs above and\nsave your favorites to see them here',
-              style: textStyles.bodyMedium
-                  ?.copyWith(color: colors.onSurfaceVariant),
-              textAlign: TextAlign.center,
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.5,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('📍', style: TextStyle(fontSize: 48)),
+                  const SizedBox(height: 16),
+                  Text('Nothing saved yet', style: textStyles.titleMedium),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Discover places in the tabs above and\nsave your favorites to see them here',
+                    style: textStyles.bodyMedium
+                        ?.copyWith(color: colors.onSurfaceVariant),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       );
     }
@@ -1110,40 +1176,43 @@ class _SavedPlacesList extends StatelessWidget {
     final restaurants =
         places.where((p) => p.type == PlaceType.restaurant).toList();
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      children: [
-        if (gyms.isNotEmpty) ...[
-          _SectionHeader(
-            icon: Icons.fitness_center,
-            title: 'Gyms',
-            count: gyms.length,
-          ).animate().fadeIn(),
-          const SizedBox(height: 12),
-          ...gyms.asMap().entries.map((entry) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: PlaceCard(place: entry.value, showSaveButton: true)
-                    .animate()
-                    .fadeIn(delay: (entry.key * 50).ms),
-              )),
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        children: [
+          if (gyms.isNotEmpty) ...[
+            _SectionHeader(
+              icon: Icons.fitness_center,
+              title: 'Gyms',
+              count: gyms.length,
+            ).animate().fadeIn(),
+            const SizedBox(height: 12),
+            ...gyms.asMap().entries.map((entry) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: PlaceCard(place: entry.value, showSaveButton: true)
+                      .animate()
+                      .fadeIn(delay: (entry.key * 50).ms),
+                )),
+          ],
+          if (restaurants.isNotEmpty) ...[
+            if (gyms.isNotEmpty) const SizedBox(height: 8),
+            _SectionHeader(
+              icon: Icons.restaurant,
+              title: 'Restaurants',
+              count: restaurants.length,
+            ).animate().fadeIn(delay: 100.ms),
+            const SizedBox(height: 12),
+            ...restaurants.asMap().entries.map((entry) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: PlaceCard(place: entry.value, showSaveButton: true)
+                      .animate()
+                      .fadeIn(delay: ((gyms.length + entry.key) * 50).ms),
+                )),
+          ],
+          const SizedBox(height: 20),
         ],
-        if (restaurants.isNotEmpty) ...[
-          if (gyms.isNotEmpty) const SizedBox(height: 8),
-          _SectionHeader(
-            icon: Icons.restaurant,
-            title: 'Restaurants',
-            count: restaurants.length,
-          ).animate().fadeIn(delay: 100.ms),
-          const SizedBox(height: 12),
-          ...restaurants.asMap().entries.map((entry) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: PlaceCard(place: entry.value, showSaveButton: true)
-                    .animate()
-                    .fadeIn(delay: ((gyms.length + entry.key) * 50).ms),
-              )),
-        ],
-        const SizedBox(height: 20),
-      ],
+      ),
     );
   }
 }
