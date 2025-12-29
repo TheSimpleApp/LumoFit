@@ -9,8 +9,23 @@ import 'package:fittravel/screens/home/widgets/widgets.dart';
 import 'package:fittravel/utils/haptic_utils.dart';
 import 'package:image_picker/image_picker.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Future<void> _onRefresh() async {
+    final userService = context.read<UserService>();
+    final tripService = context.read<TripService>();
+
+    await Future.wait([
+      userService.initialize(),
+      tripService.initialize(),
+    ]);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +48,10 @@ class HomeScreen extends StatelessWidget {
         label: const Text('Log Activity'),
       ),
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
+        child: RefreshIndicator(
+          onRefresh: _onRefresh,
+          child: CustomScrollView(
+            slivers: [
             // App Bar
             SliverToBoxAdapter(
               child: Padding(
@@ -297,8 +314,9 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
