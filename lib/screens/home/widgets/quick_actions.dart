@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fittravel/theme.dart';
+import 'package:fittravel/widgets/polish_widgets.dart';
+import 'package:fittravel/utils/haptic_utils.dart';
 
 class QuickActions extends StatelessWidget {
   const QuickActions({super.key});
@@ -68,30 +70,29 @@ class _ActionCard extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 28),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: textStyles.labelMedium?.copyWith(color: colors.onSurface),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+    return PressableScale(
+      onPressed: () {
+        HapticUtils.light();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: textStyles.labelMedium?.copyWith(color: colors.onSurface),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
