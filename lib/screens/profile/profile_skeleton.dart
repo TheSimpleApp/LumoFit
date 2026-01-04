@@ -159,3 +159,116 @@ class _SkeletonCircleDark extends StatelessWidget {
     );
   }
 }
+
+/// A skeleton placeholder version of _StatsSection that matches the exact layout
+/// showing 4 stat cards in a 2x2 grid.
+///
+/// Shows shimmer placeholders for:
+/// - Section title "Your Stats"
+/// - 4 stat cards with icon, value, and label placeholders
+class StatsSectionSkeleton extends StatelessWidget {
+  const StatsSectionSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section title placeholder - matches "Your Stats" text
+        _SkeletonBox(width: 80, height: 18),
+        const SizedBox(height: 12),
+        // First row of stat cards
+        Row(
+          children: [
+            Expanded(child: _StatCardSkeleton()),
+            const SizedBox(width: 12),
+            Expanded(child: _StatCardSkeleton()),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Second row of stat cards
+        Row(
+          children: [
+            Expanded(child: _StatCardSkeleton()),
+            const SizedBox(width: 12),
+            Expanded(child: _StatCardSkeleton()),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// A skeleton placeholder for a single stat card.
+/// Matches the layout of _StatCard with icon, value, and label.
+class _StatCardSkeleton extends StatelessWidget {
+  const _StatCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+      ),
+      child: Row(
+        children: [
+          // Icon placeholder - 40x40 box
+          _SkeletonBox(
+            width: 40,
+            height: 40,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Value placeholder - titleLarge equivalent
+                _SkeletonBox(width: 50, height: 20),
+                const SizedBox(height: 4),
+                // Label placeholder - labelSmall equivalent
+                _SkeletonBox(width: 70, height: 12),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A skeleton box for use on dark backgrounds.
+/// Uses app surface colors for the shimmer effect.
+class _SkeletonBox extends StatelessWidget {
+  const _SkeletonBox({
+    this.width,
+    this.height,
+    this.borderRadius,
+  });
+
+  final double? width;
+  final double? height;
+  final BorderRadius? borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: borderRadius ?? BorderRadius.circular(AppRadius.xs),
+      ),
+    ).animate(
+      onPlay: (controller) => controller.repeat(),
+    ).shimmer(
+      duration: const Duration(milliseconds: 1500),
+      color: AppColors.surfaceLight.withValues(alpha: 0.5),
+    );
+  }
+}
