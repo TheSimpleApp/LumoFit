@@ -322,6 +322,254 @@ class _BadgeItemSkeleton extends StatelessWidget {
   }
 }
 
+/// A skeleton placeholder version of _QuickAddedPhotosSection that matches the
+/// expected layout showing a horizontal row of 3 photo placeholders.
+///
+/// Shows shimmer placeholders for:
+/// - Section title "Quick Added Photos"
+/// - 3 photo thumbnails in horizontal row
+class QuickAddedPhotosSectionSkeleton extends StatelessWidget {
+  const QuickAddedPhotosSectionSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section title placeholder - matches "Quick Added Photos" text
+        _SkeletonBox(width: 140, height: 18),
+        const SizedBox(height: 12),
+        // Horizontal row of 3 photo placeholders
+        SizedBox(
+          height: 100,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 3,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: EdgeInsets.only(right: index < 2 ? 12 : 0),
+                child: _SkeletonBox(
+                  width: 100,
+                  height: 100,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A skeleton placeholder version of _ContributionsSection that matches the
+/// expected layout showing a list of contribution items with icons.
+///
+/// Shows shimmer placeholders for:
+/// - Section title "Contributions"
+/// - 3 contribution list items (photos, reviews, tips)
+class ContributionsSectionSkeleton extends StatelessWidget {
+  const ContributionsSectionSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section title placeholder - matches "Contributions" text
+        _SkeletonBox(width: 110, height: 18),
+        const SizedBox(height: 12),
+        // Contribution list container
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+          ),
+          child: Column(
+            children: [
+              // Contribution item 1 - Photos
+              const _ContributionItemSkeleton(),
+              const SizedBox(height: 16),
+              // Contribution item 2 - Reviews
+              const _ContributionItemSkeleton(),
+              const SizedBox(height: 16),
+              // Contribution item 3 - Tips
+              const _ContributionItemSkeleton(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A skeleton placeholder for a single contribution item.
+/// Matches the layout with icon, label, and count.
+class _ContributionItemSkeleton extends StatelessWidget {
+  const _ContributionItemSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        // Icon placeholder
+        _SkeletonBox(
+          width: 32,
+          height: 32,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+        const SizedBox(width: 12),
+        // Label placeholder
+        _SkeletonBox(width: 80, height: 14),
+        const Spacer(),
+        // Count placeholder
+        _SkeletonBox(width: 30, height: 16),
+      ],
+    );
+  }
+}
+
+/// A skeleton placeholder version of _StravaSection that matches the
+/// expected layout showing a Strava integration card.
+///
+/// Shows shimmer placeholders for:
+/// - Strava icon placeholder
+/// - Title and subtitle text
+/// - Connect/status button
+class StravaSectionSkeleton extends StatelessWidget {
+  const StravaSectionSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section title placeholder - matches "Strava" text
+        _SkeletonBox(width: 60, height: 18),
+        const SizedBox(height: 12),
+        // Integration card container
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+          ),
+          child: Row(
+            children: [
+              // Strava logo/icon placeholder
+              _SkeletonBox(
+                width: 48,
+                height: 48,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              const SizedBox(width: 16),
+              // Title and subtitle
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SkeletonBox(width: 100, height: 16),
+                    const SizedBox(height: 6),
+                    _SkeletonBox(width: 140, height: 12),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Connect button placeholder
+              _SkeletonBox(
+                width: 80,
+                height: 36,
+                borderRadius: BorderRadius.circular(AppRadius.full),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A skeleton placeholder version of _QuickSettings that matches the
+/// expected layout showing a list of settings items.
+///
+/// Shows shimmer placeholders for:
+/// - Section title "Quick Settings"
+/// - 3 settings items with icon and label
+class QuickSettingsSkeleton extends StatelessWidget {
+  const QuickSettingsSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section title placeholder - matches "Quick Settings" text
+        _SkeletonBox(width: 110, height: 18),
+        const SizedBox(height: 12),
+        // Settings list container
+        Container(
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+          ),
+          child: Column(
+            children: [
+              // Settings item 1
+              _SettingsItemSkeleton(),
+              Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
+              // Settings item 2
+              _SettingsItemSkeleton(),
+              Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
+              // Settings item 3
+              _SettingsItemSkeleton(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A skeleton placeholder for a single settings item.
+/// Matches the layout with icon, label, and chevron.
+class _SettingsItemSkeleton extends StatelessWidget {
+  const _SettingsItemSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          // Icon placeholder
+          _SkeletonBox(
+            width: 24,
+            height: 24,
+            borderRadius: BorderRadius.circular(AppRadius.xs),
+          ),
+          const SizedBox(width: 12),
+          // Label placeholder
+          _SkeletonBox(width: 100, height: 14),
+          const Spacer(),
+          // Chevron placeholder
+          _SkeletonBox(width: 16, height: 16),
+        ],
+      ),
+    );
+  }
+}
+
 /// A skeleton box for use on dark backgrounds.
 /// Uses app surface colors for the shimmer effect.
 class _SkeletonBox extends StatelessWidget {
