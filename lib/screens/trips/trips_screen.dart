@@ -781,7 +781,25 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
                 ),
-              )
+              ),
+              const SizedBox(height: 24),
+              // Create Trip button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: (!_canSubmit || _isSubmitting) ? null : _createTrip,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Create Trip'),
+                ),
+              ),
             ],
           ),
         ),
