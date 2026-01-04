@@ -392,6 +392,10 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
   String? _selectedCity;
   String? _selectedCountry;
 
+  // Validation state
+  bool _hasAttemptedSubmit = false;
+  String? _cityError;
+
   // Date state variables
   late DateTime _startDate;
   late DateTime _endDate;
@@ -418,12 +422,55 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
     super.dispose();
   }
 
+  /// Returns true if the city field has a valid selection
+  bool get _isCityValid => _selectedCity != null && _selectedCity!.isNotEmpty;
+
+  /// Returns true if the form can be submitted (all required fields valid)
+  bool get _canSubmit => _isCityValid;
+
+  /// Returns true if dates are logically valid (end >= start)
+  bool get _areDatesValid => !_endDate.isBefore(_startDate);
+
+  /// Validates the form and shows errors if invalid
+  /// Returns true if the form is valid and ready to submit
+  bool _validateForm() {
+    setState(() {
+      _hasAttemptedSubmit = true;
+      _cityError = null;
+    });
+
+    bool isValid = true;
+
+    // Validate city
+    if (!_isCityValid) {
+      setState(() {
+        _cityError = 'Please select a destination city';
+      });
+      isValid = false;
+    }
+
+    // Validate dates (should already be enforced by date picker, but double-check)
+    if (!_areDatesValid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('End date must be on or after start date'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      isValid = false;
+    }
+
+    return isValid;
+  }
+
   void _onCityChanged(String value) {
-    // Clear selected city when user types
-    if (_selectedCity != null) {
+    // Clear selected city and validation error when user types
+    if (_selectedCity != null || _cityError != null) {
       setState(() {
         _selectedCity = null;
         _selectedCountry = null;
+        _cityError = null;
       });
     }
 
@@ -529,6 +576,7 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
                 decoration: InputDecoration(
                   labelText: 'Where are you going?',
                   hintText: 'Enter a city',
+                  errorText: _cityError,
                   prefixIcon: const Icon(Icons.location_on_outlined),
                   suffixIcon: _isLoadingSuggestions
                       ? const Padding(
@@ -548,6 +596,7 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
                                   _citySuggestions = [];
                                   _selectedCity = null;
                                   _selectedCountry = null;
+                                  _cityError = null;
                                 });
                               },
                             )
