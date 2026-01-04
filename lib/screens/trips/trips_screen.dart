@@ -453,6 +453,18 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
     });
   }
 
+  void _onSuggestionSelected(CitySuggestion suggestion) {
+    HapticUtils.light();
+    _cityController.text = suggestion.city;
+    setState(() {
+      _selectedCity = suggestion.city;
+      _selectedCountry = suggestion.country;
+      _citySuggestions = [];
+    });
+    // Dismiss keyboard
+    _cityFocusNode.unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -523,8 +535,74 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
                 ),
                 textInputAction: TextInputAction.next,
               ),
+              // Autocomplete suggestions dropdown
+              if (_citySuggestions.isNotEmpty && _selectedCity == null)
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colors.shadow.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: _citySuggestions.length,
+                      itemBuilder: (context, index) {
+                        final suggestion = _citySuggestions[index];
+                        return InkWell(
+                          onTap: () => _onSuggestionSelected(suggestion),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.location_on_outlined,
+                                  size: 20,
+                                  color: colors.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        suggestion.city,
+                                        style: textStyles.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      if (suggestion.country != null)
+                                        Text(
+                                          suggestion.country!,
+                                          style: textStyles.bodySmall?.copyWith(
+                                            color: colors.onSurfaceVariant,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
               const SizedBox(height: 16),
-              // Autocomplete suggestions will be added in subtask 2.2
+              // Date pickers and notes will be added in subtask 2.3 and 2.4
             ],
           ),
         ),
