@@ -396,6 +396,9 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
   bool _hasAttemptedSubmit = false;
   String? _cityError;
 
+  // Submission state
+  bool _isSubmitting = false;
+
   // Date state variables
   late DateTime _startDate;
   late DateTime _endDate;
@@ -532,6 +535,70 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
           _endDate = picked;
         }
       });
+    }
+  }
+
+  Future<void> _createTrip() async {
+    // Validate form first
+    if (!_validateForm()) {
+      HapticUtils.error();
+      return;
+    }
+
+    // Prevent double submission
+    if (_isSubmitting) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final tripService = context.read<TripService>();
+
+      // Create trip with all form data
+      final newTrip = await tripService.createTrip(
+        destinationCity: _selectedCity!,
+        destinationCountry: _selectedCountry,
+        startDate: _startDate,
+        endDate: _endDate,
+        notes: _notesController.text.trim().isNotEmpty
+            ? _notesController.text.trim()
+            : null,
+      );
+
+      // Success haptic feedback
+      HapticUtils.success();
+
+      if (mounted) {
+        // Dismiss the bottom sheet
+        Navigator.of(context).pop();
+
+        // Show success confirmation
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Trip to ${newTrip.destinationCity} created!'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      // Error haptic feedback
+      HapticUtils.error();
+
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create trip: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
