@@ -55,3 +55,43 @@ class SkeletonBox extends StatelessWidget {
     );
   }
 }
+
+/// A reusable skeleton placeholder circle with shimmer animation.
+///
+/// Use this widget to create circular placeholder UI elements for avatars
+/// and profile pictures that show a loading state with a smooth shimmer effect.
+/// The shimmer uses the app's surface colors for a consistent dark luxury look.
+///
+/// Example usage:
+/// ```dart
+/// SkeletonCircle(size: 72) // For avatar placeholders
+/// ```
+class SkeletonCircle extends StatelessWidget {
+  /// Creates a skeleton circle with shimmer animation.
+  ///
+  /// [size] specifies the diameter of the circle.
+  const SkeletonCircle({
+    super.key,
+    required this.size,
+  });
+
+  /// The diameter of the skeleton circle.
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        shape: BoxShape.circle,
+      ),
+    ).animate(
+      onPlay: (controller) => controller.repeat(),
+    ).shimmer(
+      duration: const Duration(milliseconds: 1500),
+      color: AppColors.surfaceLight.withValues(alpha: 0.5),
+    );
+  }
+}
