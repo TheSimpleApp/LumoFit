@@ -646,7 +646,26 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
                 ],
               ),
               const SizedBox(height: 16),
-              // Notes will be added in subtask 2.4
+              // Notes field
+              TextField(
+                controller: _notesController,
+                maxLines: 4,
+                minLines: 3,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                decoration: InputDecoration(
+                  labelText: 'Notes (optional)',
+                  hintText: 'Add any travel notes, reminders, or plans...',
+                  alignLabelWithHint: true,
+                  prefixIcon: const Padding(
+                    padding: EdgeInsets.only(bottom: 48),
+                    child: Icon(Icons.notes_outlined),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                ),
+              )
             ],
           ),
         ),
