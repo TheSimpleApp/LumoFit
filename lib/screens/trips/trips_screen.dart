@@ -580,6 +580,9 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+
+        // Navigate to the new trip detail screen
+        context.push('/trip/${newTrip.id}');
       }
     } catch (e) {
       // Error haptic feedback
