@@ -38,15 +38,7 @@ class ActiveChallenges extends StatelessWidget {
           EmptyStateWidget.challenges(
             allCompleted: allCompleted,
             ctaLabel: allCompleted ? 'View Completed' : null,
-            onCtaPressed: allCompleted ? () {
-              // TODO: Navigate to completed challenges view
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Completed challenges coming soon!'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            } : null,
+            onCtaPressed: allCompleted ? () => context.push('/challenges?tab=completed') : null,
           )
         else
           ...activeChallenges.map((uc) {
