@@ -408,7 +408,42 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
 
   @override
   Widget build(BuildContext context) {
-    // Placeholder - will be implemented in subsequent subtasks
-    return const SizedBox();
+    final colors = Theme.of(context).colorScheme;
+    final textStyles = Theme.of(context).textTheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+              20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.outline.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Title
+              Text('New Trip', style: textStyles.titleLarge),
+              const SizedBox(height: 16),
+              // Form content will be added in subsequent subtasks
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
