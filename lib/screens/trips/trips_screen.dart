@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -383,6 +384,14 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
   late TextEditingController _cityController;
   late TextEditingController _notesController;
 
+  // City autocomplete state
+  late FocusNode _cityFocusNode;
+  List<CitySuggestion> _citySuggestions = [];
+  Timer? _debounceTimer;
+  bool _isLoadingSuggestions = false;
+  String? _selectedCity;
+  String? _selectedCountry;
+
   // Date state variables
   late DateTime _startDate;
   late DateTime _endDate;
@@ -392,6 +401,7 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
     super.initState();
     _cityController = TextEditingController();
     _notesController = TextEditingController();
+    _cityFocusNode = FocusNode();
 
     // Default dates: start tomorrow, end in 7 days
     final tomorrow = DateTime.now().add(const Duration(days: 1));
@@ -403,7 +413,44 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
   void dispose() {
     _cityController.dispose();
     _notesController.dispose();
+    _cityFocusNode.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  void _onCityChanged(String value) {
+    // Clear selected city when user types
+    if (_selectedCity != null) {
+      setState(() {
+        _selectedCity = null;
+        _selectedCountry = null;
+      });
+    }
+
+    // Debounce API calls
+    _debounceTimer?.cancel();
+    if (value.trim().isEmpty) {
+      setState(() {
+        _citySuggestions = [];
+        _isLoadingSuggestions = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoadingSuggestions = true;
+    });
+
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      final placesService = GooglePlacesService();
+      final suggestions = await placesService.autocompleteCities(value);
+      if (mounted) {
+        setState(() {
+          _citySuggestions = suggestions;
+          _isLoadingSuggestions = false;
+        });
+      }
+    });
   }
 
   @override
@@ -438,8 +485,46 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
               const SizedBox(height: 16),
               // Title
               Text('New Trip', style: textStyles.titleLarge),
+              const SizedBox(height: 24),
+              // City input field
+              TextField(
+                controller: _cityController,
+                focusNode: _cityFocusNode,
+                onChanged: _onCityChanged,
+                decoration: InputDecoration(
+                  labelText: 'Where are you going?',
+                  hintText: 'Enter a city',
+                  prefixIcon: const Icon(Icons.location_on_outlined),
+                  suffixIcon: _isLoadingSuggestions
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : _cityController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _cityController.clear();
+                                setState(() {
+                                  _citySuggestions = [];
+                                  _selectedCity = null;
+                                  _selectedCountry = null;
+                                });
+                              },
+                            )
+                          : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                ),
+                textInputAction: TextInputAction.next,
+              ),
               const SizedBox(height: 16),
-              // Form content will be added in subsequent subtasks
+              // Autocomplete suggestions will be added in subtask 2.2
             ],
           ),
         ),
