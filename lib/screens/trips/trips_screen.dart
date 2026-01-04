@@ -616,13 +616,16 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-              20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+                20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Drag handle
               Center(
                 child: Container(
@@ -661,6 +664,7 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
                           ? IconButton(
                               icon: const Icon(Icons.clear),
                               onPressed: () {
+                                HapticUtils.light();
                                 _cityController.clear();
                                 setState(() {
                                   _citySuggestions = [];
@@ -803,7 +807,8 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
                       : const Text('Create Trip'),
                 ),
               ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
