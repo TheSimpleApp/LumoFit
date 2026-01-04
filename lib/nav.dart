@@ -18,6 +18,7 @@ import 'package:fittravel/supabase/supabase_config.dart';
 import 'package:fittravel/screens/feedback/feedback_screen.dart';
 import 'package:fittravel/screens/home/cairo_guide_screen.dart'; // Contains FitnessGuideScreen
 import 'package:fittravel/screens/home/goals_screen.dart';
+import 'package:fittravel/screens/home/challenges_screen.dart';
 import 'package:fittravel/screens/map/map_screen.dart';
 import 'package:fittravel/screens/trips/itinerary_generator_screen.dart';
 
@@ -152,6 +153,25 @@ class AppRouter {
         path: '/goals',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const GoalsScreen(),
+      ),
+      GoRoute(
+        path: '/challenges',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final tab = state.uri.queryParameters['tab'];
+          int initialTab = 0;
+          switch (tab) {
+            case 'active':
+              initialTab = 0;
+              break;
+            case 'completed':
+              initialTab = 1;
+              break;
+            default:
+              initialTab = 0;
+          }
+          return ChallengesScreen(initialTab: initialTab);
+        },
       ),
       GoRoute(
         path: '/feedback',
