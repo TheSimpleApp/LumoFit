@@ -570,6 +570,114 @@ class _SettingsItemSkeleton extends StatelessWidget {
   }
 }
 
+/// A composite skeleton widget that combines all profile section skeletons
+/// in the correct order with proper spacing, matching the real ProfileScreen layout.
+///
+/// Uses CustomScrollView with slivers like the real ProfileScreen.
+/// Animations are staggered for a pleasant visual effect.
+class ProfileScreenSkeleton extends StatelessWidget {
+  const ProfileScreenSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      slivers: [
+        // Header with "Profile" title and settings placeholder
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _SkeletonBox(width: 80, height: 28)
+                      .animate()
+                      .fadeIn()
+                      .slideX(begin: -0.1),
+                ),
+                _SkeletonBox(
+                  width: 40,
+                  height: 40,
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                ).animate().fadeIn(delay: 200.ms),
+              ],
+            ),
+          ),
+        ),
+        // ProfileCard skeleton
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+            child: const ProfileCardSkeleton()
+                .animate()
+                .fadeIn(delay: 100.ms)
+                .slideY(begin: 0.1),
+          ),
+        ),
+        // StatsSection skeleton
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+            child: const StatsSectionSkeleton()
+                .animate()
+                .fadeIn(delay: 200.ms)
+                .slideY(begin: 0.1),
+          ),
+        ),
+        // BadgesSection skeleton
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+            child: const BadgesSectionSkeleton()
+                .animate()
+                .fadeIn(delay: 300.ms)
+                .slideY(begin: 0.1),
+          ),
+        ),
+        // QuickAddedPhotosSection skeleton
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+            child: const QuickAddedPhotosSectionSkeleton()
+                .animate()
+                .fadeIn(delay: 320.ms)
+                .slideY(begin: 0.1),
+          ),
+        ),
+        // ContributionsSection skeleton
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+            child: const ContributionsSectionSkeleton()
+                .animate()
+                .fadeIn(delay: 350.ms)
+                .slideY(begin: 0.1),
+          ),
+        ),
+        // StravaSection skeleton
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+            child: const StravaSectionSkeleton()
+                .animate()
+                .fadeIn(delay: 380.ms)
+                .slideY(begin: 0.1),
+          ),
+        ),
+        // QuickSettings skeleton
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+            child: const QuickSettingsSkeleton()
+                .animate()
+                .fadeIn(delay: 400.ms)
+                .slideY(begin: 0.1),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// A skeleton box for use on dark backgrounds.
 /// Uses app surface colors for the shimmer effect.
 class _SkeletonBox extends StatelessWidget {
