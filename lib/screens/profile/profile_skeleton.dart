@@ -526,13 +526,13 @@ class QuickSettingsSkeleton extends StatelessWidget {
           child: Column(
             children: [
               // Settings item 1
-              _SettingsItemSkeleton(),
+              const _SettingsItemSkeleton(),
               Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
               // Settings item 2
-              _SettingsItemSkeleton(),
+              const _SettingsItemSkeleton(),
               Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
               // Settings item 3
-              _SettingsItemSkeleton(),
+              const _SettingsItemSkeleton(),
             ],
           ),
         ),
