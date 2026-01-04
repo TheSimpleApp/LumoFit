@@ -242,6 +242,86 @@ class _StatCardSkeleton extends StatelessWidget {
   }
 }
 
+/// A skeleton placeholder version of _BadgesSection that matches the exact layout
+/// showing a horizontal scrollable list of badge placeholders.
+///
+/// Shows shimmer placeholders for:
+/// - Section header with title and count
+/// - 5 badge items in horizontal scroll (80px width each)
+class BadgesSectionSkeleton extends StatelessWidget {
+  const BadgesSectionSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header - matches "Badges" title and "X/Y" count
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // "Badges" title placeholder
+            _SkeletonBox(width: 60, height: 18),
+            // Badge count "X/Y" placeholder
+            _SkeletonBox(width: 40, height: 16),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Horizontal scrollable badge list - matches SizedBox height: 100
+        SizedBox(
+          height: 100,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 5,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: EdgeInsets.only(right: index < 4 ? 12 : 0),
+                child: const _BadgeItemSkeleton(),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A skeleton placeholder for a single badge item.
+/// Matches the layout of _BadgeItem with icon and name.
+class _BadgeItemSkeleton extends StatelessWidget {
+  const _BadgeItemSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Container(
+      width: 80,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Icon placeholder - 48x48 box matching _BadgeItem icon container
+          _SkeletonBox(
+            width: 48,
+            height: 48,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          const SizedBox(height: 8),
+          // Badge name placeholder - matches labelSmall text
+          _SkeletonBox(width: 56, height: 12),
+        ],
+      ),
+    );
+  }
+}
+
 /// A skeleton box for use on dark backgrounds.
 /// Uses app surface colors for the shimmer effect.
 class _SkeletonBox extends StatelessWidget {
