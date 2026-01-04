@@ -465,6 +465,29 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
     _cityFocusNode.unfocus();
   }
 
+  Future<void> _pickDate(bool isStart) async {
+    HapticUtils.light();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: isStart ? _startDate : _endDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _startDate = picked;
+          // Adjust end date if it's before start date
+          if (_endDate.isBefore(_startDate)) {
+            _endDate = _startDate.add(const Duration(days: 7));
+          }
+        } else {
+          _endDate = picked;
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -602,7 +625,88 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
                   ),
                 ),
               const SizedBox(height: 16),
-              // Date pickers and notes will be added in subtask 2.3 and 2.4
+              // Date pickers
+              Row(
+                children: [
+                  Expanded(
+                    child: _DateSelector(
+                      label: 'Start Date',
+                      date: _startDate,
+                      onTap: () => _pickDate(true),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _DateSelector(
+                      label: 'End Date',
+                      date: _endDate,
+                      onTap: () => _pickDate(false),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Notes will be added in subtask 2.4
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DateSelector extends StatelessWidget {
+  final String label;
+  final DateTime date;
+  final VoidCallback onTap;
+
+  const _DateSelector({
+    required this.label,
+    required this.date,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textStyles = Theme.of(context).textTheme;
+
+    return Material(
+      color: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: colors.outline.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: textStyles.labelSmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.calendar_today, size: 16, color: colors.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    DateFormat('MMM d, yyyy').format(date),
+                    style: textStyles.bodyMedium,
+                  ),
+                ],
+              ),
             ],
           ),
         ),
