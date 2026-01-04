@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "005-add-consistent-touch-feedback-with-inkwell-ripples",
+  "spec": "005-fix-non-functional-see-all-button-in-active-challe",
   "state": "building",
   "subtasks": {
-    "completed": 12,
-    "total": 13,
+    "completed": 0,
+    "total": 0,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "",
-    "id": 0,
-    "total": 0
+    "current": "Create Challenges Screen",
+    "id": null,
+    "total": 1
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 14,
-    "started_at": "2025-12-29T00:47:23.234412"
+    "number": 2,
+    "started_at": "2026-01-04T13:08:55.090097"
   },
-  "last_update": "2025-12-29T01:35:47.677876"
+  "last_update": "2026-01-04T13:12:33.786531"
 }
