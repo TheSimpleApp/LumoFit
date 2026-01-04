@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fittravel/auth/supabase_auth_manager.dart';
+import 'package:fittravel/theme.dart';
 import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -76,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   'Stay healthy while traveling',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: Colors.grey,
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 48),
