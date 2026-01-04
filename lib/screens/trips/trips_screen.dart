@@ -371,11 +371,44 @@ class _TripCard extends StatelessWidget {
   }
 }
 
-class _CreateTripSheet extends StatelessWidget {
+class _CreateTripSheet extends StatefulWidget {
   const _CreateTripSheet();
 
   @override
+  State<_CreateTripSheet> createState() => _CreateTripSheetState();
+}
+
+class _CreateTripSheetState extends State<_CreateTripSheet> {
+  // Form controllers
+  late TextEditingController _cityController;
+  late TextEditingController _notesController;
+
+  // Date state variables
+  late DateTime _startDate;
+  late DateTime _endDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _cityController = TextEditingController();
+    _notesController = TextEditingController();
+
+    // Default dates: start tomorrow, end in 7 days
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    _startDate = DateTime(tomorrow.year, tomorrow.month, tomorrow.day);
+    _endDate = _startDate.add(const Duration(days: 7));
+  }
+
+  @override
+  void dispose() {
+    _cityController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Placeholder - will be implemented in subsequent subtasks
     return const SizedBox();
   }
 }
