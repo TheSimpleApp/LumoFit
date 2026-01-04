@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fittravel/theme.dart';
+import 'package:fittravel/utils/haptic_utils.dart';
 
 class QuickActions extends StatelessWidget {
   const QuickActions({super.key});
