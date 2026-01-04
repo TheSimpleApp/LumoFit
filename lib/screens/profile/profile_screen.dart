@@ -17,6 +17,7 @@ import 'package:fittravel/services/review_service.dart';
 import 'package:fittravel/models/review_model.dart';
 import 'package:fittravel/services/quick_photo_service.dart';
 import 'package:fittravel/widgets/empty_state_widget.dart';
+import 'package:fittravel/screens/profile/profile_skeleton.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -46,7 +47,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = userService.currentUser;
     final textStyles = Theme.of(context).textTheme;
 
-    if (user == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    // Show skeleton when any service is loading OR user is null
+    final isLoading = userService.isLoading ||
+        activityService.isLoading ||
+        gamificationService.isLoading ||
+        user == null;
+
+    if (isLoading) {
+      return const Scaffold(
+        body: SafeArea(child: ProfileScreenSkeleton()),
+      );
+    }
 
     return Scaffold(
       body: SafeArea(
