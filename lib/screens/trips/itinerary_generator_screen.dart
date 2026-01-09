@@ -199,7 +199,7 @@ class _ItineraryGeneratorScreenState extends State<ItineraryGeneratorScreen> {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: _selectedDestination,
+            initialValue: _selectedDestination,
             decoration: InputDecoration(
               hintText: 'Select destination',
               border: OutlineInputBorder(

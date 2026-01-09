@@ -79,32 +79,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                  child: _BadgesSection(earnedBadges: gamificationService.getEarnedBadges(), allBadges: gamificationService.allBadges).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                  child: _QuickAddedPhotosSection(userId: user.id).animate().fadeIn(delay: 320.ms).slideY(begin: 0.1),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                  child: _ContributionsSection(userId: user.id).animate().fadeIn(delay: 350.ms).slideY(begin: 0.1),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                  child: const _StravaSection().animate().fadeIn(delay: 380.ms).slideY(begin: 0.1),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                  child: _QuickSettings().animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+                  child: _BadgesSection(earnedBadges: gamificationService.getEarnedBadges(), allBadges: gamificationService.allBadges).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
                 ),
               ),
             ],
@@ -421,7 +397,7 @@ class _BadgeItem extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppRadius.sm)),
-                  child: Icon(_getIconData(badge.icon), color: badgeColor, size: 24),
+                  child: Icon(_getIconData(badge.iconName), color: badgeColor, size: 24),
                 ),
                 const SizedBox(height: 8),
                 Text(badge.name, style: textStyles.labelSmall?.copyWith(fontWeight: FontWeight.w600), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),

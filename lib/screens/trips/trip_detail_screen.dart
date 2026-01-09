@@ -1708,7 +1708,7 @@ class _AddOrEditItinerarySheetState extends State<_AddOrEditItinerarySheet> {
       );
     }
     return DropdownButtonFormField<PlaceModel>(
-      value: _selectedPlace,
+      initialValue: _selectedPlace,
       items: widget.associatedPlaces
           .map((p) => DropdownMenuItem(
               value: p,
