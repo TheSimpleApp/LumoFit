@@ -117,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Consumer<TripService>(
               builder: (context, tripService, _) {
                 final activeTrip = tripService.activeTrip;
-                if (activeTrip == null) return const SizedBox.shrink();
+                if (activeTrip == null) return const SliverToBoxAdapter(child: SizedBox.shrink());
 
                 return SliverToBoxAdapter(
                   child: Padding(
