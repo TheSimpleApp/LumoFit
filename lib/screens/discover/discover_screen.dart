@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/services.dart';
 import 'package:fittravel/models/place_model.dart';
 import 'package:fittravel/models/event_model.dart';
-import 'package:fittravel/models/ai_models.dart';
-import 'package:fittravel/utils/haptic_utils.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:fittravel/widgets/place_quick_insights.dart';
+import 'package:go_router/go_router.dart';
+import 'package:fittravel/utils/haptic_utils.dart';
+import 'package:fittravel/widgets/polish_widgets.dart';
 import 'package:fittravel/widgets/empty_state_widget.dart';
 
 class DiscoverScreen extends StatefulWidget {
@@ -452,4 +453,476 @@ class _DiscoverScreenState extends State<DiscoverScreen>
 
             const SizedBox(height: 16),
 
-            // Filter
+            // Filters (contextual)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    if (_tabController.index == 2) ...[
+                      _buildEventCategoryFilter(),
+                      const SizedBox(width: 12),
+                      _buildEventDateFilter(),
+                      const SizedBox(width: 12),
+                      _buildEventRatingFilter(),
+                      const SizedBox(width: 12),
+                      _buildEventPhotosFilter(),
+                    ] else if (_tabController.index == 1) ...[
+                      _buildDietaryFilter(),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Content
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildGymsTab(),
+                  _buildFoodTab(),
+                  _buildEventsTab(),
+                  _buildTrailsTab(),
+                  _buildSavedTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGymsTab() {
+    if (_searchQuery.isNotEmpty) {
+      if (_isSearching) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (_searchResults.isEmpty) {
+        return EmptyStateWidget(
+          title: 'No gyms found',
+          description: 'Try searching with different keywords',
+          ctaLabel: 'Browse nearby',
+          onCtaPressed: () {
+            _searchController.clear();
+            setState(() {
+              _searchQuery = '';
+              _searchResults = [];
+            });
+          },
+        );
+      }
+      return _buildPlacesList(_searchResults);
+    }
+
+    if (_isLoadingNearby) {
+      return _buildSkeletonList();
+    }
+
+    if (_nearbyGyms.isEmpty) {
+      return EmptyStateWidget(
+        title: 'No gyms nearby',
+        description: 'Start a trip or enable location to discover gyms',
+        ctaLabel: 'Enable location',
+        onCtaPressed: () => _initLocation(),
+      );
+    }
+
+    return _buildPlacesList(_nearbyGyms);
+  }
+
+  Widget _buildFoodTab() {
+    if (_searchQuery.isNotEmpty) {
+      if (_isSearching) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (_searchResults.isEmpty) {
+        return EmptyStateWidget(
+          title: 'No restaurants found',
+          description: 'Try searching with different keywords',
+          ctaLabel: 'Browse nearby',
+          onCtaPressed: () {
+            _searchController.clear();
+            setState(() {
+              _searchQuery = '';
+              _searchResults = [];
+            });
+          },
+        );
+      }
+      return _buildPlacesList(_searchResults);
+    }
+
+    if (_isLoadingNearby) {
+      return _buildSkeletonList();
+    }
+
+    if (_nearbyRestaurants.isEmpty) {
+      return EmptyStateWidget(
+        title: 'No restaurants nearby',
+        description: 'Start a trip or enable location to discover restaurants',
+        ctaLabel: 'Enable location',
+        onCtaPressed: () => _initLocation(),
+      );
+    }
+
+    return _buildPlacesList(_nearbyRestaurants);
+  }
+
+  Widget _buildEventsTab() {
+    if (_searchQuery.isNotEmpty) {
+      if (_isSearchingEvents) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (_eventResults.isEmpty) {
+        return EmptyStateWidget(
+          title: 'No events found',
+          description: 'Try different dates or locations',
+          ctaLabel: 'Reset filters',
+          onCtaPressed: () {
+            _searchController.clear();
+            setState(() {
+              _searchQuery = '';
+              _eventResults = [];
+              _selectedCategories.clear();
+              _dateFilter = 'this_week';
+              _filterRating4Plus = false;
+              _filterHasPhotos = false;
+            });
+          },
+        );
+      }
+      return _buildEventsList(_eventResults);
+    }
+
+    return EmptyStateWidget(
+      title: 'Search for events',
+      description: 'Find fitness classes, yoga, sports and more',
+      ctaLabel: 'Start searching',
+      onCtaPressed: () {
+        // Focus is not available on TextEditingController in Flutter 3.38+
+        // User can tap search field directly
+      },
+    );
+  }
+
+  Widget _buildTrailsTab() {
+    if (_searchQuery.isNotEmpty) {
+      if (_isSearching) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (_searchResults.isEmpty) {
+        return EmptyStateWidget(
+          title: 'No trails found',
+          description: 'Try searching with different keywords',
+          ctaLabel: 'Browse nearby',
+          onCtaPressed: () {
+            _searchController.clear();
+            setState(() {
+              _searchQuery = '';
+              _searchResults = [];
+            });
+          },
+        );
+      }
+      return _buildPlacesList(_searchResults);
+    }
+
+    if (_isLoadingNearby) {
+      return _buildSkeletonList();
+    }
+
+    if (_nearbyTrails.isEmpty) {
+      return EmptyStateWidget(
+        title: 'No trails nearby',
+        description: 'Start a trip or enable location to discover trails',
+        ctaLabel: 'Enable location',
+        onCtaPressed: () => _initLocation(),
+      );
+    }
+
+    return _buildPlacesList(_nearbyTrails);
+  }
+
+  Widget _buildSavedTab() {
+    final placeService = context.read<PlaceService>();
+    final savedPlaces = placeService.savedPlaces;
+
+    if (savedPlaces.isEmpty) {
+      return EmptyStateWidget(
+        title: 'No saved places yet',
+        description: 'Start exploring and save your favorite gyms, restaurants and trails',
+        ctaLabel: 'Explore now',
+        onCtaPressed: () => _tabController.animateTo(0),
+      );
+    }
+
+    return _buildPlacesList(savedPlaces);
+  }
+
+  Widget _buildSkeletonList() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: const PlaceCardSkeleton(),
+        ).animate()
+            .fadeIn(delay: Duration(milliseconds: 50 * index), duration: 300.ms);
+      },
+    );
+  }
+
+  Widget _buildPlacesList(List<PlaceModel> places) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      itemCount: places.length,
+      itemBuilder: (context, index) {
+        final place = places[index];
+        return _buildPlaceCard(place, index);
+      },
+    );
+  }
+
+  Widget _buildEventsList(List<EventModel> events) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      itemCount: events.length,
+      itemBuilder: (context, index) {
+        final event = events[index];
+        return _buildEventCard(event);
+      },
+    );
+  }
+
+  Widget _buildPlaceCard(PlaceModel place, int index) {
+    final textStyles = Theme.of(context).textTheme;
+    final colors = Theme.of(context).colorScheme;
+
+    // Get place type icon and color
+    IconData typeIcon;
+    Color typeColor;
+    switch (place.type) {
+      case PlaceType.gym:
+        typeIcon = Icons.fitness_center;
+        typeColor = AppColors.primary;
+        break;
+      case PlaceType.restaurant:
+        typeIcon = Icons.restaurant;
+        typeColor = AppColors.success;
+        break;
+      case PlaceType.trail:
+        typeIcon = Icons.terrain;
+        typeColor = AppColors.info;
+        break;
+      default:
+        typeIcon = Icons.place;
+        typeColor = AppColors.textSecondary;
+    }
+
+    return PressableScale(
+      onPressed: () {
+        HapticUtils.light();
+        context.push('/place/${place.id}');
+      },
+      child: Hero(
+        tag: 'place_${place.id}',
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: colors.outline.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              children: [
+                // Image or icon placeholder
+                Hero(
+                  tag: 'place_image_${place.id}',
+                  child: Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: typeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: place.photoReferences.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            child: CachedNetworkImage(
+                              imageUrl: place.photoReferences.first,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Shimmer.fromColors(
+                                baseColor: AppColors.surface,
+                                highlightColor: AppColors.surfaceLight,
+                                child: Container(color: AppColors.surface),
+                              ),
+                              errorWidget: (context, url, error) => Icon(
+                                typeIcon,
+                                color: typeColor,
+                                size: 32,
+                              ),
+                            ),
+                          )
+                        : Icon(typeIcon, color: typeColor, size: 32),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        place.name,
+                        style: textStyles.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        place.address ?? 'No address',
+                        style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (place.rating != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.star, size: 14, color: AppColors.warning),
+                            const SizedBox(width: 4),
+                            Text(
+                              place.rating!.toStringAsFixed(1),
+                              style: textStyles.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            if (place.userRatingsTotal != null) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                '(${place.userRatingsTotal})',
+                                style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: colors.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ).animate()
+        .fadeIn(delay: Duration(milliseconds: 50 * index.clamp(0, 10)), duration: 300.ms)
+        .slideX(begin: 0.05, delay: Duration(milliseconds: 50 * index.clamp(0, 10)), duration: 300.ms);
+  }
+
+  Widget _buildEventCard(EventModel event) {
+    return GestureDetector(
+      onTap: () => context.push('/event/${event.id}'),
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(event.title, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(event.category.toString(),
+                  style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.calendar_today, size: 16),
+                  const SizedBox(width: 4),
+                  Text(event.start.toString().split(' ')[0],
+                      style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEventCategoryFilter() {
+    return FilterChip(
+      label: const Text('Category'),
+      onSelected: (_) => _showCategoryPicker(),
+      selected: _selectedCategories.isNotEmpty,
+    );
+  }
+
+  Widget _buildEventDateFilter() {
+    return FilterChip(
+      label: const Text('Date'),
+      onSelected: (_) => _showDateFilterPicker(),
+      selected: _dateFilter != 'this_week',
+    );
+  }
+
+  Widget _buildEventRatingFilter() {
+    return FilterChip(
+      label: const Text('4+ Rating'),
+      onSelected: (selected) => setState(() => _filterRating4Plus = selected),
+      selected: _filterRating4Plus,
+    );
+  }
+
+  Widget _buildEventPhotosFilter() {
+    return FilterChip(
+      label: const Text('Has photos'),
+      onSelected: (selected) => setState(() => _filterHasPhotos = selected),
+      selected: _filterHasPhotos,
+    );
+  }
+
+  Widget _buildDietaryFilter() {
+    return FilterChip(
+      label: const Text('Dietary'),
+      onSelected: (_) => _showDietaryFilterPicker(),
+      selected: _selectedDietaryFilters.isNotEmpty,
+    );
+  }
+
+  void _showCategoryPicker() {
+    // Implementation for category picker
+  }
+
+  void _showDateFilterPicker() {
+    // Implementation for date filter picker
+  }
+
+  void _showDietaryFilterPicker() {
+    // Implementation for dietary filter picker
+  }
+
+  (DateTime, DateTime) _currentDateRange() {
+    final now = DateTime.now();
+    switch (_dateFilter) {
+      case 'today':
+        return (now, now);
+      case 'this_week':
+        return (now, now.add(const Duration(days: 7)));
+      case 'this_month':
+        return (now, now.add(const Duration(days: 30)));
+      default:
+        return (now, now.add(const Duration(days: 7)));
+    }
+  }
+}
