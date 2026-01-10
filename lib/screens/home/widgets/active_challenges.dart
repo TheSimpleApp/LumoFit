@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/gamification_service.dart';
@@ -29,7 +30,7 @@ class ActiveChallenges extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('Active Challenges', style: textStyles.titleMedium),
-            TextButton(onPressed: () {}, child: const Text('See All')),
+            TextButton(onPressed: () => context.push('/challenges'), child: const Text('See All')),
           ],
         ),
         const SizedBox(height: 8),
@@ -37,15 +38,7 @@ class ActiveChallenges extends StatelessWidget {
           EmptyStateWidget.challenges(
             allCompleted: allCompleted,
             ctaLabel: allCompleted ? 'View Completed' : null,
-            onCtaPressed: allCompleted ? () {
-              // TODO: Navigate to completed challenges view
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Completed challenges coming soon!'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            } : null,
+            onCtaPressed: allCompleted ? () => context.push('/challenges?tab=completed') : null,
           )
         else
           ...activeChallenges.map((uc) {
