@@ -18,6 +18,7 @@ import 'package:fittravel/models/review_model.dart';
 import 'package:fittravel/services/quick_photo_service.dart';
 import 'package:fittravel/widgets/empty_state_widget.dart';
 import 'package:fittravel/screens/profile/profile_skeleton.dart';
+import 'package:fittravel/widgets/polish_widgets.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -188,19 +189,26 @@ class _ProfileCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('${user.totalXp} XP', style: textStyles.labelMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
+                  Row(
+                    children: [
+                      AnimatedCounter(
+                        value: user.totalXp,
+                        style: textStyles.labelMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.bold),
+                      ),
+                      Text(' XP', style: textStyles.labelMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                   Text('${user.xpForNextLevel} XP to Level ${user.level + 1}', style: textStyles.labelSmall?.copyWith(color: Colors.black.withValues(alpha: 0.7))),
                 ],
               ),
               const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: user.levelProgress,
-                  backgroundColor: Colors.black.withValues(alpha: 0.2),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.black),
-                  minHeight: 8,
+              AnimatedGradientProgressBar(
+                value: user.levelProgress,
+                gradient: const LinearGradient(
+                  colors: [Colors.black87, Colors.black],
                 ),
+                backgroundColor: Colors.black.withValues(alpha: 0.2),
+                height: 8,
               ),
             ],
           ),
@@ -216,14 +224,13 @@ class _StatsSection extends StatelessWidget {
 
   const _StatsSection({required this.activities, required this.user});
 
-  String _formatNumber(int number) => number >= 1000 ? '${(number / 1000).toStringAsFixed(1)}k' : number.toString();
-
   @override
   Widget build(BuildContext context) {
     final textStyles = Theme.of(context).textTheme;
     final totalWorkouts = activities.where((a) => a.type == ActivityType.workout).length;
     final totalCalories = activities.fold(0, (sum, a) => sum + (a.caloriesBurned ?? 0));
     final totalMinutes = activities.fold(0, (sum, a) => sum + (a.durationMinutes ?? 0));
+    final totalHours = (totalMinutes / 60).floor();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,17 +239,50 @@ class _StatsSection extends StatelessWidget {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _StatCard(icon: Icons.local_fire_department, value: '${user.currentStreak}', label: 'Day Streak', color: AppColors.warning)),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.local_fire_department,
+                value: '${user.currentStreak}',
+                label: 'Day Streak',
+                color: AppColors.warning,
+                animatedValue: user.currentStreak,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _StatCard(icon: Icons.fitness_center, value: '$totalWorkouts', label: 'Workouts', color: AppColors.primary)),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.fitness_center,
+                value: '$totalWorkouts',
+                label: 'Workouts',
+                color: AppColors.primary,
+                animatedValue: totalWorkouts,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _StatCard(icon: Icons.local_fire_department, value: _formatNumber(totalCalories), label: 'Calories', color: AppColors.error)),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.local_fire_department,
+                value: '$totalCalories',
+                label: 'Calories',
+                color: AppColors.error,
+                animatedValue: totalCalories,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _StatCard(icon: Icons.timer, value: '${(totalMinutes / 60).floor()}h', label: 'Active Time', color: AppColors.info)),
+            Expanded(
+              child: _StatCard(
+                icon: Icons.timer,
+                value: '${totalHours}h',
+                label: 'Active Time',
+                color: AppColors.info,
+                animatedValue: totalHours,
+                suffix: 'h',
+              ),
+            ),
           ],
         ),
       ],
@@ -255,40 +295,58 @@ class _StatCard extends StatelessWidget {
   final String value;
   final String label;
   final Color color;
+  final int? animatedValue;
+  final String? suffix;
 
-  const _StatCard({required this.icon, required this.value, required this.label, required this.color});
+  const _StatCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+    this.animatedValue,
+    this.suffix,
+  });
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppRadius.sm)),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(value, style: textStyles.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                Text(label, style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
-              ],
+    return PressableScale(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppRadius.sm)),
+              child: Icon(icon, color: color, size: 20),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (animatedValue != null)
+                    AnimatedFormattedCounter(
+                      value: animatedValue!,
+                      suffix: suffix,
+                      style: textStyles.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    )
+                  else
+                    Text(value, style: textStyles.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(label, style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

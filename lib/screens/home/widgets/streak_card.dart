@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/user_service.dart';
 import 'package:fittravel/utils/haptic_utils.dart';
+import 'package:fittravel/widgets/polish_widgets.dart';
 
 class StreakCard extends StatelessWidget {
   const StreakCard({super.key});
@@ -48,12 +49,23 @@ class StreakCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${user?.currentStreak ?? 0} Day Streak!',
-                      style: textStyles.titleLarge?.copyWith(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        AnimatedCounter(
+                          value: user?.currentStreak ?? 0,
+                          style: textStyles.titleLarge?.copyWith(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          ' Day Streak!',
+                          style: textStyles.titleLarge?.copyWith(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -78,8 +90,8 @@ class StreakCard extends StatelessWidget {
                       children: [
                         Icon(Icons.bolt, color: Colors.black, size: 16),
                         const SizedBox(width: 4),
-                        Text(
-                          '${user?.totalXp ?? 0}',
+                        AnimatedFormattedCounter(
+                          value: user?.totalXp ?? 0,
                           style: textStyles.labelMedium?.copyWith(
                             color: Colors.black,
                             fontWeight: FontWeight.bold,
