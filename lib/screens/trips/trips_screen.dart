@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -370,11 +371,506 @@ class _TripCard extends StatelessWidget {
   }
 }
 
-class _CreateTripSheet extends StatelessWidget {
+class _CreateTripSheet extends StatefulWidget {
   const _CreateTripSheet();
 
   @override
+  State<_CreateTripSheet> createState() => _CreateTripSheetState();
+}
+
+class _CreateTripSheetState extends State<_CreateTripSheet> {
+  // Form controllers
+  late TextEditingController _cityController;
+  late TextEditingController _notesController;
+
+  // City autocomplete state
+  late FocusNode _cityFocusNode;
+  List<CitySuggestion> _citySuggestions = [];
+  Timer? _debounceTimer;
+  bool _isLoadingSuggestions = false;
+  String? _selectedCity;
+  String? _selectedCountry;
+
+  // Validation state
+  bool _hasAttemptedSubmit = false;
+  String? _cityError;
+
+  // Submission state
+  bool _isSubmitting = false;
+
+  // Date state variables
+  late DateTime _startDate;
+  late DateTime _endDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _cityController = TextEditingController();
+    _notesController = TextEditingController();
+    _cityFocusNode = FocusNode();
+
+    // Default dates: start tomorrow, end in 7 days
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    _startDate = DateTime(tomorrow.year, tomorrow.month, tomorrow.day);
+    _endDate = _startDate.add(const Duration(days: 7));
+  }
+
+  @override
+  void dispose() {
+    _cityController.dispose();
+    _notesController.dispose();
+    _cityFocusNode.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Returns true if the city field has a valid selection
+  bool get _isCityValid => _selectedCity != null && _selectedCity!.isNotEmpty;
+
+  /// Returns true if the form can be submitted (all required fields valid)
+  bool get _canSubmit => _isCityValid;
+
+  /// Returns true if dates are logically valid (end >= start)
+  bool get _areDatesValid => !_endDate.isBefore(_startDate);
+
+  /// Validates the form and shows errors if invalid
+  /// Returns true if the form is valid and ready to submit
+  bool _validateForm() {
+    setState(() {
+      _hasAttemptedSubmit = true;
+      _cityError = null;
+    });
+
+    bool isValid = true;
+
+    // Validate city
+    if (!_isCityValid) {
+      setState(() {
+        _cityError = 'Please select a destination city';
+      });
+      isValid = false;
+    }
+
+    // Validate dates (should already be enforced by date picker, but double-check)
+    if (!_areDatesValid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('End date must be on or after start date'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      isValid = false;
+    }
+
+    return isValid;
+  }
+
+  void _onCityChanged(String value) {
+    // Clear selected city and validation error when user types
+    if (_selectedCity != null || _cityError != null) {
+      setState(() {
+        _selectedCity = null;
+        _selectedCountry = null;
+        _cityError = null;
+      });
+    }
+
+    // Debounce API calls
+    _debounceTimer?.cancel();
+    if (value.trim().isEmpty) {
+      setState(() {
+        _citySuggestions = [];
+        _isLoadingSuggestions = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoadingSuggestions = true;
+    });
+
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      final placesService = GooglePlacesService();
+      final suggestions = await placesService.autocompleteCities(value);
+      if (mounted) {
+        setState(() {
+          _citySuggestions = suggestions;
+          _isLoadingSuggestions = false;
+        });
+      }
+    });
+  }
+
+  void _onSuggestionSelected(CitySuggestion suggestion) {
+    HapticUtils.light();
+    _cityController.text = suggestion.city;
+    setState(() {
+      _selectedCity = suggestion.city;
+      _selectedCountry = suggestion.country;
+      _citySuggestions = [];
+    });
+    // Dismiss keyboard
+    _cityFocusNode.unfocus();
+  }
+
+  Future<void> _pickDate(bool isStart) async {
+    HapticUtils.light();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: isStart ? _startDate : _endDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _startDate = picked;
+          // Adjust end date if it's before start date
+          if (_endDate.isBefore(_startDate)) {
+            _endDate = _startDate.add(const Duration(days: 7));
+          }
+        } else {
+          _endDate = picked;
+        }
+      });
+    }
+  }
+
+  Future<void> _createTrip() async {
+    // Validate form first
+    if (!_validateForm()) {
+      HapticUtils.error();
+      return;
+    }
+
+    // Prevent double submission
+    if (_isSubmitting) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final tripService = context.read<TripService>();
+
+      // Create trip with all form data
+      final newTrip = await tripService.createTrip(
+        destinationCity: _selectedCity!,
+        destinationCountry: _selectedCountry,
+        startDate: _startDate,
+        endDate: _endDate,
+        notes: _notesController.text.trim().isNotEmpty
+            ? _notesController.text.trim()
+            : null,
+      );
+
+      // Success haptic feedback
+      HapticUtils.success();
+
+      if (mounted) {
+        // Dismiss the bottom sheet
+        Navigator.of(context).pop();
+
+        // Show success confirmation
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Trip to ${newTrip.destinationCity} created!'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+        // Navigate to the new trip detail screen
+        context.push('/trip/${newTrip.id}');
+      }
+    } catch (e) {
+      // Error haptic feedback
+      HapticUtils.error();
+
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create trip: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const SizedBox();
+    final colors = Theme.of(context).colorScheme;
+    final textStyles = Theme.of(context).textTheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+                20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.outline.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Title
+              Text('New Trip', style: textStyles.titleLarge),
+              const SizedBox(height: 24),
+              // City input field
+              TextField(
+                controller: _cityController,
+                focusNode: _cityFocusNode,
+                onChanged: _onCityChanged,
+                decoration: InputDecoration(
+                  labelText: 'Where are you going?',
+                  hintText: 'Enter a city',
+                  errorText: _cityError,
+                  prefixIcon: const Icon(Icons.location_on_outlined),
+                  suffixIcon: _isLoadingSuggestions
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : _cityController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                HapticUtils.light();
+                                _cityController.clear();
+                                setState(() {
+                                  _citySuggestions = [];
+                                  _selectedCity = null;
+                                  _selectedCountry = null;
+                                  _cityError = null;
+                                });
+                              },
+                            )
+                          : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                ),
+                textInputAction: TextInputAction.next,
+              ),
+              // Autocomplete suggestions dropdown
+              if (_citySuggestions.isNotEmpty && _selectedCity == null)
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colors.shadow.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: _citySuggestions.length,
+                      itemBuilder: (context, index) {
+                        final suggestion = _citySuggestions[index];
+                        return InkWell(
+                          onTap: () => _onSuggestionSelected(suggestion),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.location_on_outlined,
+                                  size: 20,
+                                  color: colors.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        suggestion.city,
+                                        style: textStyles.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      if (suggestion.country != null)
+                                        Text(
+                                          suggestion.country!,
+                                          style: textStyles.bodySmall?.copyWith(
+                                            color: colors.onSurfaceVariant,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              // Date pickers
+              Row(
+                children: [
+                  Expanded(
+                    child: _DateSelector(
+                      label: 'Start Date',
+                      date: _startDate,
+                      onTap: () => _pickDate(true),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _DateSelector(
+                      label: 'End Date',
+                      date: _endDate,
+                      onTap: () => _pickDate(false),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Notes field
+              TextField(
+                controller: _notesController,
+                maxLines: 4,
+                minLines: 3,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                decoration: InputDecoration(
+                  labelText: 'Notes (optional)',
+                  hintText: 'Add any travel notes, reminders, or plans...',
+                  alignLabelWithHint: true,
+                  prefixIcon: const Padding(
+                    padding: EdgeInsets.only(bottom: 48),
+                    child: Icon(Icons.notes_outlined),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Create Trip button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: (!_canSubmit || _isSubmitting) ? null : _createTrip,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Create Trip'),
+                ),
+              ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DateSelector extends StatelessWidget {
+  final String label;
+  final DateTime date;
+  final VoidCallback onTap;
+
+  const _DateSelector({
+    required this.label,
+    required this.date,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textStyles = Theme.of(context).textTheme;
+
+    return Material(
+      color: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: colors.outline.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: textStyles.labelSmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.calendar_today, size: 16, color: colors.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    DateFormat('MMM d, yyyy').format(date),
+                    style: textStyles.bodyMedium,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
