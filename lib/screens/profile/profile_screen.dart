@@ -1,22 +1,13 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:fittravel/supabase/supabase_config.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/user_service.dart';
 import 'package:fittravel/services/activity_service.dart';
 import 'package:fittravel/services/gamification_service.dart';
-import 'package:fittravel/services/strava_service.dart';
 import 'package:fittravel/models/user_model.dart';
 import 'package:fittravel/models/activity_model.dart';
 import 'package:fittravel/models/badge_model.dart';
-import 'package:fittravel/services/community_photo_service.dart';
-import 'package:fittravel/services/review_service.dart';
-import 'package:fittravel/models/review_model.dart';
-import 'package:fittravel/services/quick_photo_service.dart';
-import 'package:fittravel/widgets/empty_state_widget.dart';
 import 'package:fittravel/screens/profile/profile_skeleton.dart';
 import 'package:fittravel/widgets/polish_widgets.dart';
 

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/trip_service.dart';
+import 'package:fittravel/services/google_places_service.dart';
 import 'package:fittravel/models/trip_model.dart';
 import 'package:fittravel/utils/haptic_utils.dart';
 import 'package:fittravel/widgets/empty_state_widget.dart';

@@ -276,15 +276,6 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     }
   }
 
-  Future<void> _onRefresh() async {
-    final placeService = context.read<PlaceService>();
-
-    await Future.wait([
-      _loadNearbyPlaces(),
-      placeService.initialize(),
-    ]);
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
