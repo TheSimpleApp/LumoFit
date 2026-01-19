@@ -1,0 +1,36 @@
+{
+  "project": "LumoFit",
+  "mode": "autonomous",
+  "permissions": {
+    "dangerouslySkipPermissions": true,
+    "canRunShellCommands": true,
+    "canWriteFiles": true,
+    "canUseBrowser": true,
+    "canCommitGit": true
+  },
+  "testing": {
+    "email": "test@example.com",
+    "password": "Test123"
+  },
+  "commands": {
+    "analyze": "dart analyze lib/",
+    "format": "dart format lib/",
+    "run": "flutter run -d \"iPhone 15 Pro\"",
+    "test": "flutter test",
+    "build": "flutter build ios --no-codesign",
+    "clean": "flutter clean && flutter pub get"
+  },
+  "sprint": {
+    "name": "D2D Con Demo",
+    "deadline": "2026-01-21",
+    "focus": ["Map Tab", "Discover Tab", "Saved Locations", "UI Simplification", "TestFlight"]
+  },
+  "rules": [
+    "Always run dart analyze after changes",
+    "Use Provider for state management",
+    "Use GoRouter for navigation",
+    "Use withValues() not withOpacity()",
+    "No new features - polish only",
+    "Update PLAN.md checkboxes when complete"
+  ]
+}

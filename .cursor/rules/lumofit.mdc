@@ -1,0 +1,75 @@
+---
+description: LumoFit D2D Con Sprint Rules
+globs: ["**/*.dart", "**/*.yaml", "**/*.md"]
+alwaysApply: true
+---
+
+# LumoFit D2D Con Sprint - Cursor Rules
+
+## Current Sprint Context
+- **Event:** Door to Door Con (~8 days)
+- **Goal:** Polish & simplify for TestFlight beta
+- **Focus:** Map + Discover tabs
+
+## Before Any Task
+1. Read `PLAN.md` for current sprint tasks
+2. Read `AGENT.md` for coding patterns
+3. Read `CONTEXT.md` for business context
+
+## Sprint Priorities
+1. ✅ Map Tab - Color pins, search, filters
+2. ✅ Discover Tab - Photo carousel, cards
+3. ✅ Saved Locations - Quick save, albums
+4. ✅ Simplification - Hide clutter
+5. ✅ TestFlight - Public link ready
+
+## Code Rules
+
+### Use Provider Pattern
+```dart
+// ✅ Correct
+class MyService extends ChangeNotifier { ... }
+Consumer<MyService>(builder: ...)
+
+// ❌ Wrong - Don't use
+Riverpod, BLoC, GetX
+```
+
+### Use GoRouter
+```dart
+// ✅ Correct
+context.go('/discover');
+context.push('/place/123');
+
+// ❌ Wrong
+Navigator.push(context, MaterialPageRoute(...));
+```
+
+### Use withValues
+```dart
+// ✅ Correct
+Colors.white.withValues(alpha: 0.5)
+
+// ❌ Deprecated
+Colors.white.withOpacity(0.5)
+```
+
+## Don't Do These During Sprint
+- ❌ Add new features
+- ❌ Refactor architecture
+- ❌ Change state management
+- ❌ Modify Supabase schema
+- ❌ Add new dependencies without asking
+
+## Key Files
+- Entry: `lib/main.dart`
+- Routes: `lib/nav.dart`
+- Theme: `lib/theme.dart`
+- Map: `lib/screens/map/map_screen.dart`
+- Discover: `lib/screens/discover/discover_screen.dart`
+
+## After Changes
+1. Run `dart analyze` - fix errors
+2. Run `dart format lib/`
+3. Test on iOS simulator
+4. Update PLAN.md checkbox if task complete

@@ -1,73 +1,151 @@
-# Cursor AI Rules for FitTravel
+# Cursor AI Rules for LumoFit
 
-## CRITICAL: No Hallucinating About Technology Availability
+## 🎯 Current Sprint: Door to Door Con (D2D Con) Demo
 
-You MUST verify before claiming any technology, API, or AI model doesn't exist or isn't available.
+**Timeline:** ~8 days (Demo around Jan 21, 2026)
+**Focus:** Polish Map + Discover tabs, simplify UI, TestFlight beta
 
-### Mandatory Verification Process
-1. **NEVER** claim an AI model "doesn't exist" or "isn't available" without web verification
-2. **ALWAYS** search the web when uncertain about current technology state
-3. **REMEMBER** your knowledge has a cutoff date - technology evolves rapidly
-
-### Current AI Model Reality (verify for updates)
-- Gemini 2.0 Flash - EXISTS and available
-- Gemini 2.5 Flash - EXISTS and available (this project uses it)
-- Gemini 2.5 Pro - EXISTS and available
-- GPT-4o, o1, o1-mini - EXIST and available
-- Claude 3.5 Sonnet, Opus 4.5 - EXIST and available
-
-### This Project's AI Stack
-- **Model:** Gemini 2.5 Flash (`gemini-2.5-flash`)
-- **Integration:** Supabase Edge Functions
-- **Location:** `supabase/functions/cairo_guide/`, `supabase/functions/egypt_fitness_guide/`
-
-### Before Suggesting Changes to AI Code
-1. Check what model is currently configured
-2. Verify the suggested model exists via web search
-3. Check Google AI documentation for current model IDs and capabilities
-4. Do not downgrade models without explicit user request
+### Sprint Priorities
+1. Map Tab - Color-coded pins, quick search, distance filters
+2. Discover Tab - Photo carousel, better cards
+3. Saved Locations - Quick save without trips, albums
+4. Simplification - Hide Challenges, Log Activity, complex features
+5. TestFlight - Public link for conference attendees
 
 ---
 
-## Project Context
+## 📚 Critical Files to Read First
 
-**App:** FitTravel - Fitness travel app for finding gyms, healthy food, and fitness events while traveling
+1. **AGENT.md** - AI coding patterns and conventions
+2. **CONTEXT.md** - Business requirements and meeting notes
+3. **PLAN.md** - Sprint tasks with checkboxes
+4. **knowledge.md** - Full technical documentation
 
-**Target:** Cairo, Egypt (beta market)
+---
+
+## 🏗️ Project Context
+
+**App:** LumoFit (formerly FitTravel) - Fitness travel app
 
 **Stack:**
-- Flutter/Dart frontend
-- Supabase backend (PostgreSQL, Auth, Storage, Edge Functions)
+- Flutter 3.6+ / Dart
+- Provider for state management
+- GoRouter for navigation
+- Supabase (PostgreSQL, Auth, Storage, Edge Functions)
 - Google Maps & Places APIs
-- Gemini AI for recommendations
-
-**Documentation:** Read `knowledge.md` for comprehensive project details
+- Gemini 2.5 Flash for AI features
 
 ---
 
-## Code Patterns
+## ✅ Do's
 
-### Flutter Services
-- Extend ChangeNotifier
-- Use Provider for dependency injection
-- Follow patterns in `lib/services/`
-
-### Edge Functions
-- TypeScript/Deno runtime
-- API keys in environment variables
-- Follow patterns in `supabase/functions/`
-
-### UI/UX
-- Dark luxury aesthetic
-- Gold primary color
-- Mobile-first, 60fps target
-- Haptic feedback on key actions
+- [ ] Read PLAN.md before starting any task
+- [ ] Use Provider pattern (not Riverpod)
+- [ ] Use GoRouter for navigation (not Navigator)
+- [ ] Use `withValues()` instead of `withOpacity()`
+- [ ] Follow existing code patterns in lib/services/
+- [ ] Test on iOS before committing
+- [ ] Update PLAN.md checkbox when task complete
 
 ---
 
-## Key Reminders
+## 🚫 Don'ts
 
-1. Default location is Cairo (30.0444, 31.2357), not SLC
-2. All data persists to Supabase, not local storage
-3. Photos compress to 1920px max before upload
-4. Edge Functions handle all external API calls for security
+- [ ] Don't add new features (focus on polish)
+- [ ] Don't refactor architecture
+- [ ] Don't change state management approach
+- [ ] Don't use `setState` for shared state
+- [ ] Don't use `print()` (use Logger)
+- [ ] Don't hardcode API keys
+- [ ] Don't modify Supabase schema
+
+---
+
+## 🎨 Code Patterns
+
+### State Management
+```dart
+// Services extend ChangeNotifier
+class PlaceService extends ChangeNotifier {
+  List<Place> _places = [];
+  bool _isLoading = false;
+
+  // Expose via getters
+  List<Place> get places => _places;
+  bool get isLoading => _isLoading;
+
+  // Notify on changes
+  Future<void> load() async {
+    _isLoading = true;
+    notifyListeners();
+    // ...
+  }
+}
+```
+
+### Navigation
+```dart
+// Use GoRouter
+context.go('/discover');            // Replace
+context.push('/place/${place.id}'); // Push
+```
+
+### Theme Colors
+```dart
+// Use theme, not hardcoded
+Theme.of(context).colorScheme.primary
+Colors.white.withValues(alpha: 0.5) // NOT withOpacity
+```
+
+---
+
+## 📂 Key Files
+
+| Purpose | File |
+|---------|------|
+| Entry point | `lib/main.dart` |
+| Routes | `lib/nav.dart` |
+| Theme | `lib/theme.dart` |
+| Supabase | `lib/supabase/supabase_config.dart` |
+| Map screen | `lib/screens/map/map_screen.dart` |
+| Discover | `lib/screens/discover/discover_screen.dart` |
+
+---
+
+## 🔧 Sprint-Specific Tasks
+
+### Map Tab (Priority 1)
+- `lib/screens/map/map_screen.dart`
+- `lib/screens/map/widgets/map_filter_bar.dart`
+- Add color-coded markers by type
+- Add search bar with autocomplete
+- Add distance filters
+
+### Discover Tab (Priority 1)
+- `lib/screens/discover/discover_screen.dart`
+- `lib/screens/discover/place_detail_screen.dart`
+- Add photo carousel to cards
+- Improve visual hierarchy
+
+### Simplification (Priority 2)
+- `lib/screens/main_shell.dart`
+- `lib/screens/home/home_screen.dart`
+- Hide Challenges, Log Activity
+- Consider 4-tab layout
+
+---
+
+## ⚠️ AI Model Note
+
+This project uses **Gemini 2.5 Flash** via Supabase Edge Functions.
+- Model ID: `gemini-2.5-flash`
+- Edge Functions: `supabase/functions/`
+- Do NOT change AI models without explicit approval
+
+---
+
+## 📞 Communication
+
+- **Slack** - Primary async channel
+- **GitHub** - Code and issues
+- **PLAN.md** - Track progress with checkboxes

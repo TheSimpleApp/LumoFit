@@ -3,8 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:fittravel/nav.dart';
 import 'package:fittravel/theme.dart';
 
-
-
 class MainShell extends StatelessWidget {
   final Widget child;
 
@@ -48,11 +46,12 @@ class MainShell extends StatelessWidget {
               selectedIcon: Icon(Icons.explore),
               label: 'Discover',
             ),
-            NavigationDestination(
-              icon: Icon(Icons.luggage_outlined),
-              selectedIcon: Icon(Icons.luggage),
-              label: 'Trips',
-            ),
+            // Commented out for D2D Con demo - simplified 4-tab layout
+            // NavigationDestination(
+            //   icon: Icon(Icons.luggage_outlined),
+            //   selectedIcon: Icon(Icons.luggage),
+            //   label: 'Trips',
+            // ),
             NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person),
