@@ -53,7 +53,7 @@ Ship a **polished, simplified LumoFit experience** for D2D Con attendees to demo
 
 ## 📋 D2D Con Sprint Backlog
 
-### Phase D1: Map Tab Polish ⬜ IN PROGRESS
+### Phase D1: Map Tab Polish ✅ COMPLETE
 
 **Goal:** Make the Map tab the hero feature with color-coded pins and quick search
 
@@ -78,13 +78,13 @@ Ship a **polished, simplified LumoFit experience** for D2D Con attendees to demo
 - [x] Saved places grid view with photo-first cards
 - [x] Filter saved places by album
 
-### Phase D4: UI Simplification ⬜ PENDING
+### Phase D4: UI Simplification ✅ COMPLETE
 
-- [ ] Hide Challenges section from Home
-- [ ] Remove Log Activity button
-- [ ] Simplify Trips tab or hide it
-- [ ] Hide Cairo Guide (Egypt-specific)
-- [ ] Consider 4-tab layout: Home, Map, Discover, Profile
+- [x] Hide Challenges section from Home
+- [x] Remove Log Activity button
+- [x] Simplify Trips tab or hide it
+- [x] Hide Cairo Guide (Egypt-specific)
+- [x] Consider 4-tab layout: Home, Map, Discover, Profile
 
 ### Phase D5: Events Polish ⬜ PENDING
 
