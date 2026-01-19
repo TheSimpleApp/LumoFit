@@ -71,12 +71,12 @@ Ship a **polished, simplified LumoFit experience** for D2D Con attendees to demo
 - [x] Distance badge on cards
 - [x] Open/closed status indicator
 
-### Phase D3: Saved Locations / Albums ⬜ PENDING
+### Phase D3: Saved Locations / Albums ✅ COMPLETE
 
-- [ ] Quick save without trip (general collection)
-- [ ] Albums / Categories (custom groupings)
-- [ ] Saved places grid view with photo-first cards
-- [ ] Filter saved places by album
+- [x] Quick save without trip (general collection)
+- [x] Albums / Categories (using place types: Gyms, Food, Trails)
+- [x] Saved places grid view with photo-first cards
+- [x] Filter saved places by album
 
 ### Phase D4: UI Simplification ⬜ PENDING
 

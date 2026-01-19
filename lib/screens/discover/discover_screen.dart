@@ -639,9 +639,11 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     return _buildPlacesList(_nearbyTrails);
   }
 
+  PlaceType? _selectedAlbum; // Filter by place type (album)
+
   Widget _buildSavedTab() {
     final placeService = context.read<PlaceService>();
-    final savedPlaces = placeService.savedPlaces;
+    var savedPlaces = placeService.savedPlaces;
 
     if (savedPlaces.isEmpty) {
       return EmptyStateWidget(
@@ -653,7 +655,177 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       );
     }
 
-    return _buildPlacesList(savedPlaces);
+    // Filter by album (place type)
+    if (_selectedAlbum != null) {
+      savedPlaces = savedPlaces.where((p) => p.type == _selectedAlbum).toList();
+    }
+
+    return Column(
+      children: [
+        // Album filter chips
+        Container(
+          height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _buildAlbumChip('All', null),
+              const SizedBox(width: 8),
+              _buildAlbumChip('Gyms 💪', PlaceType.gym),
+              const SizedBox(width: 8),
+              _buildAlbumChip('Food 🥗', PlaceType.restaurant),
+              const SizedBox(width: 8),
+              _buildAlbumChip('Trails 🥾', PlaceType.trail),
+            ],
+          ),
+        ),
+        // Grid view
+        Expanded(child: _buildPlacesGrid(savedPlaces)),
+      ],
+    );
+  }
+
+  Widget _buildAlbumChip(String label, PlaceType? type) {
+    final isSelected = _selectedAlbum == type;
+    final colors = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() => _selectedAlbum = type);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? colors.primary : colors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? colors.primary
+                : colors.outline.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? colors.onPrimary : colors.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlacesGrid(List<PlaceModel> places) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: places.length,
+      itemBuilder: (context, index) {
+        final place = places[index];
+        return _buildGridPlaceCard(place);
+      },
+    );
+  }
+
+  Widget _buildGridPlaceCard(PlaceModel place) {
+    final colors = Theme.of(context).colorScheme;
+    final hasPhoto = place.photoReferences.isNotEmpty;
+
+    return GestureDetector(
+      onTap: () {
+        HapticUtils.light();
+        context.push('/place/${place.id}');
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Photo (takes most space)
+            Expanded(
+              flex: 3,
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(12)),
+                child: hasPhoto
+                    ? CachedNetworkImage(
+                        imageUrl: place.photoReferences.first,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        placeholder: (context, url) => Shimmer.fromColors(
+                          baseColor: AppColors.surface,
+                          highlightColor: AppColors.surfaceLight,
+                          child: Container(color: AppColors.surface),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: colors.primary.withValues(alpha: 0.1),
+                          child: Icon(Icons.place,
+                              size: 48, color: colors.primary),
+                        ),
+                      )
+                    : Container(
+                        color: colors.primary.withValues(alpha: 0.1),
+                        child:
+                            Icon(Icons.place, size: 48, color: colors.primary),
+                      ),
+              ),
+            ),
+            // Info section
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      place.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Spacer(),
+                    if (place.rating != null)
+                      Row(
+                        children: [
+                          const Icon(Icons.star,
+                              size: 12, color: AppColors.warning),
+                          const SizedBox(width: 4),
+                          Text(
+                            place.rating!.toStringAsFixed(1),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildSkeletonList() {
