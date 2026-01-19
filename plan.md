@@ -92,12 +92,14 @@ Ship a **polished, simplified LumoFit experience** for D2D Con attendees to demo
 - [x] Event image prominently displayed
 - [x] Seed Austin/Texas events for D2D Con
 
-### Phase D6: TestFlight Prep ⬜ PENDING
+### Phase D6: TestFlight Prep ⬜ IN PROGRESS
 
-- [ ] Update version to 1.1.0
-- [ ] Full flow test on iOS device
-- [ ] Upload to TestFlight
-- [ ] Enable public link
+- [x] Update version to 1.1.0
+- [x] Full flow test on iOS device
+- [ ] Upload to TestFlight (requires Apple Developer account)
+- [ ] Enable public link (requires Apple Developer account)
+
+**Note:** App is ready for TestFlight deployment. Upload and public link activation require Apple Developer account credentials and should be done by project owner.
 
 ---
 
