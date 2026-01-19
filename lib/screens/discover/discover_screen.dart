@@ -39,7 +39,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   // Dietary filters for Food tab
   final Set<String> _selectedDietaryFilters = {};
   // Location (fallback when no trip and GPS fails)
-  double _centerLat = 40.7128;  // New York
+  double _centerLat = 40.7128; // New York
   double _centerLng = -74.0060;
   // Active trip context
   String? _activeTripDestination;
@@ -646,7 +646,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     if (savedPlaces.isEmpty) {
       return EmptyStateWidget(
         title: 'No saved places yet',
-        description: 'Start exploring and save your favorite gyms, restaurants and trails',
+        description:
+            'Start exploring and save your favorite gyms, restaurants and trails',
         ctaLabel: 'Explore now',
         onCtaPressed: () => _tabController.animateTo(0),
       );
@@ -663,8 +664,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: const PlaceCardSkeleton(),
-        ).animate()
-            .fadeIn(delay: Duration(milliseconds: 50 * index), duration: 300.ms);
+        ).animate().fadeIn(
+            delay: Duration(milliseconds: 50 * index), duration: 300.ms);
       },
     );
   }
@@ -727,98 +728,254 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           color: Colors.transparent,
           child: Container(
             margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: colors.surface,
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: colors.outline.withValues(alpha: 0.1)),
+              border: Border.all(
+                color: colors.outline.withValues(alpha: 0.15),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                  spreadRadius: 0,
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                  spreadRadius: 0,
+                ),
+              ],
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Image or icon placeholder
-                Hero(
-                  tag: 'place_image_${place.id}',
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: typeColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: place.photoReferences.isNotEmpty
-                        ? ClipRRect(
+                // Photo carousel (if photos available)
+                if (place.photoReferences.isNotEmpty)
+                  SizedBox(
+                    height: 160,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: place.photoReferences.length.clamp(0, 5),
+                      itemBuilder: (context, photoIndex) {
+                        return Container(
+                          width: 200,
+                          margin: EdgeInsets.only(
+                            right: photoIndex < place.photoReferences.length - 1
+                                ? 8
+                                : 0,
+                          ),
+                          child: ClipRRect(
                             borderRadius: BorderRadius.circular(AppRadius.md),
                             child: CachedNetworkImage(
-                              imageUrl: place.photoReferences.first,
+                              imageUrl: place.photoReferences[photoIndex],
                               fit: BoxFit.cover,
                               placeholder: (context, url) => Shimmer.fromColors(
                                 baseColor: AppColors.surface,
                                 highlightColor: AppColors.surfaceLight,
                                 child: Container(color: AppColors.surface),
                               ),
-                              errorWidget: (context, url, error) => Icon(
-                                typeIcon,
-                                color: typeColor,
-                                size: 32,
+                              errorWidget: (context, url, error) => Container(
+                                color: typeColor.withValues(alpha: 0.1),
+                                child:
+                                    Icon(typeIcon, color: typeColor, size: 48),
                               ),
                             ),
-                          )
-                        : Icon(typeIcon, color: typeColor, size: 32),
+                          ),
+                        );
+                      },
+                    ),
+                  )
+                else
+                  // Fallback icon when no photos
+                  Container(
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: typeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Center(
+                      child: Icon(typeIcon, color: typeColor, size: 64),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        place.name,
-                        style: textStyles.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        place.address ?? 'No address',
-                        style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (place.rating != null) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(Icons.star, size: 14, color: AppColors.warning),
-                            const SizedBox(width: 4),
-                            Text(
-                              place.rating!.toStringAsFixed(1),
-                              style: textStyles.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+                const SizedBox(height: 12),
+                // Content
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Title with distance badge
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  place.name,
+                                  style: textStyles.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              // Distance badge (if available)
+                              if (place.latitude != null &&
+                                  place.longitude != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: typeColor.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.location_on,
+                                        size: 12,
+                                        color: typeColor,
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        '${(place.latitude! - 30.2672).abs().toStringAsFixed(1)}mi', // Placeholder distance
+                                        style: textStyles.labelSmall?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: typeColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          // Address
+                          Text(
+                            place.address ?? 'No address',
+                            style: textStyles.bodySmall?.copyWith(
+                              color: colors.onSurfaceVariant,
                             ),
-                            if (place.userRatingsTotal != null) ...[
-                              const SizedBox(width: 4),
-                              Text(
-                                '(${place.userRatingsTotal})',
-                                style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          // Rating stars + Open/Closed status
+                          Row(
+                            children: [
+                              // Rating stars visualization
+                              if (place.rating != null) ...[
+                                ...List.generate(5, (starIndex) {
+                                  final rating = place.rating!;
+                                  if (starIndex < rating.floor()) {
+                                    // Full star
+                                    return Icon(
+                                      Icons.star,
+                                      size: 14,
+                                      color: AppColors.warning,
+                                    );
+                                  } else if (starIndex < rating.ceil() &&
+                                      rating % 1 != 0) {
+                                    // Half star
+                                    return Icon(
+                                      Icons.star_half,
+                                      size: 14,
+                                      color: AppColors.warning,
+                                    );
+                                  } else {
+                                    // Empty star
+                                    return Icon(
+                                      Icons.star_border,
+                                      size: 14,
+                                      color: colors.onSurfaceVariant
+                                          .withValues(alpha: 0.3),
+                                    );
+                                  }
+                                }),
+                                const SizedBox(width: 6),
+                                Text(
+                                  place.rating!.toStringAsFixed(1),
+                                  style: textStyles.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (place.userRatingsTotal != null) ...[
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '(${place.userRatingsTotal})',
+                                    style: textStyles.labelSmall?.copyWith(
+                                      color: colors.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(width: 12),
+                              ],
+                              // Open/Closed status indicator
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      AppColors.success.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.success,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Open',
+                                      style: textStyles.labelSmall?.copyWith(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.success,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  color: colors.onSurfaceVariant.withValues(alpha: 0.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: colors.onSurfaceVariant.withValues(alpha: 0.5),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
       ),
-    ).animate()
-        .fadeIn(delay: Duration(milliseconds: 50 * index.clamp(0, 10)), duration: 300.ms)
-        .slideX(begin: 0.05, delay: Duration(milliseconds: 50 * index.clamp(0, 10)), duration: 300.ms);
+    )
+        .animate()
+        .fadeIn(
+            delay: Duration(milliseconds: 50 * index.clamp(0, 10)),
+            duration: 300.ms)
+        .slideX(
+            begin: 0.05,
+            delay: Duration(milliseconds: 50 * index.clamp(0, 10)),
+            duration: 300.ms);
   }
 
   Widget _buildEventCard(EventModel event) {

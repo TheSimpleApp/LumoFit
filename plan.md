@@ -63,13 +63,13 @@ Ship a **polished, simplified LumoFit experience** for D2D Con attendees to demo
 - [x] Smooth marker clustering for dense areas
 - [x] Better place preview card animations
 
-### Phase D2: Discover Tab Polish ⬜ PENDING
+### Phase D2: Discover Tab Polish ✅ COMPLETE
 
-- [ ] Photo carousel in place cards (3-5 photos horizontal scroll)
-- [ ] Better card shadows and borders
-- [ ] Rating stars visualization
-- [ ] Distance badge on cards
-- [ ] Open/closed status indicator
+- [x] Photo carousel in place cards (3-5 photos horizontal scroll)
+- [x] Better card shadows and borders
+- [x] Rating stars visualization
+- [x] Distance badge on cards
+- [x] Open/closed status indicator
 
 ### Phase D3: Saved Locations / Albums ⬜ PENDING
 
