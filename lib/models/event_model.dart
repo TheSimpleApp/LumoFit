@@ -99,10 +99,13 @@ class EventModel {
   final double? longitude;
   final String? websiteUrl;
   final String? registrationUrl;
+
   /// Optional image thumbnail (from provider if available)
   final String? imageUrl;
+
   /// Optional source/provider label (e.g., "eventbrite", "runsignup")
   final String? source;
+
   /// Distance from user in kilometers (calculated client-side)
   final double? distanceKm;
 
@@ -124,11 +127,36 @@ class EventModel {
     this.distanceKm,
   });
 
-  String get shortDate => '${start.month}/${start.day}/${start.year}';
-  String get shortTime => '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
-  String get distanceLabel => distanceKm != null
-      ? '${distanceKm!.toStringAsFixed(1)} km away'
-      : '';
+  String get shortDate {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    final days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return '${days[start.weekday % 7]}, ${months[start.month - 1]} ${start.day}';
+  }
+
+  String get shortTime {
+    final hour = start.hour;
+    final minute = start.minute.toString().padLeft(2, '0');
+    if (hour == 0) return '12:$minute AM';
+    if (hour < 12) return '$hour:$minute AM';
+    if (hour == 12) return '12:$minute PM';
+    return '${hour - 12}:$minute PM';
+  }
+
+  String get distanceLabel =>
+      distanceKm != null ? '${distanceKm!.toStringAsFixed(1)} km away' : '';
 
   /// Create a copy with optional field overrides
   EventModel copyWith({
@@ -190,7 +218,9 @@ class EventModel {
       title: json['title'] as String? ?? '',
       category: eventCategoryFromString(json['category'] as String? ?? 'other'),
       start: DateTime.parse(json['start'] as String),
-      end: (json['end'] as String?) != null ? DateTime.parse(json['end'] as String) : null,
+      end: (json['end'] as String?) != null
+          ? DateTime.parse(json['end'] as String)
+          : null,
       description: json['description'] as String?,
       venueName: json['venueName'] as String? ?? '',
       address: json['address'] as String?,

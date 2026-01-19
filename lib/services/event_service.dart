@@ -18,10 +18,12 @@ class EventService extends ChangeNotifier {
   EventService();
 
   bool get isLoading => _isLoading;
-  List<EventModel> get all => List.unmodifiable([..._destinationEvents, ..._events]);
+  List<EventModel> get all =>
+      List.unmodifiable([..._destinationEvents, ..._events]);
 
   /// Events for the current destination
-  List<EventModel> get destinationEvents => List.unmodifiable(_destinationEvents);
+  List<EventModel> get destinationEvents =>
+      List.unmodifiable(_destinationEvents);
 
   Future<void> initialize() async {
     _isLoading = true;
@@ -76,9 +78,12 @@ class EventService extends ChangeNotifier {
         return EventModel(
           id: map['id'] as String,
           title: map['title'] as String? ?? 'Untitled Event',
-          category: eventCategoryFromString(map['category'] as String? ?? 'other'),
+          category:
+              eventCategoryFromString(map['category'] as String? ?? 'other'),
           start: DateTime.parse(map['start_date'] as String),
-          end: map['end_date'] != null ? DateTime.tryParse(map['end_date'] as String) : null,
+          end: map['end_date'] != null
+              ? DateTime.tryParse(map['end_date'] as String)
+              : null,
           description: map['description'] as String?,
           venueName: map['venue_name'] as String? ?? 'TBA',
           address: map['address'] as String?,
@@ -91,7 +96,8 @@ class EventService extends ChangeNotifier {
         );
       }).toList();
 
-      debugPrint('EventService: Fetched ${_destinationEvents.length} events for $city');
+      debugPrint(
+          'EventService: Fetched ${_destinationEvents.length} events for $city');
     } catch (e) {
       debugPrint('EventService.fetchEventsForCity error: $e');
       // Keep existing events on error
@@ -119,13 +125,16 @@ class EventService extends ChangeNotifier {
           'city': city,
           if (country != null) 'country': country,
           'start_date': (startDate ?? now).toIso8601String().split('T')[0],
-          'end_date': (endDate ?? DateTime(now.year, now.month + 3, now.day)).toIso8601String().split('T')[0],
+          'end_date': (endDate ?? DateTime(now.year, now.month + 3, now.day))
+              .toIso8601String()
+              .split('T')[0],
           'max_events': 50,
         },
       );
 
       // Re-fetch events after refresh
-      await fetchEventsForCity(city: city, startDate: startDate, endDate: endDate);
+      await fetchEventsForCity(
+          city: city, startDate: startDate, endDate: endDate);
     } catch (e) {
       debugPrint('EventService.refreshEventsForCity error: $e');
     }
@@ -144,64 +153,80 @@ class EventService extends ChangeNotifier {
     _events = [
       EventModel(
         id: id.v4(),
-        title: 'Cairo Runners 5K - Al-Azhar Park',
+        title: 'Lady Bird Lake Trail Run',
         category: EventCategory.running,
         start: DateTime(now.year, now.month, now.day + 3, 7, 0),
-        venueName: 'Al-Azhar Park',
-        address: 'Salah Salem St, El-Darb El-Ahmar, Cairo, Egypt',
-        latitude: 30.0407,
-        longitude: 31.2622,
-        websiteUrl: 'https://www.cairorunners.com',
-        registrationUrl: 'https://www.cairorunners.com/our-runs',
-        description: 'Morning 5K run through historic Al-Azhar Park with stunning Nile views and Cairo skyline.',
+        venueName: 'Lady Bird Lake Trail',
+        address: '2201 Lakeshore Blvd, Austin, TX 78741',
+        latitude: 30.2628,
+        longitude: -97.7451,
+        websiteUrl: 'https://www.austinrunningclub.com',
+        registrationUrl: 'https://www.austinrunningclub.com/events',
+        imageUrl:
+            'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=800&q=80',
+        description:
+            'Scenic 5K run along Lady Bird Lake with skyline views. All paces welcome. Post-run coffee social.',
       ),
       EventModel(
         id: id.v4(),
-        title: 'Sunrise Yoga by the Nile',
+        title: 'Sunrise Yoga at Zilker Park',
         category: EventCategory.yoga,
         start: DateTime(now.year, now.month, now.day + 1, 6, 30),
-        venueName: 'Nile Corniche - Zamalek',
-        address: '26th of July Corridor, Zamalek, Cairo, Egypt',
-        latitude: 30.0626,
-        longitude: 31.2218,
-        websiteUrl: 'https://flexanaegypt.com',
-        description: 'Outdoor yoga session with sunrise views over the Nile. All levels welcome. Bring your mat.',
+        venueName: 'Zilker Park Great Lawn',
+        address: '2100 Barton Springs Rd, Austin, TX 78746',
+        latitude: 30.2672,
+        longitude: -97.7681,
+        websiteUrl: 'https://www.austinyoga.com',
+        imageUrl:
+            'https://images.unsplash.com/photo-1545389336-cf090694435e?w=800&q=80',
+        description:
+            'Free outdoor yoga session with downtown Austin views. All levels welcome. Bring your mat and water.',
       ),
       EventModel(
         id: id.v4(),
-        title: 'Wadi Degla Desert Hike',
+        title: 'Barton Creek Greenbelt Hike',
         category: EventCategory.hiking,
         start: DateTime(now.year, now.month, now.day + 5, 8, 0),
-        venueName: 'Wadi Degla Protectorate',
-        address: 'Wadi Degla, Maadi, Cairo, Egypt',
-        latitude: 29.9700,
-        longitude: 31.3200,
-        websiteUrl: 'https://desertadventuresegypt.com/destinations/wadi-degla-protectorate',
-        description: 'Moderate desert canyon hike through rugged valleys. Bring water, hat, and sunscreen. 2-3 hours.',
+        venueName: 'Barton Creek Greenbelt',
+        address: '3755 S Capital of Texas Hwy, Austin, TX 78704',
+        latitude: 30.2426,
+        longitude: -97.8119,
+        websiteUrl: 'https://www.austinparks.org/barton-creek-greenbelt',
+        imageUrl:
+            'https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&q=80',
+        description:
+            'Moderate 7-mile hike through limestone cliffs and creek crossings. Bring water shoes and snacks.',
       ),
       EventModel(
         id: id.v4(),
-        title: 'Nile Corniche Cycle Ride',
+        title: 'South Congress Cycle Tour',
         category: EventCategory.cycling,
         start: DateTime(now.year, now.month, now.day + 2, 17, 30),
-        venueName: 'Nile Corniche - Starting at Zamalek',
-        address: '26th of July Corridor, Zamalek, Cairo, Egypt',
-        latitude: 30.0626,
-        longitude: 31.2218,
-        websiteUrl: 'https://www.cairorunners.com',
-        description: 'Evening group ride along the Nile Corniche. Helmets required. Moderate pace, 20km route.',
+        venueName: 'Starting at South Congress Bridge',
+        address: 'S Congress Ave & Barton Springs Rd, Austin, TX 78704',
+        latitude: 30.2631,
+        longitude: -97.7446,
+        websiteUrl: 'https://www.socialcycling.com',
+        imageUrl:
+            'https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=800&q=80',
+        description:
+            'Evening group ride through SoCo and East Austin. Helmets required. 15-mile loop, moderate pace.',
       ),
       EventModel(
         id: id.v4(),
-        title: 'CrossFit Hustle Drop-In WOD',
+        title: 'CrossFit Central Drop-In WOD',
         category: EventCategory.crossfit,
         start: DateTime(now.year, now.month, now.day + 6, 18, 0),
-        venueName: 'CrossFit Hustle Maadi',
-        address: 'Maadi Bandar Mall, Palestine Rd, Maadi, Cairo, Egypt',
-        latitude: 29.9600,
-        longitude: 31.2500,
-        websiteUrl: 'https://yellow.place/en/crossfit-hustle-cairo-egypt',
-        description: 'Visitors welcome for WOD (Workout of the Day). Arrive 15 min early for introduction and waiver.',
+        venueName: 'CrossFit Central',
+        address: '3801 N Capital of Texas Hwy, Austin, TX 78746',
+        latitude: 30.3074,
+        longitude: -97.7989,
+        websiteUrl: 'https://www.crossfitcentral.com',
+        registrationUrl: 'https://www.crossfitcentral.com/drop-in',
+        imageUrl:
+            'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80',
+        description:
+            'Travelers and visitors welcome for WOD. Arrive 15 min early for intro. One of Austin\'s top boxes.',
       ),
     ];
   }
@@ -234,7 +259,11 @@ class EventService extends ChangeNotifier {
     if (startDate != null || endDate != null) {
       final s = startDate ?? DateTime.fromMillisecondsSinceEpoch(0);
       final e = endDate ?? DateTime(2100);
-      out = out.where((ev) => ev.start.isAfter(s.subtract(const Duration(seconds: 1))) && ev.start.isBefore(e.add(const Duration(seconds: 1)))).toList();
+      out = out
+          .where((ev) =>
+              ev.start.isAfter(s.subtract(const Duration(seconds: 1))) &&
+              ev.start.isBefore(e.add(const Duration(seconds: 1))))
+          .toList();
     }
 
     if (centerLat != null && centerLng != null && radiusKm != null) {
@@ -263,7 +292,8 @@ class EventService extends ChangeNotifier {
     double? radiusKm,
     int limit = 50,
   }) async {
-    Uri make(String base, String fn) => Uri.parse('${base.endsWith('/') ? base.substring(0, base.length - 1) : base}/$fn');
+    Uri make(String base, String fn) => Uri.parse(
+        '${base.endsWith('/') ? base.substring(0, base.length - 1) : base}/$fn');
 
     // Match combined function parameter names
     final payload = <String, dynamic>{
@@ -290,13 +320,15 @@ class EventService extends ChangeNotifier {
             : jsonDecode(jsonEncode(response.data)) as Map<String, dynamic>;
         return _mapNormalizedEvents(data);
       } catch (e) {
-        debugPrint('fetchExternalEvents: functions.invoke failed, trying HTTP fallback. Error: $e');
+        debugPrint(
+            'fetchExternalEvents: functions.invoke failed, trying HTTP fallback. Error: $e');
       }
 
       // 2) Fallback to direct HTTP if functions base is provided (for dev/no-auth cases)
       final base = AppConfig.supabaseFunctionsUrl;
       if (base.isEmpty) {
-        debugPrint('fetchExternalEvents skipped: no Supabase Functions base URL and invoke failed');
+        debugPrint(
+            'fetchExternalEvents skipped: no Supabase Functions base URL and invoke failed');
         return [];
       }
       final res = await http.post(
@@ -307,10 +339,12 @@ class EventService extends ChangeNotifier {
         body: jsonEncode(payload),
       );
       if (res.statusCode < 200 || res.statusCode >= 300) {
-        debugPrint('fetchExternalEvents/combined HTTP error: ${res.statusCode} ${res.body}');
+        debugPrint(
+            'fetchExternalEvents/combined HTTP error: ${res.statusCode} ${res.body}');
         return [];
       }
-      final data = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      final data =
+          jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       return _mapNormalizedEvents(data);
     } catch (e) {
       debugPrint('fetchExternalEvents/combined exception: $e');
@@ -330,12 +364,15 @@ class EventService extends ChangeNotifier {
         if (id.isEmpty || title.isEmpty || startStr == null) continue;
         final start = DateTime.tryParse(startStr);
         if (start == null) continue;
-        final categoryStr = (item['category']?.toString().toLowerCase() ?? 'other');
+        final categoryStr =
+            (item['category']?.toString().toLowerCase() ?? 'other');
         final category = eventCategoryFromString(categoryStr);
         final venueName = (item['venue'] ?? '').toString();
         final address = item['address']?.toString();
-        final lat = (item['lat'] is num) ? (item['lat'] as num).toDouble() : null;
-        final lon = (item['lon'] is num) ? (item['lon'] as num).toDouble() : null;
+        final lat =
+            (item['lat'] is num) ? (item['lat'] as num).toDouble() : null;
+        final lon =
+            (item['lon'] is num) ? (item['lon'] as num).toDouble() : null;
         final websiteUrl = item['url']?.toString();
         final registrationUrl = item['registrationUrl']?.toString();
         final endStr = item['end']?.toString();
@@ -373,8 +410,10 @@ class EventService extends ChangeNotifier {
     const R = 6371.0; // km
     final dLat = _deg2rad(lat2 - lat1);
     final dLon = _deg2rad(lon2 - lon1);
-    final a =
-        (sin(dLat / 2) * sin(dLat / 2)) + cos(_deg2rad(lat1)) * cos(_deg2rad(lat2)) * (sin(dLon / 2) * sin(dLon / 2));
+    final a = (sin(dLat / 2) * sin(dLat / 2)) +
+        cos(_deg2rad(lat1)) *
+            cos(_deg2rad(lat2)) *
+            (sin(dLon / 2) * sin(dLon / 2));
     final c = 2 * atan2(sqrt(a), sqrt(1 - a));
     return R * c;
   }
