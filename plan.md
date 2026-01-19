@@ -59,7 +59,7 @@ Ship a **polished, simplified LumoFit experience** for D2D Con attendees to demo
 
 - [x] Color-coded map markers (Gyms=Blue, Food=Orange, Trails=Green, Events=Purple)
 - [x] Quick location search bar at top of map
-- [ ] Distance filters (1mi, 5mi, 10mi, 25mi)
+- [x] Distance filters (1mi, 5mi, 10mi, 25mi)
 - [ ] Smooth marker clustering for dense areas
 - [ ] Better place preview card animations
 

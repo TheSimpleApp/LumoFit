@@ -68,9 +68,10 @@ class _MapScreenState extends State<MapScreen> {
   // Filters
   Set<MapFilterType> _activeFilters = {MapFilterType.all};
 
-  // Search radius in km
-  int _searchRadiusKm = 10;
-  static const List<int> _radiusOptions = [5, 10, 25, 50, 100];
+  // Search radius in miles
+  int _searchRadiusMiles = 5;
+  static const List<int> _radiusOptions = [1, 5, 10, 25];
+  static const double _milesToKm = 1.60934;
 
   // "Search this area" button
   bool _showSearchAreaButton = false;
@@ -192,7 +193,8 @@ class _MapScreenState extends State<MapScreen> {
         latitude: _center.latitude,
         longitude: _center.longitude,
         placeType: type,
-        radiusMeters: _searchRadiusKm * 1000, // Convert km to meters
+        radiusMeters: (_searchRadiusMiles * _milesToKm * 1000)
+            .round(), // Convert miles to meters
       );
 
       for (final place in places) {
@@ -212,7 +214,7 @@ class _MapScreenState extends State<MapScreen> {
       final events = await eventService.fetchExternalEvents(
         centerLat: _center.latitude,
         centerLng: _center.longitude,
-        radiusKm: _searchRadiusKm.toDouble(),
+        radiusKm: _searchRadiusMiles * _milesToKm, // Convert miles to km
         limit: 30,
       );
 
@@ -567,7 +569,7 @@ class _MapScreenState extends State<MapScreen> {
                         const SizedBox(width: 6),
                         DropdownButtonHideUnderline(
                           child: DropdownButton<int>(
-                            value: _searchRadiusKm,
+                            value: _searchRadiusMiles,
                             isDense: true,
                             style: TextStyle(
                               fontSize: 13,
@@ -578,12 +580,12 @@ class _MapScreenState extends State<MapScreen> {
                             items: _radiusOptions
                                 .map((r) => DropdownMenuItem(
                                       value: r,
-                                      child: Text('${r}km'),
+                                      child: Text('${r}mi'),
                                     ))
                                 .toList(),
                             onChanged: (r) {
-                              if (r != null && r != _searchRadiusKm) {
-                                setState(() => _searchRadiusKm = r);
+                              if (r != null && r != _searchRadiusMiles) {
+                                setState(() => _searchRadiusMiles = r);
                                 _loadPlacesForCurrentLocation();
                               }
                             },
