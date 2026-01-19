@@ -64,3 +64,4 @@ ios/fastlane/apple_session_cookie.yml
 .auto-claude/
 .worktrees/
 .claude_settings.json
+CLAUDE.md

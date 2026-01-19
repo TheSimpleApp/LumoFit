@@ -1,11 +1,8 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart'
-    as cluster_manager;
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:fittravel/services/trip_service.dart';
@@ -18,7 +15,6 @@ import 'package:fittravel/theme.dart';
 import 'package:fittravel/screens/map/widgets/map_filter_bar.dart';
 import 'package:fittravel/screens/map/widgets/map_place_preview.dart';
 import 'package:fittravel/screens/map/widgets/location_search_bar.dart';
-import 'package:fittravel/screens/map/models/map_cluster_item.dart';
 import 'package:fittravel/widgets/ai_map_concierge.dart';
 import 'package:fittravel/models/ai_models.dart';
 
@@ -68,10 +64,6 @@ class _MapScreenState extends State<MapScreen> {
   Set<Polyline> _stravaPolylines = {};
   final Map<String, PlaceModel> _placeMarkers = {};
   final Map<String, EventModel> _eventMarkers = {};
-
-  // Cluster manager
-  cluster_manager.ClusterManager<MapClusterItem>? _clusterManager;
-  List<MapClusterItem> _clusterItems = [];
 
   // Filters
   Set<MapFilterType> _activeFilters = {MapFilterType.all};
@@ -192,7 +184,7 @@ class _MapScreenState extends State<MapScreen> {
       await Future.wait(futures);
     }
 
-    _updateClusterItems();
+    _updateMarkersFromItems();
   }
 
   Future<void> _loadPlaces(PlaceType type) async {
@@ -241,28 +233,39 @@ class _MapScreenState extends State<MapScreen> {
     setState(() => _markers = markers);
   }
 
-  void _updateClusterItems() {
-    final items = <MapClusterItem>[];
+  void _updateMarkersFromItems() {
+    final markers = <Marker>{};
 
-    // Add place cluster items
+    // Add place markers
     for (final entry in _placeMarkers.entries) {
       final place = entry.value;
       if (!_shouldShowPlace(place)) continue;
-      items.add(MapClusterItem.fromPlace(place));
+
+      markers.add(Marker(
+        markerId: MarkerId('place_${entry.key}'),
+        position: LatLng(place.latitude ?? 0.0, place.longitude ?? 0.0),
+        icon: _getMarkerIcon(place.type),
+        onTap: () => _onMarkerTapped(place),
+      ));
     }
 
-    // Add event cluster items
+    // Add event markers
     if (_activeFilters.contains(MapFilterType.all) ||
         _activeFilters.contains(MapFilterType.events)) {
       for (final entry in _eventMarkers.entries) {
         final event = entry.value;
-        items.add(MapClusterItem.fromEvent(event));
+        if (event.latitude != null && event.longitude != null) {
+          markers.add(Marker(
+            markerId: MarkerId('event_${entry.key}'),
+            position: LatLng(event.latitude!, event.longitude!),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+            onTap: () => _onMarkerTapped(event),
+          ));
+        }
       }
     }
 
-    _clusterItems = items;
-    _clusterManager?.setItems(items);
-    _clusterManager?.updateMap();
+    _updateMarkers(markers);
   }
 
   bool _shouldShowPlace(PlaceModel place) {
@@ -313,162 +316,17 @@ class _MapScreenState extends State<MapScreen> {
     if (stravaWasActive != stravaIsActive) {
       _loadPlacesForCurrentLocation();
     } else {
-      _updateClusterItems();
+      _updateMarkersFromItems();
     }
   }
 
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
     _lastSearchCenter = _center;
-    _initClusterManager();
-  }
-
-  void _initClusterManager() {
-    _clusterManager = cluster_manager.ClusterManager<MapClusterItem>(
-      _clusterItems,
-      _updateMarkers,
-      markerBuilder: _markerBuilder,
-      levels: [1, 4.25, 6.75, 8.25, 11.5, 14.5, 16.0, 16.5, 20.0],
-      extraPercent: 0.2,
-      stopClusteringZoom: 17.0,
-    );
-  }
-
-  Future<Marker> _markerBuilder(dynamic cluster) async {
-    final typedCluster = cluster as cluster_manager.Cluster<MapClusterItem>;
-    return Marker(
-      markerId: MarkerId(typedCluster.getId()),
-      position: typedCluster.location,
-      onTap: () {
-        if (typedCluster.isMultiple) {
-          // Zoom into cluster
-          final currentZoom = _currentCameraPosition?.zoom ?? 13.0;
-          _mapController?.animateCamera(
-            CameraUpdate.newLatLngZoom(
-              typedCluster.location,
-              currentZoom + 2,
-            ),
-          );
-        } else {
-          // Show single item
-          _onMarkerTapped(typedCluster.items.first.item);
-        }
-      },
-      icon: await _getClusterBitmapDescriptor(
-        typedCluster,
-        typedCluster.isMultiple ? typedCluster.count : 1,
-      ),
-    );
-  }
-
-  Future<BitmapDescriptor> _getClusterBitmapDescriptor(
-    cluster_manager.Cluster<MapClusterItem> cluster,
-    int clusterSize,
-  ) async {
-    if (!cluster.isMultiple) {
-      // Single marker - use type-specific color
-      final item = cluster.items.first;
-      return _getMarkerIconForType(item.type);
-    }
-
-    // Cluster marker - create custom colored cluster
-    final color = _getClusterColor(cluster);
-    return await _createClusterMarker(clusterSize, color);
-  }
-
-  BitmapDescriptor _getMarkerIconForType(MapItemType type) {
-    switch (type) {
-      case MapItemType.gym:
-        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue);
-      case MapItemType.food:
-        return BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueOrange);
-      case MapItemType.trail:
-        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
-      case MapItemType.event:
-        return BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueViolet);
-      default:
-        return BitmapDescriptor.defaultMarker;
-    }
-  }
-
-  Color _getClusterColor(cluster_manager.Cluster<MapClusterItem> cluster) {
-    // Determine dominant type in cluster
-    final typeCounts = <MapItemType, int>{};
-    for (final item in cluster.items) {
-      typeCounts[item.type] = (typeCounts[item.type] ?? 0) + 1;
-    }
-
-    MapItemType? dominantType;
-    int maxCount = 0;
-    typeCounts.forEach((type, count) {
-      if (count > maxCount) {
-        maxCount = count;
-        dominantType = type;
-      }
-    });
-
-    switch (dominantType) {
-      case MapItemType.gym:
-        return Colors.blue;
-      case MapItemType.food:
-        return Colors.orange;
-      case MapItemType.trail:
-        return Colors.green;
-      case MapItemType.event:
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Future<BitmapDescriptor> _createClusterMarker(
-      int clusterSize, Color color) async {
-    final pictureRecorder = ui.PictureRecorder();
-    final canvas = Canvas(pictureRecorder);
-    final paint = Paint()..color = color;
-    final radius = 30.0;
-
-    // Draw circle
-    canvas.drawCircle(Offset(radius, radius), radius, paint);
-
-    // Draw white circle in center
-    final paintWhite = Paint()..color = Colors.white;
-    canvas.drawCircle(Offset(radius, radius), radius - 8, paintWhite);
-
-    // Draw text
-    final textPainter = TextPainter(
-      textDirection: TextDirection.ltr,
-      text: TextSpan(
-        text: clusterSize.toString(),
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
-      ),
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        radius - textPainter.width / 2,
-        radius - textPainter.height / 2,
-      ),
-    );
-
-    final image = await pictureRecorder.endRecording().toImage(
-          (radius * 2).toInt(),
-          (radius * 2).toInt(),
-        );
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    return BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
   }
 
   void _onCameraMove(CameraPosition position) {
     _currentCameraPosition = position;
-    _clusterManager?.onCameraMove(position);
 
     // Show "Search this area" button if user has panned significantly
     if (_lastSearchCenter != null) {
@@ -604,7 +462,6 @@ class _MapScreenState extends State<MapScreen> {
             GoogleMap(
               onMapCreated: _onMapCreated,
               onCameraMove: _onCameraMove,
-              onCameraIdle: () => _clusterManager?.updateMap(),
               initialCameraPosition: CameraPosition(
                 target: _center,
                 zoom: 13,

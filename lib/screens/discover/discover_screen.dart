@@ -739,7 +739,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     return GestureDetector(
       onTap: () {
         HapticUtils.light();
-        context.push('/place/${place.id}');
+        context.push('/place-detail', extra: place);
       },
       child: Container(
         decoration: BoxDecoration(
@@ -892,7 +892,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     return PressableScale(
       onPressed: () {
         HapticUtils.light();
-        context.push('/place/${place.id}');
+        context.push('/place-detail', extra: place);
       },
       child: Hero(
         tag: 'place_${place.id}',
@@ -1152,7 +1152,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
 
   Widget _buildEventCard(EventModel event) {
     return GestureDetector(
-      onTap: () => context.push('/event/${event.id}'),
+      onTap: () => context.push('/event-detail', extra: event),
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
         child: Padding(
