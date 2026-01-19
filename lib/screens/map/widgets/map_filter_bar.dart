@@ -65,7 +65,7 @@ class MapFilterBar extends StatelessWidget {
                 isSelected: activeFilters.contains(MapFilterType.gyms),
                 onTap: () => _handleFilterTap(MapFilterType.gyms),
                 colors: colors,
-                markerColor: Colors.orange,
+                markerColor: Colors.blue,
               ),
               const SizedBox(width: 8),
               _FilterChip(
@@ -74,7 +74,7 @@ class MapFilterBar extends StatelessWidget {
                 isSelected: activeFilters.contains(MapFilterType.food),
                 onTap: () => _handleFilterTap(MapFilterType.food),
                 colors: colors,
-                markerColor: Colors.green,
+                markerColor: Colors.orange,
               ),
               const SizedBox(width: 8),
               _FilterChip(
@@ -83,7 +83,7 @@ class MapFilterBar extends StatelessWidget {
                 isSelected: activeFilters.contains(MapFilterType.trails),
                 onTap: () => _handleFilterTap(MapFilterType.trails),
                 colors: colors,
-                markerColor: Colors.cyan,
+                markerColor: Colors.green,
               ),
               const SizedBox(width: 8),
               _FilterChip(
@@ -92,7 +92,7 @@ class MapFilterBar extends StatelessWidget {
                 isSelected: activeFilters.contains(MapFilterType.events),
                 onTap: () => _handleFilterTap(MapFilterType.events),
                 colors: colors,
-                markerColor: Colors.blue,
+                markerColor: Colors.purple,
               ),
               if (isStravaAuthenticated) ...[
                 const SizedBox(width: 8),

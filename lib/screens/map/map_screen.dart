@@ -252,7 +252,7 @@ class _MapScreenState extends State<MapScreen> {
         markers.add(Marker(
           markerId: MarkerId('event_${entry.key}'),
           position: LatLng(event.latitude!, event.longitude!),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
           infoWindow: InfoWindow(title: event.title),
           onTap: () => _onMarkerTapped(event),
         ));
@@ -282,12 +282,12 @@ class _MapScreenState extends State<MapScreen> {
     switch (type) {
       case PlaceType.gym:
         return BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueOrange);
+            BitmapDescriptor.hueBlue);
       case PlaceType.restaurant:
-        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
       case PlaceType.trail:
       case PlaceType.park:
-        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan);
+        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
       default:
         return BitmapDescriptor.defaultMarker;
     }

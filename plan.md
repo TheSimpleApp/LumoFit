@@ -1,12 +1,123 @@
-# FitTravel Development Plan
+# LumoFit Development Plan
 
-> **Current Phase:** Phase 13 - AI-Powered Map Discovery (COMPLETE)
-> **Last Updated:** December 2024
-> **Strategy:** Cloud-synced MVP with AI-powered map experience, ready for Egypt beta testing
+> **Current Sprint:** Door to Door Con (D2D Con) Demo
+> **Sprint Start:** January 13, 2026
+> **Demo Date:** ~January 21, 2026 (8 days)
+> **Last Updated:** January 19, 2026
+> **Strategy:** Polish & simplify existing features for public TestFlight beta
+> **Mode:** Claude Code Autonomous (`--dangerously-skip-permissions`)
 
 ---
 
-## Goals (from latest client call)
+## 🤖 Claude Code Autonomous Workflow
+
+### Test Credentials
+```
+Email:    test@example.com
+Password: Test123
+```
+
+### For Each Task
+```
+1. READ this task from the backlog below
+2. LOCATE relevant files (see AGENT.md for file map)
+3. IMPLEMENT the changes
+4. RUN: dart analyze lib/
+5. FIX any errors and repeat step 4
+6. RUN: flutter run -d "iPhone 15 Pro"
+7. TEST the feature manually
+8. FIX any issues and repeat from step 3
+9. UPDATE: Mark checkbox [x] in this file
+10. COMMIT: git add . && git commit -m "feat(area): description"
+```
+
+### Verification Before Marking Complete
+```bash
+dart analyze lib/              # Must show "No issues found!"
+dart format lib/               # Format code
+flutter run -d "iPhone 15 Pro" # App must launch without crash
+# Feature must work as expected
+```
+
+---
+
+## 🎯 D2D Con Sprint Goal
+
+Ship a **polished, simplified LumoFit experience** for D2D Con attendees to demo. Focus on:
+- **Map + Discover** as the core experience
+- **Visual polish** (photos, colors, animations)
+- **Simplification** (hide clutter, streamline flows)
+- **Public TestFlight** for select conference attendees
+
+---
+
+## 📋 D2D Con Sprint Backlog
+
+### Phase D1: Map Tab Polish ⬜ IN PROGRESS
+
+**Goal:** Make the Map tab the hero feature with color-coded pins and quick search
+
+- [x] Color-coded map markers (Gyms=Blue, Food=Orange, Trails=Green, Events=Purple)
+- [ ] Quick location search bar at top of map
+- [ ] Distance filters (1mi, 5mi, 10mi, 25mi)
+- [ ] Smooth marker clustering for dense areas
+- [ ] Better place preview card animations
+
+### Phase D2: Discover Tab Polish ⬜ PENDING
+
+- [ ] Photo carousel in place cards (3-5 photos horizontal scroll)
+- [ ] Better card shadows and borders
+- [ ] Rating stars visualization
+- [ ] Distance badge on cards
+- [ ] Open/closed status indicator
+
+### Phase D3: Saved Locations / Albums ⬜ PENDING
+
+- [ ] Quick save without trip (general collection)
+- [ ] Albums / Categories (custom groupings)
+- [ ] Saved places grid view with photo-first cards
+- [ ] Filter saved places by album
+
+### Phase D4: UI Simplification ⬜ PENDING
+
+- [ ] Hide Challenges section from Home
+- [ ] Remove Log Activity button
+- [ ] Simplify Trips tab or hide it
+- [ ] Hide Cairo Guide (Egypt-specific)
+- [ ] Consider 4-tab layout: Home, Map, Discover, Profile
+
+### Phase D5: Events Polish ⬜ PENDING
+
+- [ ] Better date/time formatting
+- [ ] Event image prominently displayed
+- [ ] Seed Austin/Texas events for D2D Con
+
+### Phase D6: TestFlight Prep ⬜ PENDING
+
+- [ ] Update version to 1.1.0
+- [ ] Full flow test on iOS device
+- [ ] Upload to TestFlight
+- [ ] Enable public link
+
+---
+
+## 📝 Notes from JC Meeting (Jan 13, 2026)
+
+Key decisions:
+1. **Map + Discover are the focus** - Everything else is secondary
+2. **Remove clutter** - Challenges, Log Activity, complex trip features
+3. **Keep Events** - Want user feedback on this feature
+4. **Visual polish matters** - Photos, colors, smooth animations
+5. **Quick save** - Don't force trip creation to save a place
+6. **Albums for organization** - Let users categorize saved places
+7. **TestFlight public link** - For D2D Con attendees
+8. **Slack for comms** - Quick feedback loop during sprint
+
+---
+
+## ✅ Completed Phases (Prior to D2D Sprint)
+
+### Goals (from original client call)
 
 - Ship a **buttery, mobile-first MVP** that works in the field while traveling: find gyms/food/events → take action (call/directions) → save/add to trip → mark visited → contribute (photos/menu/review) → light gamification.
 - **Hold off on database/Supabase** until UX is proven. Keep all product decisions logged in `knowledge.md` and execution plan in `plan.md`.
