@@ -119,15 +119,18 @@ class MapFilterBar extends StatelessWidget {
                 _DietaryChip(
                   label: 'Healthy',
                   emoji: '🥗',
-                  isSelected: activeDietaryFilters.contains(DietaryFilterType.healthy),
-                  onTap: () => _handleDietaryFilterTap(DietaryFilterType.healthy),
+                  isSelected:
+                      activeDietaryFilters.contains(DietaryFilterType.healthy),
+                  onTap: () =>
+                      _handleDietaryFilterTap(DietaryFilterType.healthy),
                   colors: colors,
                 ),
                 const SizedBox(width: 8),
                 _DietaryChip(
                   label: 'Vegan',
                   emoji: '🌱',
-                  isSelected: activeDietaryFilters.contains(DietaryFilterType.vegan),
+                  isSelected:
+                      activeDietaryFilters.contains(DietaryFilterType.vegan),
                   onTap: () => _handleDietaryFilterTap(DietaryFilterType.vegan),
                   colors: colors,
                 ),
@@ -135,15 +138,18 @@ class MapFilterBar extends StatelessWidget {
                 _DietaryChip(
                   label: 'Vegetarian',
                   emoji: '🥬',
-                  isSelected: activeDietaryFilters.contains(DietaryFilterType.vegetarian),
-                  onTap: () => _handleDietaryFilterTap(DietaryFilterType.vegetarian),
+                  isSelected: activeDietaryFilters
+                      .contains(DietaryFilterType.vegetarian),
+                  onTap: () =>
+                      _handleDietaryFilterTap(DietaryFilterType.vegetarian),
                   colors: colors,
                 ),
                 const SizedBox(width: 8),
                 _DietaryChip(
                   label: 'Halal',
                   emoji: '🍖',
-                  isSelected: activeDietaryFilters.contains(DietaryFilterType.halal),
+                  isSelected:
+                      activeDietaryFilters.contains(DietaryFilterType.halal),
                   onTap: () => _handleDietaryFilterTap(DietaryFilterType.halal),
                   colors: colors,
                 ),
@@ -151,8 +157,10 @@ class MapFilterBar extends StatelessWidget {
                 _DietaryChip(
                   label: 'Gluten-Free',
                   emoji: '🌾',
-                  isSelected: activeDietaryFilters.contains(DietaryFilterType.glutenFree),
-                  onTap: () => _handleDietaryFilterTap(DietaryFilterType.glutenFree),
+                  isSelected: activeDietaryFilters
+                      .contains(DietaryFilterType.glutenFree),
+                  onTap: () =>
+                      _handleDietaryFilterTap(DietaryFilterType.glutenFree),
                   colors: colors,
                 ),
               ],

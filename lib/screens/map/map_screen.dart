@@ -14,6 +14,7 @@ import 'package:fittravel/models/event_model.dart';
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/screens/map/widgets/map_filter_bar.dart';
 import 'package:fittravel/screens/map/widgets/map_place_preview.dart';
+import 'package:fittravel/screens/map/widgets/location_search_bar.dart';
 import 'package:fittravel/widgets/ai_map_concierge.dart';
 import 'package:fittravel/models/ai_models.dart';
 
@@ -252,7 +253,8 @@ class _MapScreenState extends State<MapScreen> {
         markers.add(Marker(
           markerId: MarkerId('event_${entry.key}'),
           position: LatLng(event.latitude!, event.longitude!),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
           infoWindow: InfoWindow(title: event.title),
           onTap: () => _onMarkerTapped(event),
         ));
@@ -281,10 +283,10 @@ class _MapScreenState extends State<MapScreen> {
   BitmapDescriptor _getMarkerIcon(PlaceType type) {
     switch (type) {
       case PlaceType.gym:
-        return BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueBlue);
+        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue);
       case PlaceType.restaurant:
-        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
+        return BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueOrange);
       case PlaceType.trail:
       case PlaceType.park:
         return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
@@ -347,13 +349,39 @@ class _MapScreenState extends State<MapScreen> {
     setState(() => _showSearchAreaButton = false);
   }
 
+  void _onLocationSearchSelected(double lat, double lng, String locationName) {
+    _center = LatLng(lat, lng);
+    _lastSearchCenter = _center;
+
+    // Animate to the new location
+    _mapController?.animateCamera(
+      CameraUpdate.newLatLngZoom(_center, 13),
+    );
+
+    // Clear existing markers and load places for new location
+    _placeMarkers.clear();
+    _eventMarkers.clear();
+    _loadPlacesForCurrentLocation();
+
+    // Show success feedback
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Showing places near $locationName'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   /// Calculate distance between two points in km using Haversine formula
-  double _haversineDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _haversineDistance(
+      double lat1, double lon1, double lat2, double lon2) {
     const R = 6371.0; // Earth's radius in km
     final dLat = _deg2rad(lat2 - lat1);
     final dLon = _deg2rad(lon2 - lon1);
     final a = (sin(dLat / 2) * sin(dLat / 2)) +
-        cos(_deg2rad(lat1)) * cos(_deg2rad(lat2)) * (sin(dLon / 2) * sin(dLon / 2));
+        cos(_deg2rad(lat1)) *
+            cos(_deg2rad(lat2)) *
+            (sin(dLon / 2) * sin(dLon / 2));
     final c = 2 * atan2(sqrt(a), sqrt(1 - a));
     return R * c;
   }
@@ -376,12 +404,14 @@ class _MapScreenState extends State<MapScreen> {
       );
 
       setState(() {
-        _stravaPolylines = segments.map((seg) => Polyline(
-          polylineId: PolylineId('strava_${seg.id}'),
-          points: seg.points.map((p) => LatLng(p[0], p[1])).toList(),
-          color: Colors.orange,
-          width: 4,
-        )).toSet();
+        _stravaPolylines = segments
+            .map((seg) => Polyline(
+                  polylineId: PolylineId('strava_${seg.id}'),
+                  points: seg.points.map((p) => LatLng(p[0], p[1])).toList(),
+                  color: Colors.orange,
+                  width: 4,
+                ))
+            .toSet();
       });
     } catch (e) {
       debugPrint('MapScreen: Error loading Strava segments: $e');
@@ -479,14 +509,15 @@ class _MapScreenState extends State<MapScreen> {
                     TextButton.icon(
                       onPressed: _goToTripDestination,
                       icon: Icon(Icons.place, size: 18, color: colors.primary),
-                      label: Text('View Location', style: TextStyle(color: colors.primary)),
+                      label: Text('View Location',
+                          style: TextStyle(color: colors.primary)),
                     ),
                   ],
                 ),
               ),
             ),
 
-          // Filter bar with radius selector
+          // Search bar, filter bar, and radius selector
           Positioned(
             top: activeTrip != null
                 ? MediaQuery.of(context).padding.top + 68
@@ -497,6 +528,11 @@ class _MapScreenState extends State<MapScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Location search bar
+                LocationSearchBar(
+                  onLocationSelected: _onLocationSearchSelected,
+                ),
+                const SizedBox(height: 8),
                 Consumer<StravaService>(
                   builder: (context, stravaService, _) => MapFilterBar(
                     activeFilters: _activeFilters,
@@ -509,7 +545,8 @@ class _MapScreenState extends State<MapScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
                       color: colors.surface.withValues(alpha: 0.95),
                       borderRadius: BorderRadius.circular(16),
@@ -524,7 +561,9 @@ class _MapScreenState extends State<MapScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.radar, size: 16, color: colors.onSurface.withValues(alpha: 0.7)),
+                        Icon(Icons.radar,
+                            size: 16,
+                            color: colors.onSurface.withValues(alpha: 0.7)),
                         const SizedBox(width: 6),
                         DropdownButtonHideUnderline(
                           child: DropdownButton<int>(
@@ -536,10 +575,12 @@ class _MapScreenState extends State<MapScreen> {
                               color: colors.onSurface,
                             ),
                             dropdownColor: colors.surface,
-                            items: _radiusOptions.map((r) => DropdownMenuItem(
-                              value: r,
-                              child: Text('${r}km'),
-                            )).toList(),
+                            items: _radiusOptions
+                                .map((r) => DropdownMenuItem(
+                                      value: r,
+                                      child: Text('${r}km'),
+                                    ))
+                                .toList(),
                             onChanged: (r) {
                               if (r != null && r != _searchRadiusKm) {
                                 setState(() => _searchRadiusKm = r);
@@ -560,8 +601,8 @@ class _MapScreenState extends State<MapScreen> {
           if (_showSearchAreaButton)
             Positioned(
               top: activeTrip != null
-                  ? MediaQuery.of(context).padding.top + 160
-                  : MediaQuery.of(context).padding.top + 100,
+                  ? MediaQuery.of(context).padding.top + 220
+                  : MediaQuery.of(context).padding.top + 160,
               left: 0,
               right: 0,
               child: Center(
@@ -571,7 +612,8 @@ class _MapScreenState extends State<MapScreen> {
                     onTap: _searchThisArea,
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
                         color: colors.primary,
                         borderRadius: BorderRadius.circular(20),
@@ -586,7 +628,8 @@ class _MapScreenState extends State<MapScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.refresh, size: 18, color: colors.onPrimary),
+                          Icon(Icons.refresh,
+                              size: 18, color: colors.onPrimary),
                           const SizedBox(width: 8),
                           Text(
                             'Search this area',

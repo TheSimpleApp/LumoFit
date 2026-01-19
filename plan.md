@@ -58,7 +58,7 @@ Ship a **polished, simplified LumoFit experience** for D2D Con attendees to demo
 **Goal:** Make the Map tab the hero feature with color-coded pins and quick search
 
 - [x] Color-coded map markers (Gyms=Blue, Food=Orange, Trails=Green, Events=Purple)
-- [ ] Quick location search bar at top of map
+- [x] Quick location search bar at top of map
 - [ ] Distance filters (1mi, 5mi, 10mi, 25mi)
 - [ ] Smooth marker clustering for dense areas
 - [ ] Better place preview card animations

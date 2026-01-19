@@ -61,7 +61,8 @@ class MapPlacePreview extends StatelessWidget {
                 children: [
                   // Type badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: _getBadgeColor(colors),
                       borderRadius: BorderRadius.circular(8),
@@ -198,7 +199,9 @@ class MapPlacePreview extends StatelessWidget {
     if (item is PlaceModel) return (item as PlaceModel).address ?? '';
     if (item is EventModel) {
       final event = item as EventModel;
-      return event.venueName.isNotEmpty ? event.venueName : (event.address ?? '');
+      return event.venueName.isNotEmpty
+          ? event.venueName
+          : (event.address ?? '');
     }
     return '';
   }
@@ -267,8 +270,18 @@ class MapPlacePreview extends StatelessWidget {
 
   String _formatEventDate(DateTime date) {
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
