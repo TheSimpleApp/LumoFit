@@ -86,11 +86,11 @@ Ship a **polished, simplified LumoFit experience** for D2D Con attendees to demo
 - [x] Hide Cairo Guide (Egypt-specific)
 - [x] Consider 4-tab layout: Home, Map, Discover, Profile
 
-### Phase D5: Events Polish ⬜ PENDING
+### Phase D5: Events Polish ✅ COMPLETE
 
-- [ ] Better date/time formatting
-- [ ] Event image prominently displayed
-- [ ] Seed Austin/Texas events for D2D Con
+- [x] Better date/time formatting
+- [x] Event image prominently displayed
+- [x] Seed Austin/Texas events for D2D Con
 
 ### Phase D6: TestFlight Prep ⬜ PENDING
 
