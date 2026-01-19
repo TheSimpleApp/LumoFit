@@ -1,7 +1,7 @@
 name: fittravel
 description: "This project is a premium, free-to-use fitness travel app designed to keep your healthy lifestyle on track, no matter where your adventures take you. Discover gyms, healthy eats, and conquer travel challenges with gamified progress and buttery-smooth design"
 publish_to: "none"
-version: 1.0.0
+version: 1.1.0+2
 
 environment:
   sdk: ^3.6.0
