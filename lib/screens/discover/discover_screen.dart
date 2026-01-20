@@ -42,6 +42,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   bool _filterOpenNow = false;
   bool _filterRating45Plus = false;
   bool _filterPlaceHasPhotos = false;
+  bool _filterSavedOnly = false;
   // Location (fallback when no trip and GPS fails)
   double _centerLat = 40.7128; // New York
   double _centerLng = -74.0060;
@@ -52,20 +53,23 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   List<PlaceModel> _nearbyGyms = [];
   List<PlaceModel> _nearbyRestaurants = [];
   List<PlaceModel> _nearbyTrails = [];
+  // Store reference for safe disposal
+  TripService? _tripService;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(
-        length: 5,
+        length: 4,
         vsync: this,
-        initialIndex: widget.initialTabIndex.clamp(0, 4));
+        initialIndex: widget.initialTabIndex.clamp(0, 3));
     _initLocation();
     _loadNearbyPlaces();
 
     // Listen for trip changes to update location
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TripService>().addListener(_onTripChanged);
+      _tripService = context.read<TripService>();
+      _tripService?.addListener(_onTripChanged);
     });
   }
 
@@ -76,7 +80,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
 
   @override
   void dispose() {
-    context.read<TripService>().removeListener(_onTripChanged);
+    _tripService?.removeListener(_onTripChanged);
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -433,15 +437,6 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                       const Text('Trails', overflow: TextOverflow.ellipsis),
                     ],
                   )),
-                  Tab(
-                      child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.bookmark, size: 16),
-                      const SizedBox(width: 6),
-                      const Text('Saved', overflow: TextOverflow.ellipsis),
-                    ],
-                  )),
                 ],
               ),
             ).animate().fadeIn(delay: 300.ms),
@@ -457,6 +452,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                   children: [
                     // Place filters for Gyms, Trails tabs
                     if (_tabController.index == 0 || _tabController.index == 3) ...[
+                      _buildSavedOnlyFilter(),
+                      const SizedBox(width: 8),
                       _buildOpenNowFilter(),
                       const SizedBox(width: 8),
                       _buildRating45PlusFilter(),
@@ -465,6 +462,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                     ]
                     // Food tab has place filters + dietary
                     else if (_tabController.index == 1) ...[
+                      _buildSavedOnlyFilter(),
+                      const SizedBox(width: 8),
                       _buildOpenNowFilter(),
                       const SizedBox(width: 8),
                       _buildRating45PlusFilter(),
@@ -500,7 +499,6 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                   _buildFoodTab(),
                   _buildEventsTab(),
                   _buildTrailsTab(),
-                  _buildSavedTab(),
                 ],
               ),
             ),
@@ -540,14 +538,17 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     final filteredGyms = _filterPlaces(_nearbyGyms);
     if (filteredGyms.isEmpty) {
       return EmptyStateWidget(
-        title: 'No gyms nearby',
-        description: _hasActiveFilters()
-            ? 'Try adjusting your filters or enable location'
-            : 'Start a trip or enable location to discover gyms',
+        title: _filterSavedOnly ? 'No saved gyms' : 'No gyms nearby',
+        description: _filterSavedOnly
+            ? 'Save gyms by tapping the bookmark icon on place details'
+            : _hasActiveFilters()
+                ? 'Try adjusting your filters or enable location'
+                : 'Start a trip or enable location to discover gyms',
         ctaLabel: _hasActiveFilters() ? 'Clear filters' : 'Enable location',
         onCtaPressed: () {
           if (_hasActiveFilters()) {
             setState(() {
+              _filterSavedOnly = false;
               _filterOpenNow = false;
               _filterRating45Plus = false;
               _filterPlaceHasPhotos = false;
@@ -592,14 +593,17 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     final filteredRestaurants = _filterPlaces(_nearbyRestaurants);
     if (filteredRestaurants.isEmpty) {
       return EmptyStateWidget(
-        title: 'No restaurants nearby',
-        description: _hasActiveFilters()
-            ? 'Try adjusting your filters or enable location'
-            : 'Start a trip or enable location to discover restaurants',
+        title: _filterSavedOnly ? 'No saved restaurants' : 'No restaurants nearby',
+        description: _filterSavedOnly
+            ? 'Save restaurants by tapping the bookmark icon on place details'
+            : _hasActiveFilters()
+                ? 'Try adjusting your filters or enable location'
+                : 'Start a trip or enable location to discover restaurants',
         ctaLabel: _hasActiveFilters() ? 'Clear filters' : 'Enable location',
         onCtaPressed: () {
           if (_hasActiveFilters()) {
             setState(() {
+              _filterSavedOnly = false;
               _filterOpenNow = false;
               _filterRating45Plus = false;
               _filterPlaceHasPhotos = false;
@@ -682,14 +686,17 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     final filteredTrails = _filterPlaces(_nearbyTrails);
     if (filteredTrails.isEmpty) {
       return EmptyStateWidget(
-        title: 'No trails nearby',
-        description: _hasActiveFilters()
-            ? 'Try adjusting your filters or enable location'
-            : 'Start a trip or enable location to discover trails',
+        title: _filterSavedOnly ? 'No saved trails' : 'No trails nearby',
+        description: _filterSavedOnly
+            ? 'Save trails by tapping the bookmark icon on place details'
+            : _hasActiveFilters()
+                ? 'Try adjusting your filters or enable location'
+                : 'Start a trip or enable location to discover trails',
         ctaLabel: _hasActiveFilters() ? 'Clear filters' : 'Enable location',
         onCtaPressed: () {
           if (_hasActiveFilters()) {
             setState(() {
+              _filterSavedOnly = false;
               _filterOpenNow = false;
               _filterRating45Plus = false;
               _filterPlaceHasPhotos = false;
@@ -702,198 +709,6 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     }
 
     return _buildPlacesList(filteredTrails);
-  }
-
-  PlaceType? _selectedAlbum; // Filter by place type (album)
-
-  Widget _buildSavedTab() {
-    final placeService = context.read<PlaceService>();
-    var savedPlaces = placeService.savedPlaces;
-
-    if (savedPlaces.isEmpty) {
-      return EmptyStateWidget(
-        title: 'No saved places yet',
-        description:
-            'Start exploring and save your favorite gyms, restaurants and trails',
-        ctaLabel: 'Explore now',
-        onCtaPressed: () => _tabController.animateTo(0),
-      );
-    }
-
-    // Filter by album (place type)
-    if (_selectedAlbum != null) {
-      savedPlaces = savedPlaces.where((p) => p.type == _selectedAlbum).toList();
-    }
-
-    return Column(
-      children: [
-        // Album filter chips
-        Container(
-          height: 50,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _buildAlbumChip('All', null),
-              const SizedBox(width: 8),
-              _buildAlbumChip('Gyms 💪', PlaceType.gym),
-              const SizedBox(width: 8),
-              _buildAlbumChip('Food 🥗', PlaceType.restaurant),
-              const SizedBox(width: 8),
-              _buildAlbumChip('Trails 🥾', PlaceType.trail),
-            ],
-          ),
-        ),
-        // Grid view
-        Expanded(child: _buildPlacesGrid(savedPlaces)),
-      ],
-    );
-  }
-
-  Widget _buildAlbumChip(String label, PlaceType? type) {
-    final isSelected = _selectedAlbum == type;
-    final colors = Theme.of(context).colorScheme;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedAlbum = type);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? colors.primary : colors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? colors.primary
-                : colors.outline.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? colors.onPrimary : colors.onSurface,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlacesGrid(List<PlaceModel> places) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: places.length,
-      itemBuilder: (context, index) {
-        final place = places[index];
-        return _buildGridPlaceCard(place);
-      },
-    );
-  }
-
-  Widget _buildGridPlaceCard(PlaceModel place) {
-    final colors = Theme.of(context).colorScheme;
-    final hasPhoto = place.photoReferences.isNotEmpty;
-
-    return GestureDetector(
-      onTap: () {
-        HapticUtils.light();
-        context.push('/place-detail', extra: place);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Photo (takes most space)
-            Expanded(
-              flex: 3,
-              child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
-                child: hasPhoto
-                    ? CachedNetworkImage(
-                        imageUrl: GooglePlacesService().getPhotoUrl(
-                          place.photoReferences.first,
-                          maxWidth: 400,
-                        ),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        placeholder: (context, url) => Shimmer.fromColors(
-                          baseColor: AppColors.surface,
-                          highlightColor: AppColors.surfaceLight,
-                          child: Container(color: AppColors.surface),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: colors.primary.withValues(alpha: 0.1),
-                          child: Icon(Icons.place,
-                              size: 48, color: colors.primary),
-                        ),
-                      )
-                    : Container(
-                        color: colors.primary.withValues(alpha: 0.1),
-                        child:
-                            Icon(Icons.place, size: 48, color: colors.primary),
-                      ),
-              ),
-            ),
-            // Info section
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      place.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const Spacer(),
-                    if (place.rating != null)
-                      Row(
-                        children: [
-                          const Icon(Icons.star,
-                              size: 12, color: AppColors.warning),
-                          const SizedBox(width: 4),
-                          Text(
-                            place.rating!.toStringAsFixed(1),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildSkeletonList() {
@@ -935,6 +750,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   Widget _buildPlaceCard(PlaceModel place, int index) {
     final textStyles = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
+    final placeService = context.read<PlaceService>();
+    final isSaved = placeService.isPlaceSaved(place.googlePlaceId);
 
     // Get place type icon and color
     IconData typeIcon;
@@ -994,57 +811,75 @@ class _DiscoverScreenState extends State<DiscoverScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Photo carousel (if photos available)
-                if (place.photoReferences.isNotEmpty)
-                  SizedBox(
-                    height: 160,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: place.photoReferences.length.clamp(0, 5),
-                      itemBuilder: (context, photoIndex) {
-                        return Container(
-                          width: 200,
-                          margin: EdgeInsets.only(
-                            right: photoIndex < place.photoReferences.length - 1
-                                ? 8
-                                : 0,
+                // Photo carousel (if photos available) with bookmark indicator
+                Stack(
+                  children: [
+                    if (place.photoReferences.isNotEmpty)
+                      SizedBox(
+                        height: 160,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: place.photoReferences.length.clamp(0, 5),
+                          itemBuilder: (context, photoIndex) {
+                            return Container(
+                              width: 200,
+                              margin: EdgeInsets.only(
+                                right: photoIndex < place.photoReferences.length - 1
+                                    ? 8
+                                    : 0,
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                child: CachedNetworkImage(
+                                  imageUrl: GooglePlacesService().getPhotoUrl(
+                                    place.photoReferences[photoIndex],
+                                    maxWidth: 400,
+                                  ),
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Shimmer.fromColors(
+                                    baseColor: AppColors.surface,
+                                    highlightColor: AppColors.surfaceLight,
+                                    child: Container(color: AppColors.surface),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    color: typeColor.withValues(alpha: 0.1),
+                                    child:
+                                        Icon(typeIcon, color: typeColor, size: 48),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    else
+                      // Fallback icon when no photos
+                      Container(
+                        height: 160,
+                        decoration: BoxDecoration(
+                          color: typeColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                        child: Center(
+                          child: Icon(typeIcon, color: typeColor, size: 64),
+                        ),
+                      ),
+                    // Bookmark indicator for saved places
+                    if (isSaved)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface.withValues(alpha: 0.9),
+                            shape: BoxShape.circle,
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                            child: CachedNetworkImage(
-                              imageUrl: GooglePlacesService().getPhotoUrl(
-                                place.photoReferences[photoIndex],
-                                maxWidth: 400,
-                              ),
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => Shimmer.fromColors(
-                                baseColor: AppColors.surface,
-                                highlightColor: AppColors.surfaceLight,
-                                child: Container(color: AppColors.surface),
-                              ),
-                              errorWidget: (context, url, error) => Container(
-                                color: typeColor.withValues(alpha: 0.1),
-                                child:
-                                    Icon(typeIcon, color: typeColor, size: 48),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  )
-                else
-                  // Fallback icon when no photos
-                  Container(
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: typeColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Center(
-                      child: Icon(typeIcon, color: typeColor, size: 64),
-                    ),
-                  ),
+                          child: Icon(Icons.bookmark, size: 14, color: AppColors.xp),
+                        ),
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 // Content
                 Row(
@@ -1360,6 +1195,21 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     );
   }
 
+  Widget _buildSavedOnlyFilter() {
+    return FilterChip(
+      avatar: Icon(
+        _filterSavedOnly ? Icons.bookmark : Icons.bookmark_outline,
+        size: 16,
+      ),
+      label: const Text('Saved'),
+      onSelected: (selected) {
+        setState(() => _filterSavedOnly = selected);
+        _applyPlaceFilters();
+      },
+      selected: _filterSavedOnly,
+    );
+  }
+
   void _applyPlaceFilters() {
     // Trigger rebuild with filtered results
     setState(() {});
@@ -1368,6 +1218,14 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   // Filter places based on active filters
   List<PlaceModel> _filterPlaces(List<PlaceModel> places) {
     var filtered = places;
+
+    // Filter by saved only
+    if (_filterSavedOnly) {
+      final placeService = context.read<PlaceService>();
+      filtered = filtered.where((place) {
+        return placeService.isPlaceSaved(place.googlePlaceId);
+      }).toList();
+    }
 
     // Filter by open now
     if (_filterOpenNow) {
@@ -1397,7 +1255,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
 
   // Check if any place filters are active
   bool _hasActiveFilters() {
-    return _filterOpenNow || _filterRating45Plus || _filterPlaceHasPhotos || _selectedDietaryFilters.isNotEmpty;
+    return _filterSavedOnly || _filterOpenNow || _filterRating45Plus || _filterPlaceHasPhotos || _selectedDietaryFilters.isNotEmpty;
   }
 
   void _showCategoryPicker() {
