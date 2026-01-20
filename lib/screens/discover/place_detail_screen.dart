@@ -2244,10 +2244,14 @@ class _WhatToBringSection extends StatelessWidget {
                         Icon(Icons.check_circle_outline,
                             size: 16, color: colors.primary),
                         const SizedBox(width: 6),
-                        Text(
-                          item,
-                          style: textStyles.labelMedium?.copyWith(
-                            color: colors.onSurface,
+                        Flexible(
+                          child: Text(
+                            item,
+                            style: textStyles.labelMedium?.copyWith(
+                              color: colors.onSurface,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
                       ],

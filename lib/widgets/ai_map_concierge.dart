@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fittravel/services/ai_guide_service.dart';
 import 'package:fittravel/models/ai_models.dart';
+import 'package:fittravel/models/place_model.dart';
 import 'package:fittravel/theme.dart';
 
 /// Modern bottom sheet AI concierge for the map screen
@@ -119,11 +121,14 @@ class _AiMapConciergeState extends State<AiMapConcierge>
   }
 
   Widget _buildFloatingButton(ColorScheme colors) {
+    // Hide completely when place preview is open (per user feedback)
+    if (widget.isBottomSheetOpen) {
+      return const SizedBox.shrink();
+    }
+
     // Keep the "pillow" tucked just above the system safe area.
-    // If the place preview sheet is open, lift above it.
     final safeBottom = MediaQuery.of(context).padding.bottom;
-    final obstruction = widget.isBottomSheetOpen ? 220.0 : 0.0;
-    final bottomOffset = obstruction + safeBottom + 16.0;
+    final bottomOffset = safeBottom + 16.0;
 
     return Positioned(
       left: 0,
@@ -682,11 +687,7 @@ class _AiMapConciergeState extends State<AiMapConcierge>
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () {
-                  if (widget.onPlaceTapped != null) {
-                    widget.onPlaceTapped!(place);
-                  }
-                },
+                onTap: () => _handlePlaceTap(place),
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   padding: const EdgeInsets.all(16),
@@ -808,6 +809,46 @@ class _AiMapConciergeState extends State<AiMapConcierge>
         }),
       ],
     );
+  }
+
+  void _handlePlaceTap(SuggestedPlace place) {
+    // If onPlaceTapped callback is provided (e.g., on map screen), use it
+    if (widget.onPlaceTapped != null) {
+      widget.onPlaceTapped!(place);
+      return;
+    }
+
+    // Fallback: Navigate directly to place detail
+    final placeModel = PlaceModel(
+      id: place.googlePlaceId ?? 'temp_${place.name.hashCode}',
+      googlePlaceId: place.googlePlaceId,
+      name: place.name,
+      type: _parsePlaceType(place.type),
+      latitude: place.lat,
+      longitude: place.lng,
+      address: place.neighborhood,
+      rating: 0,
+      userRatingsTotal: 0,
+      isVisited: false,
+    );
+
+    context.push('/place-detail', extra: placeModel);
+  }
+
+  PlaceType _parsePlaceType(String type) {
+    switch (type.toLowerCase()) {
+      case 'gym':
+        return PlaceType.gym;
+      case 'restaurant':
+      case 'food':
+        return PlaceType.restaurant;
+      case 'park':
+        return PlaceType.park;
+      case 'trail':
+        return PlaceType.trail;
+      default:
+        return PlaceType.gym;
+    }
   }
 
   IconData _getPlaceIcon(String type) {

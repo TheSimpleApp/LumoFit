@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:fittravel/theme.dart';
@@ -44,16 +45,10 @@ class TodayActivities extends StatelessWidget {
         const SizedBox(height: 12),
         if (todayActivities.isEmpty)
           EmptyStateWidget.activities(
-            streakMessage: 'Log your first activity to keep your streak!',
-            ctaLabel: 'Log Activity',
+            streakMessage: 'Visit a gym or healthy spot to start earning XP!',
+            ctaLabel: 'Discover Places',
             onCtaPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content:
-                      Text('Use the camera button below to log your activity!'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              context.go('/discover');
             },
           )
         else

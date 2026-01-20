@@ -125,30 +125,6 @@ class _MapScreenState extends State<MapScreen> {
     _loadPlacesForCurrentLocation();
   }
 
-  void _goToTripDestination() {
-    final tripService = context.read<TripService>();
-    final tripCoords = tripService.activeTripCoordinates;
-
-    if (tripCoords != null) {
-      _center = LatLng(tripCoords.$1, tripCoords.$2);
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(_center, 13),
-      );
-      _loadPlacesForCurrentLocation();
-    } else {
-      // Trip doesn't have coordinates yet - try to geocode
-      final activeTrip = tripService.activeTrip;
-      if (activeTrip != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Loading ${activeTrip.destinationCity} location...'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
-
   Future<void> _loadPlacesForCurrentLocation() async {
     // If "Saved" filter is active, load from saved places only
     if (_activeFilters.contains(MapFilterType.saved)) {
@@ -264,16 +240,24 @@ class _MapScreenState extends State<MapScreen> {
 
   void _updateMarkersFromItems() {
     final markers = <Marker>{};
+    final placeService = context.read<PlaceService>();
+    final savedPlaceIds = placeService.savedPlaces
+        .map((p) => p.googlePlaceId ?? p.id)
+        .toSet();
 
     // Add place markers
     for (final entry in _placeMarkers.entries) {
       final place = entry.value;
       if (!_shouldShowPlace(place)) continue;
 
+      final placeId = place.googlePlaceId ?? place.id;
+      final isSaved = savedPlaceIds.contains(placeId);
+
       markers.add(Marker(
         markerId: MarkerId('place_${entry.key}'),
         position: LatLng(place.latitude ?? 0.0, place.longitude ?? 0.0),
-        icon: _getMarkerIcon(place.type),
+        icon: _getMarkerIcon(place.type, isSaved: isSaved),
+        alpha: isSaved ? 1.0 : 0.85, // Saved places are more prominent
         onTap: () => _onMarkerTapped(place),
       ));
     }
@@ -314,7 +298,12 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  BitmapDescriptor _getMarkerIcon(PlaceType type) {
+  BitmapDescriptor _getMarkerIcon(PlaceType type, {bool isSaved = false}) {
+    // Saved places get a gold/yellow marker to stand out
+    if (isSaved) {
+      return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow);
+    }
+
     switch (type) {
       case PlaceType.gym:
         return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue);
@@ -506,56 +495,10 @@ class _MapScreenState extends State<MapScreen> {
               mapToolbarEnabled: false,
             ),
 
-          // Trip destination banner
-          if (activeTrip != null)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 8,
-              left: 16,
-              right: 16,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: colors.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.flight_takeoff,
-                        size: 18, color: colors.onPrimaryContainer),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        activeTrip.destinationCity,
-                        style: TextStyle(
-                          color: colors.onPrimaryContainer,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: _goToTripDestination,
-                      icon: Icon(Icons.place, size: 18, color: colors.primary),
-                      label: Text('View Location',
-                          style: TextStyle(color: colors.primary)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
           // Search bar, filter bar, and radius selector
+          // Active trip banner removed - use search bar for location exploration
           Positioned(
-            top: activeTrip != null
-                ? MediaQuery.of(context).padding.top + 68
-                : MediaQuery.of(context).padding.top + 8,
+            top: MediaQuery.of(context).padding.top + 8,
             left: 0,
             right: 0,
             child: Column(

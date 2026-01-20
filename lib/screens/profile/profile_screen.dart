@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fittravel/theme.dart';
@@ -115,9 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showSettings(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Settings coming soon!'),
-        behavior: SnackBarBehavior.floating));
+    context.push('/edit-profile');
   }
 }
 
@@ -434,7 +433,7 @@ class _BadgesSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 100,
+          height: 110, // Increased height for better badge display
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: allBadges.length,
@@ -527,6 +526,7 @@ class _BadgeItem extends StatelessWidget {
           opacity: isEarned ? 1.0 : 0.4,
           child: Container(
             width: 80,
+            height: 105, // Fixed height to prevent overflow
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: colors.surface,

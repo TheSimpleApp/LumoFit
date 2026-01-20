@@ -7,6 +7,7 @@ import 'package:fittravel/screens/discover/discover_screen.dart';
 import 'package:fittravel/screens/discover/place_detail_screen.dart';
 import 'package:fittravel/screens/trips/trips_screen.dart';
 import 'package:fittravel/screens/profile/profile_screen.dart';
+import 'package:fittravel/screens/profile/edit_profile_screen.dart';
 import 'package:fittravel/screens/trips/trip_detail_screen.dart';
 import 'package:fittravel/models/place_model.dart';
 import 'package:fittravel/models/event_model.dart';
@@ -121,6 +122,11 @@ class AppRouter {
           final place = state.extra as PlaceModel;
           return PlaceDetailScreen(place: place);
         },
+      ),
+      GoRoute(
+        path: '/edit-profile',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const EditProfileScreen(),
       ),
       GoRoute(
         path: '/trip/:id',

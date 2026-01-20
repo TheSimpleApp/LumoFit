@@ -292,6 +292,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     return Scaffold(
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Header
             Padding(
