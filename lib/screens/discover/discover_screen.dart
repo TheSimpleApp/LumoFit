@@ -473,6 +473,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
             Expanded(
               child: TabBarView(
                 controller: _tabController,
+                physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _buildGymsTab(),
                   _buildFoodTab(),
