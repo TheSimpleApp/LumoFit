@@ -9,6 +9,7 @@ enum MapFilterType {
   trails,
   events,
   strava,
+  saved,
 }
 
 /// Dietary filter types for food
@@ -93,6 +94,15 @@ class MapFilterBar extends StatelessWidget {
                 onTap: () => _handleFilterTap(MapFilterType.events),
                 colors: colors,
                 markerColor: Colors.purple,
+              ),
+              const SizedBox(width: 8),
+              _FilterChip(
+                label: 'Saved',
+                icon: Icons.bookmark,
+                isSelected: activeFilters.contains(MapFilterType.saved),
+                onTap: () => _handleFilterTap(MapFilterType.saved),
+                colors: colors,
+                markerColor: AppColors.xp,
               ),
               if (isStravaAuthenticated) ...[
                 const SizedBox(width: 8),

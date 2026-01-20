@@ -509,8 +509,9 @@ ThemeData get appTheme => ThemeData(
           return AppColors.textTertiary;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected))
+          if (states.contains(WidgetState.selected)) {
             return AppColors.primaryMuted;
+          }
           return AppColors.inactive;
         }),
         trackOutlineColor: WidgetStateProperty.all(Colors.transparent),

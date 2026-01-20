@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:fittravel/services/trip_service.dart';
+import 'package:fittravel/services/place_service.dart';
 import 'package:fittravel/services/google_places_service.dart';
 import 'package:fittravel/services/event_service.dart';
 import 'package:fittravel/services/strava_service.dart';
@@ -149,6 +150,12 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _loadPlacesForCurrentLocation() async {
+    // If "Saved" filter is active, load from saved places only
+    if (_activeFilters.contains(MapFilterType.saved)) {
+      _loadSavedPlaces();
+      return;
+    }
+
     if (_activeFilters.contains(MapFilterType.all) || _activeFilters.isEmpty) {
       // Load all types
       await Future.wait([
@@ -183,6 +190,28 @@ class _MapScreenState extends State<MapScreen> {
       }
       await Future.wait(futures);
     }
+
+    _updateMarkersFromItems();
+  }
+
+  void _loadSavedPlaces() {
+    final placeService = context.read<PlaceService>();
+    final savedPlaces = placeService.savedPlaces;
+    final markers = <String, PlaceModel>{};
+
+    for (final place in savedPlaces) {
+      if (place.googlePlaceId != null) {
+        markers[place.googlePlaceId!] = place;
+      } else {
+        markers[place.id] = place;
+      }
+    }
+
+    setState(() {
+      _placeMarkers.clear();
+      _placeMarkers.addAll(markers);
+      _eventMarkers.clear();
+    });
 
     _updateMarkersFromItems();
   }
