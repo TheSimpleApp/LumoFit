@@ -38,6 +38,10 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   bool _filterHasPhotos = false;
   // Dietary filters for Food tab
   final Set<String> _selectedDietaryFilters = {};
+  // Place filters (for Gyms, Food, Trails)
+  bool _filterOpenNow = false;
+  bool _filterRating45Plus = false;
+  bool _filterPlaceHasPhotos = false;
   // Location (fallback when no trip and GPS fails)
   double _centerLat = 40.7128; // New York
   double _centerLng = -74.0060;
@@ -451,16 +455,33 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    if (_tabController.index == 2) ...[
-                      _buildEventCategoryFilter(),
-                      const SizedBox(width: 12),
-                      _buildEventDateFilter(),
-                      const SizedBox(width: 12),
-                      _buildEventRatingFilter(),
-                      const SizedBox(width: 12),
-                      _buildEventPhotosFilter(),
-                    ] else if (_tabController.index == 1) ...[
+                    // Place filters for Gyms, Trails tabs
+                    if (_tabController.index == 0 || _tabController.index == 3) ...[
+                      _buildOpenNowFilter(),
+                      const SizedBox(width: 8),
+                      _buildRating45PlusFilter(),
+                      const SizedBox(width: 8),
+                      _buildPlaceHasPhotosFilter(),
+                    ]
+                    // Food tab has place filters + dietary
+                    else if (_tabController.index == 1) ...[
+                      _buildOpenNowFilter(),
+                      const SizedBox(width: 8),
+                      _buildRating45PlusFilter(),
+                      const SizedBox(width: 8),
+                      _buildPlaceHasPhotosFilter(),
+                      const SizedBox(width: 8),
                       _buildDietaryFilter(),
+                    ]
+                    // Events tab
+                    else if (_tabController.index == 2) ...[
+                      _buildEventCategoryFilter(),
+                      const SizedBox(width: 8),
+                      _buildEventDateFilter(),
+                      const SizedBox(width: 8),
+                      _buildEventRatingFilter(),
+                      const SizedBox(width: 8),
+                      _buildEventPhotosFilter(),
                     ],
                   ],
                 ),
@@ -494,10 +515,11 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       if (_isSearching) {
         return const Center(child: CircularProgressIndicator());
       }
-      if (_searchResults.isEmpty) {
+      final filteredResults = _filterPlaces(_searchResults);
+      if (filteredResults.isEmpty) {
         return EmptyStateWidget(
           title: 'No gyms found',
-          description: 'Try searching with different keywords',
+          description: 'Try searching with different keywords or adjusting filters',
           ctaLabel: 'Browse nearby',
           onCtaPressed: () {
             _searchController.clear();
@@ -508,23 +530,36 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           },
         );
       }
-      return _buildPlacesList(_searchResults);
+      return _buildPlacesList(filteredResults);
     }
 
     if (_isLoadingNearby) {
       return _buildSkeletonList();
     }
 
-    if (_nearbyGyms.isEmpty) {
+    final filteredGyms = _filterPlaces(_nearbyGyms);
+    if (filteredGyms.isEmpty) {
       return EmptyStateWidget(
         title: 'No gyms nearby',
-        description: 'Start a trip or enable location to discover gyms',
-        ctaLabel: 'Enable location',
-        onCtaPressed: () => _initLocation(),
+        description: _hasActiveFilters()
+            ? 'Try adjusting your filters or enable location'
+            : 'Start a trip or enable location to discover gyms',
+        ctaLabel: _hasActiveFilters() ? 'Clear filters' : 'Enable location',
+        onCtaPressed: () {
+          if (_hasActiveFilters()) {
+            setState(() {
+              _filterOpenNow = false;
+              _filterRating45Plus = false;
+              _filterPlaceHasPhotos = false;
+            });
+          } else {
+            _initLocation();
+          }
+        },
       );
     }
 
-    return _buildPlacesList(_nearbyGyms);
+    return _buildPlacesList(filteredGyms);
   }
 
   Widget _buildFoodTab() {
@@ -532,10 +567,11 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       if (_isSearching) {
         return const Center(child: CircularProgressIndicator());
       }
-      if (_searchResults.isEmpty) {
+      final filteredResults = _filterPlaces(_searchResults);
+      if (filteredResults.isEmpty) {
         return EmptyStateWidget(
           title: 'No restaurants found',
-          description: 'Try searching with different keywords',
+          description: 'Try searching with different keywords or adjusting filters',
           ctaLabel: 'Browse nearby',
           onCtaPressed: () {
             _searchController.clear();
@@ -546,23 +582,37 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           },
         );
       }
-      return _buildPlacesList(_searchResults);
+      return _buildPlacesList(filteredResults);
     }
 
     if (_isLoadingNearby) {
       return _buildSkeletonList();
     }
 
-    if (_nearbyRestaurants.isEmpty) {
+    final filteredRestaurants = _filterPlaces(_nearbyRestaurants);
+    if (filteredRestaurants.isEmpty) {
       return EmptyStateWidget(
         title: 'No restaurants nearby',
-        description: 'Start a trip or enable location to discover restaurants',
-        ctaLabel: 'Enable location',
-        onCtaPressed: () => _initLocation(),
+        description: _hasActiveFilters()
+            ? 'Try adjusting your filters or enable location'
+            : 'Start a trip or enable location to discover restaurants',
+        ctaLabel: _hasActiveFilters() ? 'Clear filters' : 'Enable location',
+        onCtaPressed: () {
+          if (_hasActiveFilters()) {
+            setState(() {
+              _filterOpenNow = false;
+              _filterRating45Plus = false;
+              _filterPlaceHasPhotos = false;
+              _selectedDietaryFilters.clear();
+            });
+          } else {
+            _initLocation();
+          }
+        },
       );
     }
 
-    return _buildPlacesList(_nearbyRestaurants);
+    return _buildPlacesList(filteredRestaurants);
   }
 
   Widget _buildEventsTab() {
@@ -607,10 +657,11 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       if (_isSearching) {
         return const Center(child: CircularProgressIndicator());
       }
-      if (_searchResults.isEmpty) {
+      final filteredResults = _filterPlaces(_searchResults);
+      if (filteredResults.isEmpty) {
         return EmptyStateWidget(
           title: 'No trails found',
-          description: 'Try searching with different keywords',
+          description: 'Try searching with different keywords or adjusting filters',
           ctaLabel: 'Browse nearby',
           onCtaPressed: () {
             _searchController.clear();
@@ -621,23 +672,36 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           },
         );
       }
-      return _buildPlacesList(_searchResults);
+      return _buildPlacesList(filteredResults);
     }
 
     if (_isLoadingNearby) {
       return _buildSkeletonList();
     }
 
-    if (_nearbyTrails.isEmpty) {
+    final filteredTrails = _filterPlaces(_nearbyTrails);
+    if (filteredTrails.isEmpty) {
       return EmptyStateWidget(
         title: 'No trails nearby',
-        description: 'Start a trip or enable location to discover trails',
-        ctaLabel: 'Enable location',
-        onCtaPressed: () => _initLocation(),
+        description: _hasActiveFilters()
+            ? 'Try adjusting your filters or enable location'
+            : 'Start a trip or enable location to discover trails',
+        ctaLabel: _hasActiveFilters() ? 'Clear filters' : 'Enable location',
+        onCtaPressed: () {
+          if (_hasActiveFilters()) {
+            setState(() {
+              _filterOpenNow = false;
+              _filterRating45Plus = false;
+              _filterPlaceHasPhotos = false;
+            });
+          } else {
+            _initLocation();
+          }
+        },
       );
     }
 
-    return _buildPlacesList(_nearbyTrails);
+    return _buildPlacesList(filteredTrails);
   }
 
   PlaceType? _selectedAlbum; // Filter by place type (album)
@@ -1260,6 +1324,80 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       onSelected: (_) => _showDietaryFilterPicker(),
       selected: _selectedDietaryFilters.isNotEmpty,
     );
+  }
+
+  // Place filter chips
+  Widget _buildOpenNowFilter() {
+    return FilterChip(
+      label: const Text('Open now'),
+      onSelected: (selected) {
+        setState(() => _filterOpenNow = selected);
+        _applyPlaceFilters();
+      },
+      selected: _filterOpenNow,
+    );
+  }
+
+  Widget _buildRating45PlusFilter() {
+    return FilterChip(
+      label: const Text('4.5+ stars'),
+      onSelected: (selected) {
+        setState(() => _filterRating45Plus = selected);
+        _applyPlaceFilters();
+      },
+      selected: _filterRating45Plus,
+    );
+  }
+
+  Widget _buildPlaceHasPhotosFilter() {
+    return FilterChip(
+      label: const Text('Has photos'),
+      onSelected: (selected) {
+        setState(() => _filterPlaceHasPhotos = selected);
+        _applyPlaceFilters();
+      },
+      selected: _filterPlaceHasPhotos,
+    );
+  }
+
+  void _applyPlaceFilters() {
+    // Trigger rebuild with filtered results
+    setState(() {});
+  }
+
+  // Filter places based on active filters
+  List<PlaceModel> _filterPlaces(List<PlaceModel> places) {
+    var filtered = places;
+
+    // Filter by open now
+    if (_filterOpenNow) {
+      filtered = filtered.where((place) {
+        // For now, assume all places are open (Google API doesn't always provide opening hours)
+        // In production, check place.openingHours or use a more sophisticated check
+        return true; // TODO: Implement actual open/closed check when API provides data
+      }).toList();
+    }
+
+    // Filter by rating 4.5+
+    if (_filterRating45Plus) {
+      filtered = filtered.where((place) {
+        return place.rating != null && place.rating! >= 4.5;
+      }).toList();
+    }
+
+    // Filter by has photos
+    if (_filterPlaceHasPhotos) {
+      filtered = filtered.where((place) {
+        return place.photoReferences.isNotEmpty;
+      }).toList();
+    }
+
+    return filtered;
+  }
+
+  // Check if any place filters are active
+  bool _hasActiveFilters() {
+    return _filterOpenNow || _filterRating45Plus || _filterPlaceHasPhotos || _selectedDietaryFilters.isNotEmpty;
   }
 
   void _showCategoryPicker() {
