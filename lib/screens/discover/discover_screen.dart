@@ -764,7 +764,10 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                     const BorderRadius.vertical(top: Radius.circular(12)),
                 child: hasPhoto
                     ? CachedNetworkImage(
-                        imageUrl: place.photoReferences.first,
+                        imageUrl: GooglePlacesService().getPhotoUrl(
+                          place.photoReferences.first,
+                          maxWidth: 400,
+                        ),
                         fit: BoxFit.cover,
                         width: double.infinity,
                         placeholder: (context, url) => Shimmer.fromColors(
@@ -944,7 +947,10 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(AppRadius.md),
                             child: CachedNetworkImage(
-                              imageUrl: place.photoReferences[photoIndex],
+                              imageUrl: GooglePlacesService().getPhotoUrl(
+                                place.photoReferences[photoIndex],
+                                maxWidth: 400,
+                              ),
                               fit: BoxFit.cover,
                               placeholder: (context, url) => Shimmer.fromColors(
                                 baseColor: AppColors.surface,
@@ -1151,30 +1157,65 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   }
 
   Widget _buildEventCard(EventModel event) {
+    final textStyles = Theme.of(context).textTheme;
+
     return GestureDetector(
       onTap: () => context.push('/event-detail', extra: event),
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(event.title, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 4),
-              Text(event.category.toString(),
-                  style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.calendar_today, size: 16),
-                  const SizedBox(width: 4),
-                  Text(event.start.toString().split(' ')[0],
-                      style: Theme.of(context).textTheme.bodySmall),
-                ],
+        child: Row(
+          children: [
+            // Add image on left side
+            if (event.imageUrl != null && event.imageUrl!.isNotEmpty)
+              ClipRRect(
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                child: CachedNetworkImage(
+                  imageUrl: event.imageUrl!,
+                  width: 120,
+                  height: 120,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Shimmer.fromColors(
+                    baseColor: AppColors.surface,
+                    highlightColor: AppColors.surfaceLight,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      color: AppColors.surface,
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    width: 120,
+                    height: 120,
+                    color: Colors.purple.withValues(alpha: 0.1),
+                    child: const Icon(Icons.event, color: Colors.purple, size: 40),
+                  ),
+                ),
               ),
-            ],
-          ),
+            // Existing event details in Expanded widget
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(event.title, style: textStyles.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(event.category.toString(),
+                        style: textStyles.bodySmall),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today, size: 16),
+                        const SizedBox(width: 4),
+                        Text(event.start.toString().split(' ')[0],
+                            style: textStyles.bodySmall),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

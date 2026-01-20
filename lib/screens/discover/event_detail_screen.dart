@@ -9,6 +9,8 @@ import 'package:fittravel/models/itinerary_item.dart';
 import 'package:fittravel/utils/haptic_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fittravel/widgets/details_action_bar.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 
 class EventDetailScreen extends StatelessWidget {
   final EventModel event;
@@ -46,11 +48,26 @@ class EventDetailScreen extends StatelessWidget {
         padding: EdgeInsets.zero,
         children: [
           if (event.imageUrl != null && event.imageUrl!.isNotEmpty) ...[
-            Image.network(
-              event.imageUrl!,
+            CachedNetworkImage(
+              imageUrl: event.imageUrl!,
               height: 240,
               width: double.infinity,
               fit: BoxFit.cover,
+              placeholder: (context, url) => Shimmer.fromColors(
+                baseColor: AppColors.surface,
+                highlightColor: AppColors.surfaceLight,
+                child: Container(
+                  height: 240,
+                  width: double.infinity,
+                  color: AppColors.surface,
+                ),
+              ),
+              errorWidget: (context, url, error) => Container(
+                height: 240,
+                width: double.infinity,
+                color: Colors.purple.withValues(alpha: 0.1),
+                child: const Icon(Icons.event, color: Colors.purple, size: 80),
+              ),
             ),
             const SizedBox(height: 20),
           ] else
