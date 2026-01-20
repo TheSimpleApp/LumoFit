@@ -277,7 +277,8 @@ class _PlaceInsightsCardState extends State<PlaceInsightsCard> {
           ),
 
           // Hidden Gems
-          if (insights.hiddenGems != null && insights.hiddenGems!.isNotEmpty) ...[
+          if (insights.hiddenGems != null &&
+              insights.hiddenGems!.isNotEmpty) ...[
             const SizedBox(height: 16),
             _buildInsightSection(
               icon: Icons.diamond,

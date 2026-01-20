@@ -285,7 +285,8 @@ class GamificationService extends ChangeNotifier {
     final userChallenge = getUserChallenge(challengeId);
     final challenge = getChallengeById(challengeId);
     if (userChallenge == null || challenge == null) return 0;
-    return (userChallenge.progress / challenge.requirementValue).clamp(0.0, 1.0);
+    return (userChallenge.progress / challenge.requirementValue)
+        .clamp(0.0, 1.0);
   }
 
   /// Clear local state (called on logout)

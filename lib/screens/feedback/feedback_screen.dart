@@ -47,10 +47,14 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Tell us what you think', style: text.titleLarge)
-                  .animate().fadeIn().slideY(begin: 0.06),
+                  .animate()
+                  .fadeIn()
+                  .slideY(begin: 0.06),
               const SizedBox(height: 8),
-              Text('We read every submission. Thanks for helping improve FitTravel! 💛',
-                style: text.bodyMedium?.copyWith(color: colors.onSurfaceVariant)),
+              Text(
+                  'We read every submission. Thanks for helping improve FitTravel! 💛',
+                  style: text.bodyMedium
+                      ?.copyWith(color: colors.onSurfaceVariant)),
               const SizedBox(height: 16),
               Text('Category', style: text.labelLarge),
               const SizedBox(height: 8),
@@ -104,9 +108,14 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => context.pop(),
                   icon: Icon(Icons.arrow_back, color: colors.primary),
-                  label: Text('Cancel', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: colors.primary)),
+                  label: Text('Cancel',
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelLarge
+                          ?.copyWith(color: colors.primary)),
                   style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: colors.primary.withValues(alpha: 0.4)),
+                    side: BorderSide(
+                        color: colors.primary.withValues(alpha: 0.4)),
                   ),
                 ),
               ),
@@ -128,16 +137,27 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? colors.primary.withValues(alpha: 0.15) : colors.surface,
+          color: selected
+              ? colors.primary.withValues(alpha: 0.15)
+              : colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.full),
-          border: Border.all(color: selected ? colors.primary : colors.outline.withValues(alpha: 0.7), width: 1),
+          border: Border.all(
+              color: selected
+                  ? colors.primary
+                  : colors.outline.withValues(alpha: 0.7),
+              width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: selected ? colors.primary : colors.onSurfaceVariant),
+            Icon(icon,
+                size: 16,
+                color: selected ? colors.primary : colors.onSurfaceVariant),
             const SizedBox(width: 6),
-            Text(value[0].toUpperCase() + value.substring(1), style: Theme.of(context).textTheme.labelMedium?.copyWith(color: selected ? colors.primary : colors.onSurfaceVariant)),
+            Text(value[0].toUpperCase() + value.substring(1),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color:
+                        selected ? colors.primary : colors.onSurfaceVariant)),
           ],
         ),
       ),
@@ -148,12 +168,17 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     final svc = context.read<FeedbackService>();
     final message = _messageController.text.trim();
     if (message.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a message'), behavior: SnackBarBehavior.floating));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Please enter a message'),
+          behavior: SnackBarBehavior.floating));
       return;
     }
     setState(() => _isSubmitting = true);
     try {
-      await svc.submit(category: _category, message: message, contact: _contactController.text);
+      await svc.submit(
+          category: _category,
+          message: message,
+          contact: _contactController.text);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Thanks for your feedback!'),
@@ -167,7 +192,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       if (!mounted) return;
       // Feedback was saved locally even if Supabase sync failed
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Feedback saved locally. Will sync when connection is restored.'),
+        content: const Text(
+            'Feedback saved locally. Will sync when connection is restored.'),
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.orange.shade700,
         duration: const Duration(seconds: 4),
@@ -205,7 +231,8 @@ class _RecentList extends StatelessWidget {
                 ),
                 child: Text(
                   '${feedbackService.unsyncedCount} pending sync',
-                  style: text.labelSmall?.copyWith(color: Colors.orange.shade800),
+                  style:
+                      text.labelSmall?.copyWith(color: Colors.orange.shade800),
                 ),
               ),
             ],
@@ -234,7 +261,8 @@ class _RecentList extends StatelessWidget {
                   if (!f.syncedToSupabase)
                     Tooltip(
                       message: 'Pending sync',
-                      child: Icon(Icons.cloud_off, size: 16, color: Colors.orange.shade600),
+                      child: Icon(Icons.cloud_off,
+                          size: 16, color: Colors.orange.shade600),
                     ),
                 ],
               ),

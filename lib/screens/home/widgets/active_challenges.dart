@@ -13,14 +13,13 @@ class ActiveChallenges extends StatelessWidget {
   Widget build(BuildContext context) {
     final gamificationService = context.watch<GamificationService>();
     final allUserChallenges = gamificationService.userChallenges;
-    final activeChallenges = allUserChallenges
-        .where((uc) => !uc.isCompleted)
-        .take(3)
-        .toList();
+    final activeChallenges =
+        allUserChallenges.where((uc) => !uc.isCompleted).take(3).toList();
     final textStyles = Theme.of(context).textTheme;
 
     // Determine if user has completed challenges vs no challenges at all
-    final hasCompletedChallenges = allUserChallenges.any((uc) => uc.isCompleted);
+    final hasCompletedChallenges =
+        allUserChallenges.any((uc) => uc.isCompleted);
     final allCompleted = activeChallenges.isEmpty && hasCompletedChallenges;
 
     return Column(
@@ -30,7 +29,9 @@ class ActiveChallenges extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('Active Challenges', style: textStyles.titleMedium),
-            TextButton(onPressed: () => context.push('/challenges'), child: const Text('See All')),
+            TextButton(
+                onPressed: () => context.push('/challenges'),
+                child: const Text('See All')),
           ],
         ),
         const SizedBox(height: 8),
@@ -38,11 +39,14 @@ class ActiveChallenges extends StatelessWidget {
           EmptyStateWidget.challenges(
             allCompleted: allCompleted,
             ctaLabel: allCompleted ? 'View Completed' : null,
-            onCtaPressed: allCompleted ? () => context.push('/challenges?tab=completed') : null,
+            onCtaPressed: allCompleted
+                ? () => context.push('/challenges?tab=completed')
+                : null,
           )
         else
           ...activeChallenges.map((uc) {
-            final challenge = gamificationService.getChallengeById(uc.challengeId);
+            final challenge =
+                gamificationService.getChallengeById(uc.challengeId);
             if (challenge == null) return const SizedBox.shrink();
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -64,14 +68,16 @@ class _ChallengeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
-    final progress = (userChallenge.progress / challenge.requirementValue).clamp(0.0, 1.0);
+    final progress =
+        (userChallenge.progress / challenge.requirementValue).clamp(0.0, 1.0);
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+        border:
+            Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,7 +87,8 @@ class _ChallengeTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getChallengeColor(challenge.type).withValues(alpha: 0.15),
+                  color: _getChallengeColor(challenge.type)
+                      .withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Text(
@@ -114,7 +121,8 @@ class _ChallengeTile extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             challenge.description,
-            style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+            style:
+                textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           Row(
@@ -125,7 +133,8 @@ class _ChallengeTile extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: progress,
                     backgroundColor: colors.outline.withValues(alpha: 0.1),
-                    valueColor: AlwaysStoppedAnimation<Color>(_getChallengeColor(challenge.type)),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        _getChallengeColor(challenge.type)),
                     minHeight: 6,
                   ),
                 ),
@@ -133,7 +142,8 @@ class _ChallengeTile extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 '${userChallenge.progress}/${challenge.requirementValue}',
-                style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant),
+                style: textStyles.labelSmall
+                    ?.copyWith(color: colors.onSurfaceVariant),
               ),
             ],
           ),

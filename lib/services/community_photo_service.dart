@@ -46,9 +46,7 @@ class CommunityPhotoService extends ChangeNotifier {
   }
 
   List<CommunityPhoto> getPhotosForPlace(String placeId) {
-    return _photos
-        .where((p) => p.placeId == placeId)
-        .toList()
+    return _photos.where((p) => p.placeId == placeId).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
@@ -143,7 +141,8 @@ class CommunityPhotoService extends ChangeNotifier {
 
   Future<void> deletePhoto(String photoId) async {
     try {
-      await SupabaseService.delete('community_photos', filters: {'id': photoId});
+      await SupabaseService.delete('community_photos',
+          filters: {'id': photoId});
 
       _photos.removeWhere((p) => p.id == photoId);
       _error = null;

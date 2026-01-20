@@ -103,7 +103,7 @@ class UserModel {
   }
 
   String toJsonString() => jsonEncode(toJson());
-  
+
   factory UserModel.fromJsonString(String source) =>
       UserModel.fromJson(jsonDecode(source) as Map<String, dynamic>);
 

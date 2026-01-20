@@ -315,8 +315,7 @@ class _GoalCard extends StatelessWidget {
                   title,
                   style: textStyles.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    decoration:
-                        isCompleted ? TextDecoration.lineThrough : null,
+                    decoration: isCompleted ? TextDecoration.lineThrough : null,
                   ),
                 ),
                 const SizedBox(height: 4),

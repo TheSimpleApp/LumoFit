@@ -97,39 +97,41 @@ class _TripDetailScreenState extends State<TripDetailScreen>
               if (!trip.isActive)
                 const PopupMenuItem(
                     value: 'activate', child: Text('Set Active Trip')),
-              const PopupMenuItem(
-                  value: 'delete', child: Text('Delete Trip')),
+              const PopupMenuItem(value: 'delete', child: Text('Delete Trip')),
             ],
             onSelected: (value) async {
+              final tripService = context.read<TripService>();
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final router = GoRouter.of(context);
               if (value == 'activate') {
-                await context.read<TripService>().setActiveTrip(trip.id);
+                await tripService.setActiveTrip(trip.id);
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     const SnackBar(
                         content: Text('Active trip set'),
                         behavior: SnackBarBehavior.floating),
                   );
                 }
-              }
-              if (value == 'delete') {
+              } else if (value == 'delete') {
+                if (!mounted) return;
                 final confirm = await showDialog<bool>(
                   context: context,
-                  builder: (context) => AlertDialog(
+                  builder: (dialogContext) => AlertDialog(
                     title: const Text('Delete Trip?'),
                     content: const Text('This action cannot be undone.'),
                     actions: [
                       TextButton(
-                          onPressed: () => Navigator.pop(context, false),
+                          onPressed: () => Navigator.pop(dialogContext, false),
                           child: const Text('Cancel')),
                       TextButton(
-                          onPressed: () => Navigator.pop(context, true),
+                          onPressed: () => Navigator.pop(dialogContext, true),
                           child: const Text('Delete')),
                     ],
                   ),
                 );
                 if (confirm == true) {
-                  await context.read<TripService>().deleteTrip(trip.id);
-                  if (mounted) context.pop();
+                  await tripService.deleteTrip(trip.id);
+                  if (mounted) router.pop();
                 }
               }
             },
@@ -299,17 +301,20 @@ class _ItineraryTabState extends State<_ItineraryTab> {
                       _QuickAddChip(
                         emoji: '🏋️',
                         label: 'Gym Session',
-                        onTap: () => _quickAddItem(context, 'Gym Session', '🏋️'),
+                        onTap: () =>
+                            _quickAddItem(context, 'Gym Session', '🏋️'),
                       ),
                       _QuickAddChip(
                         emoji: '🥗',
                         label: 'Healthy Meal',
-                        onTap: () => _quickAddItem(context, 'Healthy Meal', '🥗'),
+                        onTap: () =>
+                            _quickAddItem(context, 'Healthy Meal', '🥗'),
                       ),
                       _QuickAddChip(
                         emoji: '🏃',
                         label: 'Morning Run',
-                        onTap: () => _quickAddItem(context, 'Morning Run', '🏃'),
+                        onTap: () =>
+                            _quickAddItem(context, 'Morning Run', '🏃'),
                       ),
                       _QuickAddChip(
                         emoji: '🧘',
@@ -324,7 +329,8 @@ class _ItineraryTabState extends State<_ItineraryTab> {
                       _QuickAddChip(
                         emoji: '☕',
                         label: 'Coffee Break',
-                        onTap: () => _quickAddItem(context, 'Coffee Break', '☕'),
+                        onTap: () =>
+                            _quickAddItem(context, 'Coffee Break', '☕'),
                       ),
                     ],
                   ),
@@ -398,21 +404,20 @@ class _ItineraryTabState extends State<_ItineraryTab> {
                                     style: const TextStyle(fontSize: 24)),
                               ),
                             ),
-                            title: Text(place.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            title: Text(place.name,
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
                             subtitle: Text(place.type.name,
-                                style: TextStyle(
-                                    color: colors.onSurfaceVariant)),
+                                style:
+                                    TextStyle(color: colors.onSurfaceVariant)),
                             trailing: IconButton(
                               icon: const Icon(Icons.add_circle_outline),
                               onPressed: () =>
                                   _addPlaceToItinerary(context, place),
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.lg),
+                              borderRadius: BorderRadius.circular(AppRadius.lg),
                               side: BorderSide(
-                                  color:
-                                      colors.outline.withValues(alpha: 0.1)),
+                                  color: colors.outline.withValues(alpha: 0.1)),
                             ),
                           ),
                         )),
@@ -923,8 +928,8 @@ class _ItineraryTile extends StatelessWidget {
             index: index,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-              child: Icon(Icons.drag_indicator,
-                  color: colors.outline, size: 20),
+              child:
+                  Icon(Icons.drag_indicator, color: colors.outline, size: 20),
             ),
           ),
           // Leading emoji
@@ -1058,97 +1063,99 @@ class _BucketListTile extends StatelessWidget {
             border: Border.all(color: colors.outline.withValues(alpha: 0.08)),
           ),
           child: Row(
-          children: [
-            // Drag handle
-            ReorderableDragStartListener(
-              index: index,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-                child:
-                    Icon(Icons.drag_indicator, color: colors.outline, size: 20),
-              ),
-            ),
-            // Leading emoji
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: place.isVisited
-                    ? colors.secondary.withValues(alpha: 0.1)
-                    : colors.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Center(
-                  child:
-                      Text(place.typeEmoji, style: const TextStyle(fontSize: 20))),
-            ),
-            const SizedBox(width: 12),
-            // Content
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      place.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textStyles.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        decoration:
-                            place.isVisited ? TextDecoration.lineThrough : null,
-                        color: place.isVisited
-                            ? colors.onSurfaceVariant
-                            : colors.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      place.typeLabel,
-                      style: textStyles.bodySmall
-                          ?.copyWith(color: colors.onSurfaceVariant),
-                    ),
-                  ],
+            children: [
+              // Drag handle
+              ReorderableDragStartListener(
+                index: index,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                  child: Icon(Icons.drag_indicator,
+                      color: colors.outline, size: 20),
                 ),
               ),
-            ),
-            // Visited checkbox
-            SizedBox(
-              width: 40,
-              child: Checkbox(
-                value: place.isVisited,
-                onChanged: (_) => onToggleVisited(),
-                activeColor: AppColors.success,
-                visualDensity: VisualDensity.compact,
+              // Leading emoji
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: place.isVisited
+                      ? colors.secondary.withValues(alpha: 0.1)
+                      : colors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Center(
+                    child: Text(place.typeEmoji,
+                        style: const TextStyle(fontSize: 20))),
               ),
-            ),
-            // Delete action
-            PopupMenuButton<String>(
-              icon: Icon(Icons.more_vert,
-                  color: colors.onSurfaceVariant, size: 20),
-              padding: EdgeInsets.zero,
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
+              const SizedBox(width: 12),
+              // Content
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.delete_outline, size: 20, color: colors.error),
-                      const SizedBox(width: 12),
-                      Text('Remove', style: TextStyle(color: colors.error)),
+                      Text(
+                        place.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textStyles.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          decoration: place.isVisited
+                              ? TextDecoration.lineThrough
+                              : null,
+                          color: place.isVisited
+                              ? colors.onSurfaceVariant
+                              : colors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        place.typeLabel,
+                        style: textStyles.bodySmall
+                            ?.copyWith(color: colors.onSurfaceVariant),
+                      ),
                     ],
                   ),
                 ),
-              ],
-              onSelected: (value) {
-                if (value == 'delete') onDelete();
-              },
-            ),
-            const SizedBox(width: 4),
-          ],
-        ),
+              ),
+              // Visited checkbox
+              SizedBox(
+                width: 40,
+                child: Checkbox(
+                  value: place.isVisited,
+                  onChanged: (_) => onToggleVisited(),
+                  activeColor: AppColors.success,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+              // Delete action
+              PopupMenuButton<String>(
+                icon: Icon(Icons.more_vert,
+                    color: colors.onSurfaceVariant, size: 20),
+                padding: EdgeInsets.zero,
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline,
+                            size: 20, color: colors.error),
+                        const SizedBox(width: 12),
+                        Text('Remove', style: TextStyle(color: colors.error)),
+                      ],
+                    ),
+                  ),
+                ],
+                onSelected: (value) {
+                  if (value == 'delete') onDelete();
+                },
+              ),
+              const SizedBox(width: 4),
+            ],
+          ),
         ),
       ),
     );

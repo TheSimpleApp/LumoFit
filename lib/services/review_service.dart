@@ -43,9 +43,7 @@ class ReviewService extends ChangeNotifier {
   }
 
   List<ReviewModel> getReviewsForPlace(String placeId) {
-    return _reviews
-        .where((r) => r.placeId == placeId)
-        .toList()
+    return _reviews.where((r) => r.placeId == placeId).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 

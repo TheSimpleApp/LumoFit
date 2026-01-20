@@ -29,10 +29,12 @@ class GooglePlacesService {
   /// Autocomplete destination cities using Google Places Autocomplete API
   /// - Prioritizes locality-level results (cities/towns)
   /// - Returns a lightweight list for UI suggestions
-  Future<List<CitySuggestion>> autocompleteCities(String input, {String languageCode = 'en', String? regionCode}) async {
+  Future<List<CitySuggestion>> autocompleteCities(String input,
+      {String languageCode = 'en', String? regionCode}) async {
     if (input.trim().isEmpty) return [];
     try {
-      final uri = Uri.parse('https://places.googleapis.com/v1/places:autocomplete');
+      final uri =
+          Uri.parse('https://places.googleapis.com/v1/places:autocomplete');
       final body = <String, dynamic>{
         'input': input,
         // locality focuses on city-level predictions
@@ -49,13 +51,15 @@ class GooglePlacesService {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': _apiKey,
           // Ask only for the fields we need to minimize payload
-          'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text,suggestions.placePrediction.structuredFormat',
+          'X-Goog-FieldMask':
+              'suggestions.placePrediction.placeId,suggestions.placePrediction.text,suggestions.placePrediction.structuredFormat',
         },
         body: jsonEncode(body),
       );
 
       if (response.statusCode != 200) {
-        debugPrint('Google Places Autocomplete error: ${response.statusCode} - ${response.body}');
+        debugPrint(
+            'Google Places Autocomplete error: ${response.statusCode} - ${response.body}');
         return [];
       }
 
@@ -63,21 +67,27 @@ class GooglePlacesService {
       final suggestions = (data['suggestions'] as List<dynamic>? ?? []);
 
       return suggestions.map((raw) {
-        final pred = (raw as Map<String, dynamic>)['placePrediction'] as Map<String, dynamic>?;
+        final pred = (raw as Map<String, dynamic>)['placePrediction']
+            as Map<String, dynamic>?;
         final placeId = pred?['placeId'] as String?;
         // text: { text: 'City, Region, Country' }
         final textObj = pred?['text'] as Map<String, dynamic>?;
         final description = (textObj?['text'] as String?) ?? '';
         // structuredFormat: { mainText: {text: 'City'}, secondaryText: {text: 'Region, Country'} }
         final structured = pred?['structuredFormat'] as Map<String, dynamic>?;
-        final mainText = (structured?['mainText'] as Map<String, dynamic>?)?['text'] as String?;
-        final secondaryText = (structured?['secondaryText'] as Map<String, dynamic>?)?['text'] as String?;
+        final mainText = (structured?['mainText']
+            as Map<String, dynamic>?)?['text'] as String?;
+        final secondaryText = (structured?['secondaryText']
+            as Map<String, dynamic>?)?['text'] as String?;
 
         String city = (mainText ?? description).trim();
         String? country;
         if ((secondaryText ?? description).contains(',')) {
           // Country is generally the last comma-separated part
-          final parts = (secondaryText ?? description).split(',').map((e) => e.trim()).toList();
+          final parts = (secondaryText ?? description)
+              .split(',')
+              .map((e) => e.trim())
+              .toList();
           if (parts.isNotEmpty) country = parts.last;
         } else if ((secondaryText ?? '').isNotEmpty) {
           country = secondaryText;
@@ -105,13 +115,14 @@ class GooglePlacesService {
   }) async {
     try {
       final includedTypes = _getIncludedTypes(placeType);
-      
+
       final response = await http.post(
         Uri.parse('$_baseUrl:searchNearby'),
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': _apiKey,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours,places.photos,places.websiteUri,places.nationalPhoneNumber',
+          'X-Goog-FieldMask':
+              'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours,places.photos,places.websiteUri,places.nationalPhoneNumber',
         },
         body: jsonEncode({
           'includedTypes': includedTypes,
@@ -133,7 +144,8 @@ class GooglePlacesService {
         final places = data['places'] as List<dynamic>? ?? [];
         return places.map((p) => _parsePlace(p, placeType)).toList();
       } else {
-        debugPrint('Google Places API error: ${response.statusCode} - ${response.body}');
+        debugPrint(
+            'Google Places API error: ${response.statusCode} - ${response.body}');
         return [];
       }
     } catch (e) {
@@ -151,9 +163,10 @@ class GooglePlacesService {
   }) async {
     try {
       final includedType = _getIncludedTypes(placeType).first;
-      
+
       final body = <String, dynamic>{
-        'textQuery': '$query ${placeType == PlaceType.gym ? 'gym fitness' : 'healthy restaurant'}',
+        'textQuery':
+            '$query ${placeType == PlaceType.gym ? 'gym fitness' : 'healthy restaurant'}',
         'includedType': includedType,
         'maxResultCount': 20,
       };
@@ -175,7 +188,8 @@ class GooglePlacesService {
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': _apiKey,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours,places.photos,places.websiteUri,places.nationalPhoneNumber',
+          'X-Goog-FieldMask':
+              'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours,places.photos,places.websiteUri,places.nationalPhoneNumber',
         },
         body: jsonEncode(body),
       );
@@ -185,7 +199,8 @@ class GooglePlacesService {
         final places = data['places'] as List<dynamic>? ?? [];
         return places.map((p) => _parsePlace(p, placeType)).toList();
       } else {
-        debugPrint('Google Places API text search error: ${response.statusCode} - ${response.body}');
+        debugPrint(
+            'Google Places API text search error: ${response.statusCode} - ${response.body}');
         return [];
       }
     } catch (e) {
@@ -195,14 +210,16 @@ class GooglePlacesService {
   }
 
   /// Get place details by ID
-  Future<PlaceModel?> getPlaceDetails(String googlePlaceId, PlaceType placeType) async {
+  Future<PlaceModel?> getPlaceDetails(
+      String googlePlaceId, PlaceType placeType) async {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/$googlePlaceId'),
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': _apiKey,
-          'X-Goog-FieldMask': 'id,displayName,formattedAddress,location,rating,userRatingCount,priceLevel,currentOpeningHours,photos,websiteUri,nationalPhoneNumber,regularOpeningHours',
+          'X-Goog-FieldMask':
+              'id,displayName,formattedAddress,location,rating,userRatingCount,priceLevel,currentOpeningHours,photos,websiteUri,nationalPhoneNumber,regularOpeningHours',
         },
       );
 
@@ -224,7 +241,8 @@ class GooglePlacesService {
 
   /// Geocode a city name to get coordinates
   /// Returns (latitude, longitude) or null if not found
-  Future<(double, double)?> geocodeCity(String cityName, {String? country}) async {
+  Future<(double, double)?> geocodeCity(String cityName,
+      {String? country}) async {
     try {
       final query = country != null ? '$cityName, $country' : cityName;
 
@@ -251,13 +269,15 @@ class GooglePlacesService {
             final lat = (location['latitude'] as num?)?.toDouble();
             final lng = (location['longitude'] as num?)?.toDouble();
             if (lat != null && lng != null) {
-              debugPrint('GooglePlacesService.geocodeCity: $query -> ($lat, $lng)');
+              debugPrint(
+                  'GooglePlacesService.geocodeCity: $query -> ($lat, $lng)');
               return (lat, lng);
             }
           }
         }
       } else {
-        debugPrint('Google Places geocode error: ${response.statusCode} - ${response.body}');
+        debugPrint(
+            'Google Places geocode error: ${response.statusCode} - ${response.body}');
       }
       return null;
     } catch (e) {
@@ -293,8 +313,8 @@ class GooglePlacesService {
     final photos = data['photos'] as List<dynamic>?;
 
     List<String> hours = [];
-    final weekdayDescriptions = (openingHours?['weekdayDescriptions'] ?? 
-                                  regularHours?['weekdayDescriptions']) as List<dynamic>?;
+    final weekdayDescriptions = (openingHours?['weekdayDescriptions'] ??
+        regularHours?['weekdayDescriptions']) as List<dynamic>?;
     if (weekdayDescriptions != null) {
       hours = weekdayDescriptions.map((e) => e.toString()).toList();
     }

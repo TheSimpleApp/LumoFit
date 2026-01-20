@@ -86,7 +86,8 @@ class EmptyStateWidget extends StatelessWidget {
     return EmptyStateWidget(
       key: key,
       title: 'No trips yet',
-      description: 'Plan your next fitness adventure and discover amazing places to stay active while traveling.',
+      description:
+          'Plan your next fitness adventure and discover amazing places to stay active while traveling.',
       illustration: EmptyStateIllustrations.trips(size: compact ? 80 : 120),
       ctaLabel: ctaLabel,
       onCtaPressed: onCtaPressed,
@@ -118,7 +119,8 @@ class EmptyStateWidget extends StatelessWidget {
       key: key,
       title: 'Ready to move?',
       description: description,
-      illustration: EmptyStateIllustrations.activities(size: compact ? 80 : 120),
+      illustration:
+          EmptyStateIllustrations.activities(size: compact ? 80 : 120),
       ctaLabel: ctaLabel,
       onCtaPressed: onCtaPressed,
       useSecondaryCta: useSecondaryCta,
@@ -144,11 +146,13 @@ class EmptyStateWidget extends StatelessWidget {
   }) {
     return EmptyStateWidget(
       key: key,
-      title: allCompleted ? 'All challenges completed!' : 'No active challenges',
+      title:
+          allCompleted ? 'All challenges completed!' : 'No active challenges',
       description: allCompleted
           ? 'Amazing work! Check back soon for new challenges to conquer.'
           : 'New challenges are coming soon. Keep pushing your limits!',
-      illustration: EmptyStateIllustrations.challenges(size: compact ? 80 : 120),
+      illustration:
+          EmptyStateIllustrations.challenges(size: compact ? 80 : 120),
       ctaLabel: ctaLabel,
       onCtaPressed: onCtaPressed,
       useSecondaryCta: useSecondaryCta,
@@ -174,7 +178,8 @@ class EmptyStateWidget extends StatelessWidget {
     return EmptyStateWidget(
       key: key,
       title: 'Find your gym',
-      description: 'Discover top-rated gyms and fitness centers near your destination.',
+      description:
+          'Discover top-rated gyms and fitness centers near your destination.',
       illustration: EmptyStateIllustrations.gyms(size: compact ? 80 : 120),
       ctaLabel: ctaLabel,
       onCtaPressed: onCtaPressed,
@@ -201,7 +206,8 @@ class EmptyStateWidget extends StatelessWidget {
     return EmptyStateWidget(
       key: key,
       title: 'Fuel your fitness',
-      description: 'Discover healthy restaurants and nutritious food spots that support your goals.',
+      description:
+          'Discover healthy restaurants and nutritious food spots that support your goals.',
       illustration: EmptyStateIllustrations.food(size: compact ? 80 : 120),
       ctaLabel: ctaLabel,
       onCtaPressed: onCtaPressed,
@@ -228,7 +234,8 @@ class EmptyStateWidget extends StatelessWidget {
     return EmptyStateWidget(
       key: key,
       title: 'Explore the outdoors',
-      description: 'Find scenic trails for hiking, running, and outdoor adventures.',
+      description:
+          'Find scenic trails for hiking, running, and outdoor adventures.',
       illustration: EmptyStateIllustrations.trails(size: compact ? 80 : 120),
       ctaLabel: ctaLabel,
       onCtaPressed: onCtaPressed,
@@ -286,7 +293,8 @@ class EmptyStateWidget extends StatelessWidget {
     return EmptyStateWidget(
       key: key,
       title: 'No photos yet',
-      description: 'Capture your fitness journey and share the places you discover.',
+      description:
+          'Capture your fitness journey and share the places you discover.',
       illustration: EmptyStateIllustrations.photos(size: compact ? 80 : 120),
       ctaLabel: ctaLabel,
       onCtaPressed: onCtaPressed,
@@ -313,7 +321,8 @@ class EmptyStateWidget extends StatelessWidget {
     return EmptyStateWidget(
       key: key,
       title: 'No reviews yet',
-      description: 'Share your experiences and help others find great fitness spots.',
+      description:
+          'Share your experiences and help others find great fitness spots.',
       illustration: EmptyStateIllustrations.reviews(size: compact ? 80 : 120),
       ctaLabel: ctaLabel,
       onCtaPressed: onCtaPressed,
@@ -340,8 +349,10 @@ class EmptyStateWidget extends StatelessWidget {
     return EmptyStateWidget(
       key: key,
       title: 'Nothing saved yet',
-      description: 'Bookmark gyms, restaurants, and trails to quickly find them later.',
-      illustration: EmptyStateIllustrations.savedPlaces(size: compact ? 80 : 120),
+      description:
+          'Bookmark gyms, restaurants, and trails to quickly find them later.',
+      illustration:
+          EmptyStateIllustrations.savedPlaces(size: compact ? 80 : 120),
       ctaLabel: ctaLabel,
       onCtaPressed: onCtaPressed,
       useSecondaryCta: useSecondaryCta,

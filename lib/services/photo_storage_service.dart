@@ -42,9 +42,7 @@ class PhotoStorageService {
       final path = '$userId/$placeId/$filename.jpg';
 
       // Upload to Supabase Storage
-      await SupabaseConfig.storage
-          .from(communityPhotosBucket)
-          .uploadBinary(
+      await SupabaseConfig.storage.from(communityPhotosBucket).uploadBinary(
             path,
             processedBytes,
             fileOptions: const FileOptions(
@@ -82,9 +80,7 @@ class PhotoStorageService {
       final path = '$userId/$filename.jpg';
 
       // Upload to Supabase Storage
-      await SupabaseConfig.storage
-          .from(quickPhotosBucket)
-          .uploadBinary(
+      await SupabaseConfig.storage.from(quickPhotosBucket).uploadBinary(
             path,
             processedBytes,
             fileOptions: const FileOptions(
@@ -119,9 +115,7 @@ class PhotoStorageService {
       final path = '$userId/avatar.jpg';
 
       // Upload to Supabase Storage (upsert to replace existing)
-      await SupabaseConfig.storage
-          .from(avatarsBucket)
-          .uploadBinary(
+      await SupabaseConfig.storage.from(avatarsBucket).uploadBinary(
             path,
             processedBytes,
             fileOptions: const FileOptions(
@@ -141,9 +135,7 @@ class PhotoStorageService {
   /// Delete a photo from community photos bucket
   static Future<void> deleteCommunityPhoto(String path) async {
     try {
-      await SupabaseConfig.storage
-          .from(communityPhotosBucket)
-          .remove([path]);
+      await SupabaseConfig.storage.from(communityPhotosBucket).remove([path]);
       debugPrint('✅ Deleted community photo: $path');
     } catch (e) {
       debugPrint('❌ Failed to delete community photo: $e');
@@ -154,9 +146,7 @@ class PhotoStorageService {
   /// Delete a photo from quick photos bucket
   static Future<void> deleteQuickPhoto(String path) async {
     try {
-      await SupabaseConfig.storage
-          .from(quickPhotosBucket)
-          .remove([path]);
+      await SupabaseConfig.storage.from(quickPhotosBucket).remove([path]);
       debugPrint('✅ Deleted quick photo: $path');
     } catch (e) {
       debugPrint('❌ Failed to delete quick photo: $e');
@@ -167,9 +157,7 @@ class PhotoStorageService {
   /// Delete an avatar
   static Future<void> deleteAvatar(String path) async {
     try {
-      await SupabaseConfig.storage
-          .from(avatarsBucket)
-          .remove([path]);
+      await SupabaseConfig.storage.from(avatarsBucket).remove([path]);
       debugPrint('✅ Deleted avatar: $path');
     } catch (e) {
       debugPrint('❌ Failed to delete avatar: $e');
@@ -221,9 +209,11 @@ class PhotoStorageService {
       }
 
       // Encode as JPEG with quality compression
-      final compressedBytes = img.encodeJpg(processedImage, quality: jpegQuality);
+      final compressedBytes =
+          img.encodeJpg(processedImage, quality: jpegQuality);
 
-      debugPrint('📸 Image processed: ${imageBytes.length} bytes → ${compressedBytes.length} bytes');
+      debugPrint(
+          '📸 Image processed: ${imageBytes.length} bytes → ${compressedBytes.length} bytes');
       return Uint8List.fromList(compressedBytes);
     } catch (e) {
       debugPrint('⚠️ Image processing failed, using original: $e');
@@ -264,7 +254,8 @@ class PhotoStorageService {
       // Encode as JPEG
       final compressedBytes = img.encodeJpg(resized, quality: jpegQuality);
 
-      debugPrint('👤 Avatar processed: ${imageBytes.length} bytes → ${compressedBytes.length} bytes');
+      debugPrint(
+          '👤 Avatar processed: ${imageBytes.length} bytes → ${compressedBytes.length} bytes');
       return Uint8List.fromList(compressedBytes);
     } catch (e) {
       debugPrint('⚠️ Avatar processing failed, using fallback processing: $e');
@@ -275,9 +266,7 @@ class PhotoStorageService {
   /// Download a photo from storage
   static Future<Uint8List> downloadPhoto(String bucket, String path) async {
     try {
-      final bytes = await SupabaseConfig.storage
-          .from(bucket)
-          .download(path);
+      final bytes = await SupabaseConfig.storage.from(bucket).download(path);
       return bytes;
     } catch (e) {
       debugPrint('❌ Failed to download photo: $e');
@@ -288,9 +277,7 @@ class PhotoStorageService {
   /// Check if a file exists in storage
   static Future<bool> fileExists(String bucket, String path) async {
     try {
-      final files = await SupabaseConfig.storage
-          .from(bucket)
-          .list(path: path);
+      final files = await SupabaseConfig.storage.from(bucket).list(path: path);
       return files.isNotEmpty;
     } catch (e) {
       debugPrint('❌ Failed to check file existence: $e');

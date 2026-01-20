@@ -131,7 +131,8 @@ class PlaceFitnessIntelligenceCard extends StatelessWidget {
 
           if (intelligence.restaurantInsights != null) ...[
             const SizedBox(height: 16),
-            _RestaurantInsightsSection(insights: intelligence.restaurantInsights!),
+            _RestaurantInsightsSection(
+                insights: intelligence.restaurantInsights!),
           ],
 
           if (intelligence.trailInsights != null) ...[
@@ -317,7 +318,8 @@ class _RestaurantInsightsSection extends StatelessWidget {
         if (insights.proteinScore != null) ...[
           Row(
             children: [
-              Icon(Icons.egg_outlined, size: 16, color: colors.onSurfaceVariant),
+              Icon(Icons.egg_outlined,
+                  size: 16, color: colors.onSurfaceVariant),
               const SizedBox(width: 8),
               Text(
                 'Protein Score: ',
@@ -700,7 +702,7 @@ class SmartTimingWidget extends StatelessWidget {
     if (bestTimes.isEmpty && crowdInsights == null) {
       return const SizedBox.shrink();
     }
-    
+
     final colors = Theme.of(context).colorScheme;
 
     return Column(
@@ -775,4 +777,3 @@ class SmartTimingWidget extends StatelessWidget {
     ).animate().fadeIn(delay: 200.ms);
   }
 }
-

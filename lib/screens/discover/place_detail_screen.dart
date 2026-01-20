@@ -53,10 +53,10 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
 
   Future<void> _loadQuickInsights() async {
     setState(() => _isLoadingQuickInsights = true);
-    
+
     try {
       final aiService = context.read<AiGuideService>();
-      
+
       final insights = await aiService.generateQuickInsights(
         placeName: _place.name,
         placeType: _place.type.name,
@@ -64,7 +64,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
         reviewCount: _place.userRatingsTotal,
         googlePlaceId: _place.googlePlaceId,
       );
-      
+
       if (mounted) {
         setState(() {
           _quickInsights = insights;
@@ -81,19 +81,21 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
 
   Future<void> _loadFitnessIntelligence() async {
     setState(() => _isLoadingIntel = true);
-    
+
     try {
       final aiService = context.read<AiGuideService>();
       final reviewService = context.read<ReviewService>();
-      
+
       // Get community reviews for this place
       final reviews = reviewService.getReviewsForPlace(_place.id);
-      final reviewsJson = reviews.map((r) => {
-        'rating': r.rating,
-        'text': r.text,
-        'createdAt': r.createdAt.toIso8601String(),
-      }).toList();
-      
+      final reviewsJson = reviews
+          .map((r) => {
+                'rating': r.rating,
+                'text': r.text,
+                'createdAt': r.createdAt.toIso8601String(),
+              })
+          .toList();
+
       // Get place data
       final placeData = {
         'name': _place.name,
@@ -103,7 +105,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
         'priceLevel': _place.priceLevel,
         'openingHours': _place.openingHours,
       };
-      
+
       final intel = await aiService.analyzePlaceFitness(
         placeId: _place.id,
         placeName: _place.name,
@@ -111,7 +113,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
         reviews: reviewsJson,
         placeData: placeData,
       );
-      
+
       if (mounted) {
         setState(() {
           _fitnessIntel = intel;
@@ -135,9 +137,13 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
   }
 
   Future<void> _toggleSave() async {
-    await HapticUtils.medium();
     final placeService = context.read<PlaceService>();
-    
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final surfaceColor = Theme.of(context).colorScheme.surfaceContainerHighest;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
+    await HapticUtils.medium();
+
     if (_isSaved) {
       // Find and remove the saved place
       final saved = placeService.savedPlaces.firstWhere(
@@ -146,11 +152,11 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
       );
       await placeService.removePlace(saved.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           SnackBar(
             content: const Text('Removed from your places'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+            backgroundColor: surfaceColor,
           ),
         );
       }
@@ -158,56 +164,61 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
       await placeService.savePlace(_place);
       await HapticUtils.success();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           SnackBar(
             content: const Text('Saved! 📍'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Theme.of(context).colorScheme.primary,
+            backgroundColor: primaryColor,
           ),
         );
       }
     }
-    
-    setState(() => _isSaved = !_isSaved);
+
+    if (mounted) {
+      setState(() => _isSaved = !_isSaved);
+    }
   }
 
   Future<void> _markVisited() async {
-    await HapticUtils.medium();
     final placeService = context.read<PlaceService>();
     final userService = context.read<UserService>();
-    
+    final gamificationService = context.read<GamificationService>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    await HapticUtils.medium();
+
     // First save if not already saved
     if (!_isSaved) {
       await placeService.savePlace(_place);
-      setState(() => _isSaved = true);
+      if (mounted) {
+        setState(() => _isSaved = true);
+      }
     }
-    
+
     // Find the saved place and mark as visited
     final saved = placeService.savedPlaces.firstWhere(
       (p) => p.googlePlaceId == _place.googlePlaceId || p.id == _place.id,
       orElse: () => _place,
     );
-    
+
     await placeService.markVisited(saved.id);
-    
+
     // Award XP and check badges
     final xpEarned = _place.type == PlaceType.gym ? 50 : 25;
     await userService.addXp(xpEarned);
-    final gsvc = context.read<GamificationService>();
-    final psvc = context.read<PlaceService>();
-    final totalXp = context.read<UserService>().currentUser?.totalXp ?? 0;
+    final totalXp = userService.currentUser?.totalXp ?? 0;
     // visits count
-    final visitedCount = psvc.savedPlaces.where((p) => p.isVisited).length;
-    await gsvc.checkXpBadges(totalXp);
-    await gsvc.checkVisitBadges(visitedCount);
-    
+    final visitedCount =
+        placeService.savedPlaces.where((p) => p.isVisited).length;
+    await gamificationService.checkXpBadges(totalXp);
+    await gamificationService.checkVisitBadges(visitedCount);
+
     await HapticUtils.success();
-    setState(() {
-      _place = _place.copyWith(isVisited: true, visitedAt: DateTime.now());
-    });
-    
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      setState(() {
+        _place = _place.copyWith(isVisited: true, visitedAt: DateTime.now());
+      });
+      scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text('+$xpEarned XP • Visit logged! 🎉'),
           behavior: SnackBarBehavior.floating,
@@ -220,11 +231,11 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
   Future<void> _openMaps() async {
     if (_place.latitude == null || _place.longitude == null) return;
     await HapticUtils.light();
-    
+
     final url = Uri.parse(
       'https://www.google.com/maps/search/?api=1&query=${_place.latitude},${_place.longitude}',
     );
-    
+
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
@@ -233,7 +244,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
   Future<void> _callPhone() async {
     if (_place.phoneNumber == null) return;
     await HapticUtils.light();
-    
+
     final url = Uri.parse('tel:${_place.phoneNumber}');
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
@@ -243,20 +254,23 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
   Future<void> _openWebsite() async {
     if (_place.website == null) return;
     await HapticUtils.light();
-    
+
     final url = Uri.parse(_place.website!);
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
-  Future<void> _addToTrip(BuildContext context) async {
+  Future<void> _addToTrip() async {
     // Ensure the place is saved so it has a stable id in PlaceService
     final placeService = context.read<PlaceService>();
     if (!_isSaved) {
       await placeService.savePlace(_place);
-      setState(() => _isSaved = true);
+      if (mounted) {
+        setState(() => _isSaved = true);
+      }
     }
+    if (!mounted) return;
     // Refresh local reference to get the saved instance id if needed
     final saved = placeService.savedPlaces.firstWhere(
       (p) => p.googlePlaceId == _place.googlePlaceId || p.id == _place.id,
@@ -266,7 +280,7 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _TripPickerSheet(placeId: saved.id),
+      builder: (ctx) => _TripPickerSheet(placeId: saved.id),
     );
   }
 
@@ -350,7 +364,9 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(_place.name, style: textStyles.headlineSmall)
-                                .animate().fadeIn().slideX(begin: -0.1),
+                                .animate()
+                                .fadeIn()
+                                .slideX(begin: -0.1),
                             const SizedBox(height: 8),
                             Row(
                               children: [
@@ -361,12 +377,14 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: placeColor.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(AppRadius.full),
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadius.full),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text(_place.typeEmoji, style: const TextStyle(fontSize: 14)),
+                                      Text(_place.typeEmoji,
+                                          style: const TextStyle(fontSize: 14)),
                                       const SizedBox(width: 4),
                                       Text(
                                         _place.typeLabel,
@@ -387,7 +405,8 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: colors.surfaceContainerHighest,
-                                      borderRadius: BorderRadius.circular(AppRadius.full),
+                                      borderRadius:
+                                          BorderRadius.circular(AppRadius.full),
                                     ),
                                     child: Text(
                                       _place.priceLevel!,
@@ -417,7 +436,8 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.star, size: 20, color: AppColors.xp),
+                                  Icon(Icons.star,
+                                      size: 20, color: AppColors.xp),
                                   const SizedBox(width: 4),
                                   Text(
                                     _place.rating!.toStringAsFixed(1),
@@ -458,7 +478,8 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check_circle, size: 20, color: AppColors.success),
+                          Icon(Icons.check_circle,
+                              size: 20, color: AppColors.success),
                           const SizedBox(width: 8),
                           Text(
                             'You visited this place',
@@ -518,7 +539,8 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                        color: colors.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(AppRadius.lg),
                       ),
                       child: Row(
@@ -551,7 +573,8 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                        color: colors.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(AppRadius.lg),
                       ),
                       child: Row(
@@ -580,11 +603,11 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                       placeType: _place.type.name,
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Quick Insights Chips
                     QuickInsightsChips(intelligence: _fitnessIntel!),
                     const SizedBox(height: 24),
-                    
+
                     // Smart Timing
                     if (_fitnessIntel!.bestTimesDetailed.isNotEmpty ||
                         _fitnessIntel!.crowdInsights != null) ...[
@@ -594,34 +617,37 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
                       ),
                       const SizedBox(height: 24),
                     ],
-                    
+
                     // AI Tips
                     if (_fitnessIntel!.tips.isNotEmpty) ...[
                       _AiTipsSection(tips: _fitnessIntel!.tips),
                       const SizedBox(height: 24),
                     ],
-                    
+
                     // What to Bring
                     if (_fitnessIntel!.whatToBring.isNotEmpty) ...[
                       _WhatToBringSection(items: _fitnessIntel!.whatToBring),
                       const SizedBox(height: 24),
                     ],
-                    
+
                     // Common Phrases from Reviews
                     if (_fitnessIntel!.commonPhrases.isNotEmpty) ...[
-                      _CommonPhrasesSection(phrases: _fitnessIntel!.commonPhrases),
+                      _CommonPhrasesSection(
+                          phrases: _fitnessIntel!.commonPhrases),
                       const SizedBox(height: 24),
                     ],
                   ],
 
                   // Community Photos Section
                   _CommunityPhotosSection(placeId: _place.id)
-                      .animate().fadeIn(delay: 250.ms),
+                      .animate()
+                      .fadeIn(delay: 250.ms),
                   const SizedBox(height: 24),
 
                   // Community Reviews Section
                   _ReviewsSection(placeId: _place.id)
-                      .animate().fadeIn(delay: 300.ms),
+                      .animate()
+                      .fadeIn(delay: 300.ms),
                   const SizedBox(height: 24),
 
                   // Details Section
@@ -636,7 +662,8 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
 
                   if (_place.openingHours.isNotEmpty) ...[
                     _OpeningHoursSection(hours: _place.openingHours)
-                        .animate().fadeIn(delay: 300.ms),
+                        .animate()
+                        .fadeIn(delay: 300.ms),
                     const SizedBox(height: 20),
                   ],
 
@@ -664,7 +691,8 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
               onPressed: _toggleSave,
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
               child: ActionBarLabel(
                 icon: _isSaved ? Icons.bookmark : Icons.bookmark_outline,
@@ -672,10 +700,11 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
               ),
             ),
             middle: OutlinedButton(
-              onPressed: () => _addToTrip(context),
+              onPressed: _addToTrip,
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
               child: const ActionBarLabel(
                 icon: Icons.playlist_add,
@@ -686,9 +715,12 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
               onPressed: _place.isVisited ? null : _markVisited,
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                backgroundColor: _place.isVisited ? colors.surfaceContainerHighest : null,
-                foregroundColor: _place.isVisited ? colors.onSurfaceVariant : null,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                backgroundColor:
+                    _place.isVisited ? colors.surfaceContainerHighest : null,
+                foregroundColor:
+                    _place.isVisited ? colors.onSurfaceVariant : null,
               ),
               child: ActionBarLabel(
                 icon: _place.isVisited ? Icons.check : Icons.fitness_center,
@@ -704,11 +736,11 @@ class _PlaceDetailScreenState extends State<PlaceDetailScreen> {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final diff = now.difference(date);
-    
+
     if (diff.inDays == 0) return 'Today';
     if (diff.inDays == 1) return 'Yesterday';
     if (diff.inDays < 7) return '${diff.inDays} days ago';
-    
+
     return '${date.month}/${date.day}/${date.year}';
   }
 }
@@ -736,7 +768,13 @@ class _TripPickerSheet extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: colors.outline.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)))),
+              Center(
+                  child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                          color: colors.outline.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 12),
               Text('Add to a Trip', style: textStyles.titleLarge),
               const SizedBox(height: 12),
@@ -744,7 +782,8 @@ class _TripPickerSheet extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('You don\'t have any trips yet.', style: textStyles.bodyMedium),
+                    Text('You don\'t have any trips yet.',
+                        style: textStyles.bodyMedium),
                     const SizedBox(height: 8),
                     TextButton.icon(
                       onPressed: () => context.go('/trips'),
@@ -764,18 +803,26 @@ class _TripPickerSheet extends StatelessWidget {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Material(
-                          color: colors.surfaceContainerHighest.withValues(alpha: 0.4),
+                          color: colors.surfaceContainerHighest
+                              .withValues(alpha: 0.4),
                           borderRadius: BorderRadius.circular(AppRadius.md),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(AppRadius.md),
                             onTap: already
                                 ? null
                                 : () async {
-                                    await context.read<TripService>().addPlaceToTrip(t.id, placeId);
+                                    await context
+                                        .read<TripService>()
+                                        .addPlaceToTrip(t.id, placeId);
                                     if (context.mounted) {
                                       Navigator.pop(context);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Added to ${t.destinationCity}'), behavior: SnackBarBehavior.floating),
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                'Added to ${t.destinationCity}'),
+                                            behavior:
+                                                SnackBarBehavior.floating),
                                       );
                                     }
                                   },
@@ -783,16 +830,22 @@ class _TripPickerSheet extends StatelessWidget {
                               padding: const EdgeInsets.all(12),
                               child: Row(
                                 children: [
-                                  const Text('✈️', style: TextStyle(fontSize: 18)),
+                                  const Text('✈️',
+                                      style: TextStyle(fontSize: 18)),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text(t.destinationCity, style: textStyles.bodyMedium),
+                                        Text(t.destinationCity,
+                                            style: textStyles.bodyMedium),
                                         Text(
                                           '${DateFormat('MMM d').format(t.startDate)} - ${DateFormat('MMM d, yyyy').format(t.endDate)}',
-                                          style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant),
+                                          style: textStyles.labelSmall
+                                              ?.copyWith(
+                                                  color:
+                                                      colors.onSurfaceVariant),
                                         ),
                                       ],
                                     ),
@@ -848,16 +901,19 @@ class _PlaceHeroImageState extends State<_PlaceHeroImage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final googlePlacesService = GooglePlacesService();
-    
+
     // Use photoReferences if available, otherwise fall back to single photoReference
     final photoRefs = widget.place.photoReferences.isNotEmpty
         ? widget.place.photoReferences
-        : (widget.place.photoReference != null ? [widget.place.photoReference!] : <String>[]);
-    
+        : (widget.place.photoReference != null
+            ? [widget.place.photoReference!]
+            : <String>[]);
+
     if (photoRefs.isEmpty) {
-      return _PlaceholderImage(emoji: widget.place.typeEmoji, color: widget.placeColor);
+      return _PlaceholderImage(
+          emoji: widget.place.typeEmoji, color: widget.placeColor);
     }
-    
+
     return Stack(
       children: [
         // Carousel
@@ -868,8 +924,9 @@ class _PlaceHeroImageState extends State<_PlaceHeroImage> {
           },
           itemCount: photoRefs.length,
           itemBuilder: (context, index) {
-            final photoUrl = googlePlacesService.getPhotoUrl(photoRefs[index], maxWidth: 800);
-            
+            final photoUrl = googlePlacesService.getPhotoUrl(photoRefs[index],
+                maxWidth: 800);
+
             return Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -894,7 +951,7 @@ class _PlaceHeroImageState extends State<_PlaceHeroImage> {
             );
           },
         ),
-        
+
         // Page indicator dots (only show if more than 1 photo)
         if (photoRefs.length > 1)
           Positioned(
@@ -919,7 +976,7 @@ class _PlaceHeroImageState extends State<_PlaceHeroImage> {
               ).animate(interval: 50.ms).fadeIn().scale(),
             ),
           ),
-        
+
         // Photo counter badge (top right)
         if (photoRefs.length > 1)
           Positioned(
@@ -939,9 +996,9 @@ class _PlaceHeroImageState extends State<_PlaceHeroImage> {
                   Text(
                     '${_currentPage + 1}/${photoRefs.length}',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: colors.onSurface,
-                    ),
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface,
+                        ),
                   ),
                 ],
               ),
@@ -1198,7 +1255,8 @@ class _CommunityPhotosSection extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'No community photos yet — be the first!',
-                    style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+                    style: textStyles.bodyMedium
+                        ?.copyWith(color: colors.onSurfaceVariant),
                   ),
                 ),
               ],
@@ -1244,11 +1302,13 @@ class _CommunityPhotosSection extends StatelessWidget {
     );
   }
 
-  void _openLightbox(BuildContext context, List<CommunityPhoto> photos, int initialIndex) {
+  void _openLightbox(
+      BuildContext context, List<CommunityPhoto> photos, int initialIndex) {
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.9),
-      builder: (_) => _PhotoLightbox(photos: photos, initialIndex: initialIndex),
+      builder: (_) =>
+          _PhotoLightbox(photos: photos, initialIndex: initialIndex),
     );
   }
 }
@@ -1286,9 +1346,13 @@ class _ReviewsSection extends StatelessWidget {
                   children: [
                     Icon(Icons.star, size: 14, color: AppColors.xp),
                     const SizedBox(width: 4),
-                    Text(avg.toStringAsFixed(1), style: textStyles.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    Text(avg.toStringAsFixed(1),
+                        style: textStyles.labelMedium
+                            ?.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(width: 4),
-                    Text('(${reviews.length})', style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                    Text('(${reviews.length})',
+                        style: textStyles.labelSmall
+                            ?.copyWith(color: colors.onSurfaceVariant)),
                   ],
                 ),
               ),
@@ -1315,7 +1379,8 @@ class _ReviewsSection extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'No reviews yet — share your experience!',
-                    style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+                    style: textStyles.bodyMedium
+                        ?.copyWith(color: colors.onSurfaceVariant),
                   ),
                 ),
               ],
@@ -1356,7 +1421,10 @@ class _ReviewsSection extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
-        decoration: BoxDecoration(color: colors.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
+        decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24))),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -1364,11 +1432,17 @@ class _ReviewsSection extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: colors.outline.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)))),
+                Center(
+                    child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: colors.outline.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 12),
                 Text('All Reviews', style: textStyles.titleLarge),
                 const SizedBox(height: 12),
-                ...reviews.map((r) => _ReviewTile(review: r)).toList(),
+                ...reviews.map((r) => _ReviewTile(review: r)),
               ],
             ),
           ),
@@ -1392,7 +1466,8 @@ class _ReviewTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+        border:
+            Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1401,11 +1476,14 @@ class _ReviewTile extends StatelessWidget {
             children: [
               Icon(Icons.star, size: 16, color: AppColors.xp),
               const SizedBox(width: 4),
-              Text('${review.rating}/5', style: textStyles.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+              Text('${review.rating}/5',
+                  style: textStyles.labelMedium
+                      ?.copyWith(fontWeight: FontWeight.w600)),
               const Spacer(),
               Text(
                 DateFormat('MMM d, yyyy').format(review.createdAt),
-                style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant),
+                style: textStyles.labelSmall
+                    ?.copyWith(color: colors.onSurfaceVariant),
               ),
             ],
           ),
@@ -1418,11 +1496,17 @@ class _ReviewTile extends StatelessWidget {
             child: TextButton.icon(
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Thanks for the report. We\'ll review this.'), behavior: SnackBarBehavior.floating),
+                  const SnackBar(
+                      content:
+                          Text('Thanks for the report. We\'ll review this.'),
+                      behavior: SnackBarBehavior.floating),
                 );
               },
-              icon: Icon(Icons.flag_outlined, size: 16, color: colors.onSurfaceVariant),
-              label: Text('Report', style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+              icon: Icon(Icons.flag_outlined,
+                  size: 16, color: colors.onSurfaceVariant),
+              label: Text('Report',
+                  style: textStyles.labelSmall
+                      ?.copyWith(color: colors.onSurfaceVariant)),
             ),
           ),
         ],
@@ -1455,15 +1539,27 @@ class _AddReviewSheetState extends State<_AddReviewSheet> {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
     return Container(
-      decoration: BoxDecoration(color: colors.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
+      decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
       child: SafeArea(
         child: Padding(
-          padding: EdgeInsets.only(left: 20, right: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 20, top: 16),
+          padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              top: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: colors.outline.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)))),
+              Center(
+                  child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                          color: colors.outline.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 12),
               Text('Add a Review', style: textStyles.titleLarge),
               const SizedBox(height: 8),
@@ -1495,16 +1591,21 @@ class _AddReviewSheetState extends State<_AddReviewSheet> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+                      onPressed:
+                          _isSubmitting ? null : () => Navigator.pop(context),
                       child: const Text('Cancel'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: _isSubmitting ? null : () => _submit(context),
+                      onPressed: _isSubmitting ? null : _submit,
                       icon: _isSubmitting
-                          ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: colors.onPrimary))
                           : const Icon(Icons.check),
                       label: const Text('Submit Review'),
                     ),
@@ -1518,55 +1619,70 @@ class _AddReviewSheetState extends State<_AddReviewSheet> {
     );
   }
 
-  Future<void> _submit(BuildContext context) async {
+  Future<void> _submit() async {
+    // Capture context-dependent values before async operations
+    final reviewService = context.read<ReviewService>();
+    final userService = context.read<UserService>();
+    final gamificationService = context.read<GamificationService>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     setState(() => _isSubmitting = true);
     try {
       // AI moderation on text
       final text = _controller.text.trim();
       if (text.isNotEmpty) {
         final openai = OpenAIClient();
-        final mod = await openai.moderateText(text: text, context: 'FitTravel place review: ${widget.placeId}');
+        final mod = await openai.moderateText(
+            text: text, context: 'FitTravel place review: ${widget.placeId}');
         if (!mod.allowed) {
           if (mounted) {
-            await _showModerationRejectSheet(context, mod);
+            await _showModerationRejectSheet(mod);
           }
           return;
         }
       }
 
-      await context.read<ReviewService>().addReview(
-            placeId: widget.placeId,
-            rating: _rating,
-            text: _controller.text.trim().isEmpty ? null : _controller.text.trim(),
-          );
+      await reviewService.addReview(
+        placeId: widget.placeId,
+        rating: _rating,
+        text: _controller.text.trim().isEmpty ? null : _controller.text.trim(),
+      );
       // Award XP for contribution and check XP badges
-      await context.read<UserService>().addXp(20);
-      final totalXp = context.read<UserService>().currentUser?.totalXp ?? 0;
-      await context.read<GamificationService>().checkXpBadges(totalXp);
+      await userService.addXp(20);
+      final totalXp = userService.currentUser?.totalXp ?? 0;
+      await gamificationService.checkXpBadges(totalXp);
       if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review added!'), behavior: SnackBarBehavior.floating));
+        navigator.pop();
+        scaffoldMessenger.showSnackBar(const SnackBar(
+            content: Text('Review added!'),
+            behavior: SnackBarBehavior.floating));
       }
     } catch (e, st) {
       debugPrint('Add review failed: $e');
       debugPrint(st.toString());
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Something went wrong. Try again.'), behavior: SnackBarBehavior.floating));
+        scaffoldMessenger.showSnackBar(const SnackBar(
+            content: Text('Something went wrong. Try again.'),
+            behavior: SnackBarBehavior.floating));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
-  Future<void> _showModerationRejectSheet(BuildContext context, ModerationResult mod) async {
+  Future<void> _showModerationRejectSheet(ModerationResult mod) async {
     final colors = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
+    final textTheme = Theme.of(context).textTheme;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: BoxDecoration(color: colors.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (sheetContext) => Container(
+        decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24))),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -1574,27 +1690,48 @@ class _AddReviewSheetState extends State<_AddReviewSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: colors.outline.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)) )),
+                Center(
+                    child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: colors.outline.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 12),
                 Row(children: [
                   Icon(Icons.shield, color: colors.error),
                   const SizedBox(width: 8),
-                  Text('Content flagged', style: text.titleLarge?.copyWith(color: colors.error)),
+                  Text('Content flagged',
+                      style:
+                          textTheme.titleLarge?.copyWith(color: colors.error)),
                 ]),
                 const SizedBox(height: 8),
                 if ((mod.reason ?? '').isNotEmpty)
-                  Text(mod.reason!, style: text.bodyMedium),
+                  Text(mod.reason!, style: textTheme.bodyMedium),
                 if (mod.categories.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Wrap(spacing: 8, runSpacing: 8, children: mod.categories.map((c) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
-                    child: Text(c, style: text.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
-                  )).toList()),
+                  Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: mod.categories
+                          .map((c) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                    color: colors.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(20)),
+                                child: Text(c,
+                                    style: textTheme.labelSmall?.copyWith(
+                                        color: colors.onSurfaceVariant)),
+                              ))
+                          .toList()),
                 ],
                 const SizedBox(height: 16),
                 Row(children: [
-                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))),
+                  Expanded(
+                      child: OutlinedButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          child: const Text('Close'))),
                 ])
               ],
             ),
@@ -1646,11 +1783,20 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: colors.outline.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)) )),
+              Center(
+                  child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                          color: colors.outline.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 12),
               Text('Add a Photo', style: textStyles.titleLarge),
               const SizedBox(height: 8),
-              Text('Add a photo by pasting a URL or selecting from your device.', style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant)),
+              Text(
+                  'Add a photo by pasting a URL or selecting from your device.',
+                  style: textStyles.bodySmall
+                      ?.copyWith(color: colors.onSurfaceVariant)),
               const SizedBox(height: 16),
               TextField(
                 controller: _controller,
@@ -1660,29 +1806,36 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
                 ),
                 keyboardType: TextInputType.url,
                 textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submit(context),
+                onSubmitted: (_) => _submit(),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
-                onPressed: _isSubmitting ? null : () => _pickImage(context),
+                onPressed: _isSubmitting ? null : _pickImage,
                 icon: const Icon(Icons.photo_library_outlined),
-                label: Text(_pickedDataUrl == null ? 'Choose from device' : 'Image selected'),
+                label: Text(_pickedDataUrl == null
+                    ? 'Choose from device'
+                    : 'Image selected'),
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+                      onPressed:
+                          _isSubmitting ? null : () => Navigator.pop(context),
                       child: const Text('Cancel'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: _isSubmitting ? null : () => _submit(context),
+                      onPressed: _isSubmitting ? null : _submit,
                       icon: _isSubmitting
-                          ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.onPrimary))
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: colors.onPrimary))
                           : const Icon(Icons.check),
                       label: const Text('Add Photo'),
                     ),
@@ -1696,13 +1849,22 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
     );
   }
 
-  Future<void> _submit(BuildContext context) async {
+  Future<void> _submit() async {
+    // Capture context-dependent values before async operations
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final photoService = context.read<CommunityPhotoService>();
+    final userService = context.read<UserService>();
+    final gamificationService = context.read<GamificationService>();
+    final navigator = Navigator.of(context);
+
     final url = _controller.text.trim();
     final hasHttpUrl = url.isNotEmpty && url.startsWith('http');
     final hasPicked = _pickedDataUrl != null;
     if (!hasHttpUrl && !hasPicked) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add a URL or pick an image'), behavior: SnackBarBehavior.floating),
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+            content: Text('Add a URL or pick an image'),
+            behavior: SnackBarBehavior.floating),
       );
       return;
     }
@@ -1716,33 +1878,37 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
       );
       if (!mod.allowed) {
         if (mounted) {
-          await _showModerationRejectSheet(context, mod);
+          await _showModerationRejectSheet(mod);
         }
         return;
       }
 
-      final svc = context.read<CommunityPhotoService>();
       if (hasHttpUrl) {
-        await svc.addPhotoUrl(placeId: widget.placeId, imageUrl: url);
+        await photoService.addPhotoUrl(placeId: widget.placeId, imageUrl: url);
       } else if (hasPicked) {
-        await svc.addPhotoUrl(placeId: widget.placeId, imageUrl: _pickedDataUrl!);
+        await photoService.addPhotoUrl(
+            placeId: widget.placeId, imageUrl: _pickedDataUrl!);
       }
       // Award XP for contribution and check XP badges
-      await context.read<UserService>().addXp(10);
-      final totalXp = context.read<UserService>().currentUser?.totalXp ?? 0;
-      await context.read<GamificationService>().checkXpBadges(totalXp);
+      await userService.addXp(10);
+      final totalXp = userService.currentUser?.totalXp ?? 0;
+      await gamificationService.checkXpBadges(totalXp);
       if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Photo added!'), behavior: SnackBarBehavior.floating),
+        navigator.pop();
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+              content: Text('Photo added!'),
+              behavior: SnackBarBehavior.floating),
         );
       }
     } catch (e, st) {
       debugPrint('Add photo failed: $e');
       debugPrint(st.toString());
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Something went wrong. Try again.'), behavior: SnackBarBehavior.floating),
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+              content: Text('Something went wrong. Try again.'),
+              behavior: SnackBarBehavior.floating),
         );
       }
     } finally {
@@ -1750,15 +1916,18 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
     }
   }
 
-  Future<void> _showModerationRejectSheet(BuildContext context, ModerationResult mod) async {
+  Future<void> _showModerationRejectSheet(ModerationResult mod) async {
     final colors = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
+    final textTheme = Theme.of(context).textTheme;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: BoxDecoration(color: colors.surface, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (sheetContext) => Container(
+        decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24))),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -1766,27 +1935,48 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: colors.outline.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)) )),
+                Center(
+                    child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: colors.outline.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 12),
                 Row(children: [
                   Icon(Icons.shield, color: colors.error),
                   const SizedBox(width: 8),
-                  Text('Photo rejected', style: text.titleLarge?.copyWith(color: colors.error)),
+                  Text('Photo rejected',
+                      style:
+                          textTheme.titleLarge?.copyWith(color: colors.error)),
                 ]),
                 const SizedBox(height: 8),
                 if ((mod.reason ?? '').isNotEmpty)
-                  Text(mod.reason!, style: text.bodyMedium),
+                  Text(mod.reason!, style: textTheme.bodyMedium),
                 if (mod.categories.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Wrap(spacing: 8, runSpacing: 8, children: mod.categories.map((c) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: colors.surfaceContainerHighest, borderRadius: BorderRadius.circular(20)),
-                    child: Text(c, style: text.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
-                  )).toList()),
+                  Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: mod.categories
+                          .map((c) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                    color: colors.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(20)),
+                                child: Text(c,
+                                    style: textTheme.labelSmall?.copyWith(
+                                        color: colors.onSurfaceVariant)),
+                              ))
+                          .toList()),
                 ],
                 const SizedBox(height: 16),
                 Row(children: [
-                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))),
+                  Expanded(
+                      child: OutlinedButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          child: const Text('Close'))),
                 ])
               ],
             ),
@@ -1796,28 +1986,36 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
     );
   }
 
-  Future<void> _pickImage(BuildContext context) async {
+  Future<void> _pickImage() async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       // Lazy import to avoid forcing web-specific picker code paths
       // ignore: avoid_dynamic_calls
       final picker = await _loadImagePicker();
       if (picker == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image picker unavailable'), behavior: SnackBarBehavior.floating));
+          scaffoldMessenger.showSnackBar(const SnackBar(
+              content: Text('Image picker unavailable'),
+              behavior: SnackBarBehavior.floating));
         }
         return;
       }
-      final XFile? file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      final XFile? file =
+          await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
       if (file == null) return;
       final bytes = await file.readAsBytes();
       final mime = _inferMimeType(file.name);
       final dataUrl = 'data:$mime;base64,${base64Encode(bytes)}';
-      setState(() => _pickedDataUrl = dataUrl);
+      if (mounted) {
+        setState(() => _pickedDataUrl = dataUrl);
+      }
     } catch (e, st) {
       debugPrint('Image pick failed: $e');
       debugPrint(st.toString());
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to pick image'), behavior: SnackBarBehavior.floating));
+        scaffoldMessenger.showSnackBar(const SnackBar(
+            content: Text('Failed to pick image'),
+            behavior: SnackBarBehavior.floating));
       }
     }
   }
@@ -1838,7 +2036,8 @@ class _CommunityImage extends StatelessWidget {
       } catch (_) {
         return Container(
           color: colors.surfaceContainerHighest,
-          child: Icon(Icons.broken_image_outlined, color: colors.onSurfaceVariant),
+          child:
+              Icon(Icons.broken_image_outlined, color: colors.onSurfaceVariant),
         );
       }
     }
@@ -1847,7 +2046,8 @@ class _CommunityImage extends StatelessWidget {
       fit: BoxFit.cover,
       errorBuilder: (context, error, stack) => Container(
         color: colors.surfaceContainerHighest,
-        child: Icon(Icons.broken_image_outlined, color: colors.onSurfaceVariant),
+        child:
+            Icon(Icons.broken_image_outlined, color: colors.onSurfaceVariant),
       ),
     );
   }
@@ -1908,7 +2108,10 @@ class _PhotoLightboxState extends State<_PhotoLightbox> {
               icon: Icon(Icons.flag_outlined, color: colors.onInverseSurface),
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Thanks for the report. We\'ll review this.'), behavior: SnackBarBehavior.floating),
+                  const SnackBar(
+                      content:
+                          Text('Thanks for the report. We\'ll review this.'),
+                      behavior: SnackBarBehavior.floating),
                 );
               },
             ),
@@ -2023,29 +2226,34 @@ class _WhatToBringSection extends StatelessWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: items.map((item) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: colors.surfaceContainerHighest.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                  border: Border.all(
-                    color: colors.outline.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.check_circle_outline, size: 16, color: colors.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      item,
-                      style: textStyles.labelMedium?.copyWith(
-                        color: colors.onSurface,
+          children: items
+              .map((item) => Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color:
+                          colors.surfaceContainerHighest.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                      border: Border.all(
+                        color: colors.outline.withValues(alpha: 0.2),
                       ),
                     ),
-                  ],
-                ),
-              )).toList(),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle_outline,
+                            size: 16, color: colors.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          item,
+                          style: textStyles.labelMedium?.copyWith(
+                            color: colors.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ))
+              .toList(),
         ),
       ],
     ).animate().fadeIn(delay: 300.ms);
@@ -2077,27 +2285,29 @@ class _CommonPhrasesSection extends StatelessWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: phrases.take(8).map((phrase) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: colors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                  border: Border.all(
-                    color: colors.primary.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Text(
-                  '"$phrase"',
-                  style: textStyles.labelSmall?.copyWith(
-                    color: colors.onSurface,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              )).toList(),
+          children: phrases
+              .take(8)
+              .map((phrase) => Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                      border: Border.all(
+                        color: colors.primary.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Text(
+                      '"$phrase"',
+                      style: textStyles.labelSmall?.copyWith(
+                        color: colors.onSurface,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ))
+              .toList(),
         ),
       ],
     ).animate().fadeIn(delay: 350.ms);
   }
 }
-
-

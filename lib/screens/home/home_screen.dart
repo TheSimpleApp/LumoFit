@@ -16,14 +16,20 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Future<void> _onRefresh() async {
+    // Capture service references before async gap
+    final userService = context.read<UserService>();
+    final activityService = context.read<ActivityService>();
+    final gamificationService = context.read<GamificationService>();
+    final tripService = context.read<TripService>();
+
     await HapticUtils.light();
 
     // Re-initialize services to fetch fresh data from Supabase
     await Future.wait([
-      context.read<UserService>().initialize(),
-      context.read<ActivityService>().initialize(),
-      context.read<GamificationService>().initialize(),
-      context.read<TripService>().initialize(),
+      userService.initialize(),
+      activityService.initialize(),
+      gamificationService.initialize(),
+      tripService.initialize(),
     ]);
   }
 

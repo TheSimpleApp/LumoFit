@@ -186,10 +186,11 @@ class _FitnessGuideScreenState extends State<FitnessGuideScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
     try {
-      // Use askEgyptGuide to get structured response with suggested places
-      final response = await _aiGuide.askEgyptGuide(
+      // Use askFitnessGuide to get structured response with suggested places
+      final response = await _aiGuide.askFitnessGuide(
         question: question,
-        destination: _currentDestination, // Use active trip destination or user's area
+        destination:
+            _currentDestination, // Use active trip destination or user's area
       );
 
       if (mounted) {
@@ -889,7 +890,8 @@ class _FitnessGuideScreenState extends State<FitnessGuideScreen> {
           children: [
             Icon(Icons.psychology, color: colors.primary),
             const SizedBox(width: 8),
-            Text('Fitness Guide${_currentDestination != 'your area' ? ' - $_currentDestination' : ''}'),
+            Text(
+                'Fitness Guide${_currentDestination != 'your area' ? ' - $_currentDestination' : ''}'),
           ],
         ),
         actions: [
@@ -958,7 +960,8 @@ class _FitnessGuideScreenState extends State<FitnessGuideScreen> {
                     child: TextField(
                       controller: _questionController,
                       decoration: InputDecoration(
-                        hintText: 'Ask about fitness in $_currentDestination...',
+                        hintText:
+                            'Ask about fitness in $_currentDestination...',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),

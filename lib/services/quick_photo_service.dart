@@ -147,8 +147,7 @@ class QuickPhotoService extends ChangeNotifier {
     try {
       await SupabaseConfig.client
           .from('quick_photos')
-          .update({'place_id': placeId})
-          .eq('id', photoId);
+          .update({'place_id': placeId}).eq('id', photoId);
 
       final index = _photos.indexWhere((p) => p.id == photoId);
       if (index >= 0) {

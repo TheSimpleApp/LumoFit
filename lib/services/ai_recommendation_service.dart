@@ -28,14 +28,17 @@ class AiRecommendationService extends ChangeNotifier {
       // Prepare event data for AI context
       List<Map<String, dynamic>>? eventData;
       if (candidateEvents != null && candidateEvents.isNotEmpty) {
-        eventData = candidateEvents.take(20).map((e) => {
-          'id': e.id,
-          'title': e.title,
-          'category': e.category.name,
-          'start': e.start.toIso8601String(),
-          'venue': e.venueName,
-          if (e.distanceKm != null) 'distance': e.distanceKm,
-        }).toList();
+        eventData = candidateEvents
+            .take(20)
+            .map((e) => {
+                  'id': e.id,
+                  'title': e.title,
+                  'category': e.category.name,
+                  'start': e.start.toIso8601String(),
+                  'venue': e.venueName,
+                  if (e.distanceKm != null) 'distance': e.distanceKm,
+                })
+            .toList();
       }
 
       final response = await SupabaseConfig.client.functions.invoke(
@@ -84,7 +87,8 @@ class AiRecommendationService extends ChangeNotifier {
       final response = await SupabaseConfig.client.functions.invoke(
         'aiml_recommendations',
         body: {
-          'query': '''Parse this fitness search query and extract structured data.
+          'query':
+              '''Parse this fitness search query and extract structured data.
 Query: "$query"
 
 Respond with JSON only:
@@ -125,7 +129,8 @@ Respond with JSON only:
           'model': 'gpt-4o-mini',
           'userProfile': {
             if (fitnessLevel != null) 'fitnessLevel': fitnessLevel,
-            if (lat != null && lng != null) 'location': {'lat': lat, 'lng': lng},
+            if (lat != null && lng != null)
+              'location': {'lat': lat, 'lng': lng},
           },
         },
       );
@@ -175,16 +180,20 @@ class SearchIntent {
       // Extract JSON from response (may be wrapped in markdown code blocks)
       String cleanJson = jsonText;
       if (jsonText.contains('```')) {
-        final match = RegExp(r'```(?:json)?\s*([\s\S]*?)\s*```').firstMatch(jsonText);
+        final match =
+            RegExp(r'```(?:json)?\s*([\s\S]*?)\s*```').firstMatch(jsonText);
         if (match != null) {
           cleanJson = match.group(1) ?? jsonText;
         }
       }
 
       // Simple JSON parsing - in production use dart:convert
-      final eventTypeMatch = RegExp(r'"eventType"\s*:\s*"([^"]+)"').firstMatch(cleanJson);
-      final distanceMatch = RegExp(r'"maxDistanceKm"\s*:\s*(\d+)').firstMatch(cleanJson);
-      final dateMatch = RegExp(r'"datePreference"\s*:\s*"([^"]+)"').firstMatch(cleanJson);
+      final eventTypeMatch =
+          RegExp(r'"eventType"\s*:\s*"([^"]+)"').firstMatch(cleanJson);
+      final distanceMatch =
+          RegExp(r'"maxDistanceKm"\s*:\s*(\d+)').firstMatch(cleanJson);
+      final dateMatch =
+          RegExp(r'"datePreference"\s*:\s*"([^"]+)"').firstMatch(cleanJson);
 
       DateTime? startDate;
       DateTime? endDate;
@@ -199,8 +208,9 @@ class SearchIntent {
           case 'this_weekend':
             // Find next Saturday
             final daysUntilSaturday = (6 - now.weekday) % 7;
-            startDate = now.add(Duration(days: daysUntilSaturday == 0 ? 0 : daysUntilSaturday));
-            endDate = startDate!.add(const Duration(days: 1));
+            startDate = now.add(
+                Duration(days: daysUntilSaturday == 0 ? 0 : daysUntilSaturday));
+            endDate = startDate.add(const Duration(days: 1));
             break;
           case 'next_7_days':
             startDate = now;
@@ -217,7 +227,9 @@ class SearchIntent {
         eventType: eventTypeMatch?.group(1),
         startDate: startDate,
         endDate: endDate,
-        maxDistanceKm: distanceMatch != null ? int.tryParse(distanceMatch.group(1)!) : null,
+        maxDistanceKm: distanceMatch != null
+            ? int.tryParse(distanceMatch.group(1)!)
+            : null,
       );
     } catch (e) {
       debugPrint('SearchIntent.fromAiResponse parse error: $e');

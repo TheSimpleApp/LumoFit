@@ -95,5 +95,3 @@ class ActionBarLabel extends StatelessWidget {
     );
   }
 }
-
-

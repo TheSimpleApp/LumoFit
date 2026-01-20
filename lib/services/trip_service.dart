@@ -16,7 +16,8 @@ class TripService extends ChangeNotifier {
   TripService();
 
   List<TripModel> get trips => _trips;
-  List<TripModel> get upcomingTrips => _trips.where((t) => t.isUpcoming).toList();
+  List<TripModel> get upcomingTrips =>
+      _trips.where((t) => t.isUpcoming).toList();
   List<TripModel> get pastTrips => _trips.where((t) => t.isPast).toList();
   List<TripModel> get currentTrips => _trips.where((t) => t.isCurrent).toList();
   TripModel? get activeTrip {
@@ -31,7 +32,8 @@ class TripService extends ChangeNotifier {
   /// Returns null if no active trip or no coordinates set
   (double lat, double lng)? get activeTripCoordinates {
     final trip = activeTrip;
-    if (trip?.destinationLatitude != null && trip?.destinationLongitude != null) {
+    if (trip?.destinationLatitude != null &&
+        trip?.destinationLongitude != null) {
       return (trip!.destinationLatitude!, trip.destinationLongitude!);
     }
     return null;
@@ -154,14 +156,20 @@ class TripService extends ChangeNotifier {
       } else {
         // Some RLS setups allow insert but deny select on returning rows.
         // As a resilient fallback, reload trips from backend and try to find the new one.
-        debugPrint('TripService.createTrip: insert returned empty, attempting fallback reload');
+        debugPrint(
+            'TripService.createTrip: insert returned empty, attempting fallback reload');
         await initialize();
         try {
           trip = _trips.firstWhere((t) =>
               t.userId == userId &&
-              t.destinationCity.toLowerCase() == destinationCity.toLowerCase() &&
-              t.startDate.year == startDate.year && t.startDate.month == startDate.month && t.startDate.day == startDate.day &&
-              t.endDate.year == endDate.year && t.endDate.month == endDate.month && t.endDate.day == endDate.day);
+              t.destinationCity.toLowerCase() ==
+                  destinationCity.toLowerCase() &&
+              t.startDate.year == startDate.year &&
+              t.startDate.month == startDate.month &&
+              t.startDate.day == startDate.day &&
+              t.endDate.year == endDate.year &&
+              t.endDate.month == endDate.month &&
+              t.endDate.day == endDate.day);
         } catch (_) {
           throw Exception('Trip created but could not load it due to RLS');
         }
@@ -195,11 +203,10 @@ class TripService extends ChangeNotifier {
       // Check if destination or dates changed (need to fetch new events)
       final index = _trips.indexWhere((t) => t.id == trip.id);
       final oldTrip = index >= 0 ? _trips[index] : null;
-      final destinationChanged = oldTrip != null && (
-        oldTrip.destinationCity != trip.destinationCity ||
-        oldTrip.startDate != trip.startDate ||
-        oldTrip.endDate != trip.endDate
-      );
+      final destinationChanged = oldTrip != null &&
+          (oldTrip.destinationCity != trip.destinationCity ||
+              oldTrip.startDate != trip.startDate ||
+              oldTrip.endDate != trip.endDate);
 
       await SupabaseService.update(
         'trips',
@@ -256,14 +263,12 @@ class TripService extends ChangeNotifier {
       // First, deactivate all trips for this user
       await SupabaseConfig.client
           .from('trips')
-          .update({'is_active': false})
-          .eq('user_id', userId);
+          .update({'is_active': false}).eq('user_id', userId);
 
       // Then activate the selected trip
       await SupabaseConfig.client
           .from('trips')
-          .update({'is_active': true})
-          .eq('id', tripId);
+          .update({'is_active': true}).eq('id', tripId);
 
       // Update local state
       for (int i = 0; i < _trips.length; i++) {
@@ -419,7 +424,8 @@ class TripService extends ChangeNotifier {
       final index = _trips.indexWhere((t) => t.id == tripId);
       if (index >= 0) {
         _trips[index] = _trips[index].copyWith(
-          savedPlaceIds: _trips[index].savedPlaceIds.where((id) => id != placeId).toList(),
+          savedPlaceIds:
+              _trips[index].savedPlaceIds.where((id) => id != placeId).toList(),
         );
         _error = null;
         notifyListeners();
@@ -517,7 +523,8 @@ class TripService extends ChangeNotifier {
     }
   }
 
-  Future<void> reorderItinerary(String tripId, List<ItineraryItem> newOrder) async {
+  Future<void> reorderItinerary(
+      String tripId, List<ItineraryItem> newOrder) async {
     // For now, just update local state - full reorder would need order column in DB
     _itineraries[tripId] = List<ItineraryItem>.from(newOrder);
     notifyListeners();

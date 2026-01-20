@@ -49,7 +49,8 @@ class TodayActivities extends StatelessWidget {
             onCtaPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Use the camera button below to log your activity!'),
+                  content:
+                      Text('Use the camera button below to log your activity!'),
                   behavior: SnackBarBehavior.floating,
                 ),
               );
@@ -66,7 +67,6 @@ class TodayActivities extends StatelessWidget {
     );
   }
 }
-
 
 class _ActivityTile extends StatelessWidget {
   final ActivityModel activity;

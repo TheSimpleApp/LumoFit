@@ -255,8 +255,9 @@ class _MapPlacePreviewState extends State<MapPlacePreview>
   }
 
   String _getSubtitle() {
-    if (widget.item is PlaceModel)
+    if (widget.item is PlaceModel) {
       return (widget.item as PlaceModel).address ?? '';
+    }
     if (widget.item is EventModel) {
       final event = widget.item as EventModel;
       return event.venueName.isNotEmpty

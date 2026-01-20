@@ -60,7 +60,8 @@ class EgyptGuideResponse {
     }
 
     // Recursively extract array from potentially nested JSON
-    List<T> extractArray<T>(dynamic obj, String key, T Function(Map<String, dynamic>) fromJson, int depth) {
+    List<T> extractArray<T>(dynamic obj, String key,
+        T Function(Map<String, dynamic>) fromJson, int depth) {
       if (depth > 5 || obj == null) return [];
       if (obj is Map) {
         final arr = obj[key];
@@ -93,14 +94,20 @@ class EgyptGuideResponse {
     String text = extractText(json, 0);
 
     // Final fallback: if text still looks like JSON, provide default
-    if (text.isEmpty || text.trimLeft().startsWith('{') || text.trimLeft().startsWith('[')) {
-      text = "I'd be happy to help you find fitness spots! What are you looking for?";
+    if (text.isEmpty ||
+        text.trimLeft().startsWith('{') ||
+        text.trimLeft().startsWith('[')) {
+      text =
+          "I'd be happy to help you find fitness spots! What are you looking for?";
     }
 
     // Extract arrays, checking both top-level and nested
-    final suggestedPlaces = extractArray<SuggestedPlace>(json, 'suggestedPlaces', SuggestedPlace.fromJson, 0);
-    final elements = extractArray<MessageElement>(json, 'elements', MessageElement.fromJson, 0);
-    final quickReplies = extractArray<QuickReply>(json, 'quickReplies', QuickReply.fromJson, 0);
+    final suggestedPlaces = extractArray<SuggestedPlace>(
+        json, 'suggestedPlaces', SuggestedPlace.fromJson, 0);
+    final elements = extractArray<MessageElement>(
+        json, 'elements', MessageElement.fromJson, 0);
+    final quickReplies =
+        extractArray<QuickReply>(json, 'quickReplies', QuickReply.fromJson, 0);
 
     // Extract tags (simple strings)
     List<String> extractStringArray(dynamic obj, String key, int depth) {
@@ -113,7 +120,8 @@ class EgyptGuideResponse {
         final textVal = obj['text'];
         if (textVal is String && textVal.trim().startsWith('{')) {
           try {
-            return extractStringArray(jsonDecode(textVal.trim()), key, depth + 1);
+            return extractStringArray(
+                jsonDecode(textVal.trim()), key, depth + 1);
           } catch (_) {}
         }
       }
@@ -207,7 +215,8 @@ class ItineraryResponse {
       title: json['title'] as String? ?? 'Fitness Day Plan',
       destination: json['destination'] as String? ?? '',
       items: (json['items'] as List<dynamic>?)
-              ?.map((e) => ItineraryPlanItem.fromJson(e as Map<String, dynamic>))
+              ?.map(
+                  (e) => ItineraryPlanItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
       packingList: (json['packingList'] as List<dynamic>?)
@@ -371,26 +380,28 @@ class PlaceFitnessIntelligence {
   // Core Analysis
   final String summary; // 2-3 sentence AI summary focused on fitness/health
   final double? fitnessScore; // 0-10 score for fitness suitability
-  
+
   // Crowd & Timing
-  final Map<String, String> bestTimesDetailed; // e.g., {"morning": "6-9 AM - Least crowded", "evening": "After 8 PM - Peak hours"}
+  final Map<String, String>
+      bestTimesDetailed; // e.g., {"morning": "6-9 AM - Least crowded", "evening": "After 8 PM - Peak hours"}
   final String? crowdInsights; // AI analysis of crowd patterns
-  
+
   // Type-specific Intelligence
   final GymIntelligence? gymInsights; // For gyms/fitness centers
   final RestaurantIntelligence? restaurantInsights; // For restaurants
   final TrailIntelligence? trailInsights; // For trails/outdoor
-  
+
   // Common Insights
   final List<String> pros; // Fitness-focused pros
   final List<String> cons; // Fitness-focused cons
   final List<String> tips; // Actionable fitness tips
   final List<String> whatToBring; // Recommended items
-  
+
   // Review Analysis
   final ReviewSentiment? sentiment; // Aggregated sentiment from reviews
-  final List<String> commonPhrases; // Frequently mentioned fitness-related phrases
-  
+  final List<String>
+      commonPhrases; // Frequently mentioned fitness-related phrases
+
   // Metadata
   final DateTime generatedAt;
   final int reviewsAnalyzed;
@@ -417,25 +428,42 @@ class PlaceFitnessIntelligence {
     return PlaceFitnessIntelligence(
       summary: json['summary'] as String? ?? '',
       fitnessScore: (json['fitnessScore'] as num?)?.toDouble(),
-      bestTimesDetailed: (json['bestTimesDetailed'] as Map<String, dynamic>?)?.cast<String, String>() ?? {},
+      bestTimesDetailed: (json['bestTimesDetailed'] as Map<String, dynamic>?)
+              ?.cast<String, String>() ??
+          {},
       crowdInsights: json['crowdInsights'] as String?,
       gymInsights: json['gymInsights'] != null
-          ? GymIntelligence.fromJson(json['gymInsights'] as Map<String, dynamic>)
+          ? GymIntelligence.fromJson(
+              json['gymInsights'] as Map<String, dynamic>)
           : null,
       restaurantInsights: json['restaurantInsights'] != null
-          ? RestaurantIntelligence.fromJson(json['restaurantInsights'] as Map<String, dynamic>)
+          ? RestaurantIntelligence.fromJson(
+              json['restaurantInsights'] as Map<String, dynamic>)
           : null,
       trailInsights: json['trailInsights'] != null
-          ? TrailIntelligence.fromJson(json['trailInsights'] as Map<String, dynamic>)
+          ? TrailIntelligence.fromJson(
+              json['trailInsights'] as Map<String, dynamic>)
           : null,
-      pros: (json['pros'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
-      cons: (json['cons'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
-      tips: (json['tips'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
-      whatToBring: (json['whatToBring'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      pros:
+          (json['pros'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              [],
+      cons:
+          (json['cons'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              [],
+      tips:
+          (json['tips'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              [],
+      whatToBring: (json['whatToBring'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
       sentiment: json['sentiment'] != null
           ? ReviewSentiment.fromJson(json['sentiment'] as Map<String, dynamic>)
           : null,
-      commonPhrases: (json['commonPhrases'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      commonPhrases: (json['commonPhrases'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
       generatedAt: json['generatedAt'] != null
           ? DateTime.parse(json['generatedAt'] as String)
           : DateTime.now(),
@@ -449,7 +477,8 @@ class PlaceFitnessIntelligence {
         'bestTimesDetailed': bestTimesDetailed,
         if (crowdInsights != null) 'crowdInsights': crowdInsights,
         if (gymInsights != null) 'gymInsights': gymInsights!.toJson(),
-        if (restaurantInsights != null) 'restaurantInsights': restaurantInsights!.toJson(),
+        if (restaurantInsights != null)
+          'restaurantInsights': restaurantInsights!.toJson(),
         if (trailInsights != null) 'trailInsights': trailInsights!.toJson(),
         'pros': pros,
         'cons': cons,
@@ -482,12 +511,19 @@ class GymIntelligence {
 
   factory GymIntelligence.fromJson(Map<String, dynamic> json) {
     return GymIntelligence(
-      equipment: (json['equipment'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      equipment: (json['equipment'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
       cleanlinessRating: json['cleanlinessRating'] as String?,
-      amenities: (json['amenities'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      amenities: (json['amenities'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
       coachingQuality: json['coachingQuality'] as String?,
       beginnerFriendly: json['beginnerFriendly'] as bool?,
-      classSchedule: (json['classSchedule'] as Map<String, dynamic>?)?.cast<String, String>(),
+      classSchedule: (json['classSchedule'] as Map<String, dynamic>?)
+          ?.cast<String, String>(),
     );
   }
 
@@ -523,12 +559,21 @@ class RestaurantIntelligence {
 
   factory RestaurantIntelligence.fromJson(Map<String, dynamic> json) {
     return RestaurantIntelligence(
-      healthyOptions: (json['healthyOptions'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
-      dietaryAccommodations: (json['dietaryAccommodations'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      healthyOptions: (json['healthyOptions'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      dietaryAccommodations: (json['dietaryAccommodations'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
       macroInfo: json['macroInfo'] as String?,
       portionSize: json['portionSize'] as String?,
       proteinScore: (json['proteinScore'] as num?)?.toDouble(),
-      popularHealthyDishes: (json['popularHealthyDishes'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      popularHealthyDishes: (json['popularHealthyDishes'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
       postWorkoutFriendly: json['postWorkoutFriendly'] as bool?,
     );
   }
@@ -540,7 +585,8 @@ class RestaurantIntelligence {
         if (portionSize != null) 'portionSize': portionSize,
         if (proteinScore != null) 'proteinScore': proteinScore,
         'popularHealthyDishes': popularHealthyDishes,
-        if (postWorkoutFriendly != null) 'postWorkoutFriendly': postWorkoutFriendly,
+        if (postWorkoutFriendly != null)
+          'postWorkoutFriendly': postWorkoutFriendly,
       };
 }
 
@@ -574,7 +620,10 @@ class TrailIntelligence {
       terrain: json['terrain'] as String?,
       distanceKm: (json['distanceKm'] as num?)?.toDouble(),
       elevationGain: json['elevationGain'] as String?,
-      scenicHighlights: (json['scenicHighlights'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      scenicHighlights: (json['scenicHighlights'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
       bestSeason: json['bestSeason'] as String?,
       dogFriendly: json['dogFriendly'] as bool?,
       bikeAccessible: json['bikeAccessible'] as bool?,
@@ -599,7 +648,8 @@ class TrailIntelligence {
 class ReviewSentiment {
   final double overall; // -1 to 1
   final String label; // "Very Positive", "Positive", "Mixed", "Negative"
-  final Map<String, double> aspectScores; // e.g., {"cleanliness": 0.8, "equipment": 0.6}
+  final Map<String, double>
+      aspectScores; // e.g., {"cleanliness": 0.8, "equipment": 0.6}
 
   const ReviewSentiment({
     required this.overall,
@@ -722,9 +772,7 @@ class MessageElement {
       places: (json['places'] as List<dynamic>?)
           ?.map((e) => SuggestedPlace.fromJson(e as Map<String, dynamic>))
           .toList(),
-      tags: (json['tags'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
+      tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList(),
     );
   }
 
@@ -922,7 +970,14 @@ class EgyptDestinations {
       name: 'Cairo',
       lat: 30.0444,
       lng: 31.2357,
-      neighborhoods: ['Zamalek', 'Maadi', 'Heliopolis', 'New Cairo', 'Giza', 'Downtown'],
+      neighborhoods: [
+        'Zamalek',
+        'Maadi',
+        'Heliopolis',
+        'New Cairo',
+        'Giza',
+        'Downtown'
+      ],
     ),
     EgyptDestination(
       name: 'Luxor',
@@ -998,9 +1053,11 @@ class EgyptDestination {
 /// These are lightweight, fast-generated tags to help users quickly understand a place
 /// Generated using a lighter AI model (e.g., Gemini 2.5 Flash) for speed
 class PlaceQuickInsights {
-  final List<String> tags; // Quick overview tags (e.g., "Great Equipment", "Crowded Evenings")
+  final List<String>
+      tags; // Quick overview tags (e.g., "Great Equipment", "Crowded Evenings")
   final String? vibe; // Overall vibe in 2-3 words (e.g., "Energetic & Social")
-  final String? bestFor; // Best suited for (e.g., "Serious Lifters", "Beginners")
+  final String?
+      bestFor; // Best suited for (e.g., "Serious Lifters", "Beginners")
   final String? quickTip; // One quick tip (e.g., "Come early for machines")
   final DateTime generatedAt;
   final bool fromCache; // Whether this was retrieved from cache
@@ -1016,10 +1073,9 @@ class PlaceQuickInsights {
 
   factory PlaceQuickInsights.fromJson(Map<String, dynamic> json) {
     return PlaceQuickInsights(
-      tags: (json['tags'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              [],
       vibe: json['vibe'] as String?,
       bestFor: json['bestFor'] as String?,
       quickTip: json['quickTip'] as String?,

@@ -178,8 +178,8 @@ class _SignupScreenState extends State<SignupScreen> {
                             ? Icons.visibility
                             : Icons.visibility_off,
                       ),
-                      onPressed: () => setState(
-                          () => _obscureConfirmPassword = !_obscureConfirmPassword),
+                      onPressed: () => setState(() =>
+                          _obscureConfirmPassword = !_obscureConfirmPassword),
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),

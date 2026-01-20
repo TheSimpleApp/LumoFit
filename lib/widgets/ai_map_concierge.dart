@@ -77,7 +77,7 @@ class _AiMapConciergeState extends State<AiMapConcierge>
     setState(() => _isLoading = true);
 
     try {
-      final response = await _aiService.askEgyptGuide(
+      final response = await _aiService.askFitnessGuide(
         question: message,
         destination: widget.destination,
         userLat: widget.userLat,
@@ -195,10 +195,13 @@ class _AiMapConciergeState extends State<AiMapConcierge>
               ),
             ),
           ),
-        ).animate().scale(
+        )
+            .animate()
+            .scale(
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeOutBack,
-            ).shimmer(
+            )
+            .shimmer(
               duration: const Duration(milliseconds: 1500),
               delay: const Duration(milliseconds: 500),
             ),
@@ -347,7 +350,6 @@ class _AiMapConciergeState extends State<AiMapConcierge>
       ),
     );
   }
-
 
   Widget _buildMessageList(ColorScheme colors, List<String> quickQuestions) {
     final messages = _aiService.conversationHistory;
@@ -951,7 +953,10 @@ class _AiMapConciergeState extends State<AiMapConcierge>
               gradient: _isLoading
                   ? null
                   : LinearGradient(
-                      colors: [colors.primary, colors.primary.withValues(alpha: 0.8)],
+                      colors: [
+                        colors.primary,
+                        colors.primary.withValues(alpha: 0.8)
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),

@@ -399,8 +399,8 @@ class _GymsPainter extends _BasePainter {
     );
   }
 
-  void _drawWeight(
-      Canvas canvas, double cx, double cy, double width, double height, Paint paint) {
+  void _drawWeight(Canvas canvas, double cx, double cy, double width,
+      double height, Paint paint) {
     final rect = RRect.fromRectAndRadius(
       Rect.fromCenter(center: Offset(cx, cy), width: width, height: height),
       const Radius.circular(2),
@@ -615,7 +615,8 @@ class _PhotosPainter extends _BasePainter {
     _drawSparkle(canvas, cx + 28, cy - 15, 3, mutedPaint);
   }
 
-  void _drawSparkle(Canvas canvas, double x, double y, double size, Paint paint) {
+  void _drawSparkle(
+      Canvas canvas, double x, double y, double size, Paint paint) {
     canvas.drawLine(
       Offset(x - size, y),
       Offset(x + size, y),
@@ -743,14 +744,20 @@ class _SavedPlacesPainter extends _BasePainter {
 
     path.moveTo(x, y + size * 0.4);
     path.cubicTo(
-      x - size, y - size * 0.2,
-      x - size * 0.5, y - size * 0.8,
-      x, y - size * 0.3,
+      x - size,
+      y - size * 0.2,
+      x - size * 0.5,
+      y - size * 0.8,
+      x,
+      y - size * 0.3,
     );
     path.cubicTo(
-      x + size * 0.5, y - size * 0.8,
-      x + size, y - size * 0.2,
-      x, y + size * 0.4,
+      x + size * 0.5,
+      y - size * 0.8,
+      x + size,
+      y - size * 0.2,
+      x,
+      y + size * 0.4,
     );
     canvas.drawPath(path, paint);
   }

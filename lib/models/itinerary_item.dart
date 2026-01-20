@@ -87,7 +87,9 @@ class ItineraryItem {
   Map<String, dynamic> toSupabaseJson(String tripId) {
     return {
       'trip_id': tripId,
-      'date': DateTime(date.year, date.month, date.day).toIso8601String().split('T')[0],
+      'date': DateTime(date.year, date.month, date.day)
+          .toIso8601String()
+          .split('T')[0],
       'start_time': startTime,
       'duration_minutes': durationMinutes,
       'place_id': placeId,

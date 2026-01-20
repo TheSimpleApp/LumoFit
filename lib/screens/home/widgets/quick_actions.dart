@@ -49,7 +49,6 @@ class QuickActions extends StatelessWidget {
       ],
     );
   }
-
 }
 
 class _ActionCard extends StatelessWidget {
@@ -98,4 +97,3 @@ class _ActionCard extends StatelessWidget {
     );
   }
 }
-

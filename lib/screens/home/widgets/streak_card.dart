@@ -80,7 +80,8 @@ class StreakCard extends StatelessWidget {
               Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(AppRadius.full),

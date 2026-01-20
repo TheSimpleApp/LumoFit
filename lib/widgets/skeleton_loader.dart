@@ -47,12 +47,14 @@ class SkeletonBox extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: borderRadius ?? BorderRadius.circular(AppRadius.sm),
       ),
-    ).animate(
-      onPlay: (controller) => controller.repeat(),
-    ).shimmer(
-      duration: const Duration(milliseconds: 1500),
-      color: AppColors.surfaceLight.withValues(alpha: 0.5),
-    );
+    )
+        .animate(
+          onPlay: (controller) => controller.repeat(),
+        )
+        .shimmer(
+          duration: const Duration(milliseconds: 1500),
+          color: AppColors.surfaceLight.withValues(alpha: 0.5),
+        );
   }
 }
 
@@ -87,11 +89,13 @@ class SkeletonCircle extends StatelessWidget {
         color: AppColors.surface,
         shape: BoxShape.circle,
       ),
-    ).animate(
-      onPlay: (controller) => controller.repeat(),
-    ).shimmer(
-      duration: const Duration(milliseconds: 1500),
-      color: AppColors.surfaceLight.withValues(alpha: 0.5),
-    );
+    )
+        .animate(
+          onPlay: (controller) => controller.repeat(),
+        )
+        .shimmer(
+          duration: const Duration(milliseconds: 1500),
+          color: AppColors.surfaceLight.withValues(alpha: 0.5),
+        );
   }
 }

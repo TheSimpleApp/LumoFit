@@ -62,7 +62,8 @@ class SupabaseAuthManager extends AuthManager with EmailSignInManager {
         try {
           var user = await _getUserModelFromAuth(authUser);
           if (user == null) {
-            debugPrint('No user profile found; creating profile for ${authUser.id}');
+            debugPrint(
+                'No user profile found; creating profile for ${authUser.id}');
             await _createUserProfile(authUser);
             user = await _getUserModelFromAuth(authUser);
           }
@@ -140,7 +141,7 @@ class SupabaseAuthManager extends AuthManager with EmailSignInManager {
       if (user != null) {
         // Delete user profile from users table (cascade will handle related data)
         await SupabaseService.delete('users', filters: {'id': user.id});
-        
+
         // Delete auth user
         await SupabaseConfig.client.rpc('delete_user');
       }
@@ -160,7 +161,7 @@ class SupabaseAuthManager extends AuthManager with EmailSignInManager {
   }) async {
     try {
       await SupabaseConfig.auth.updateUser(UserAttributes(email: email));
-      
+
       // Update email in users table
       final user = SupabaseConfig.auth.currentUser;
       if (user != null) {
@@ -170,7 +171,7 @@ class SupabaseAuthManager extends AuthManager with EmailSignInManager {
           filters: {'id': user.id},
         );
       }
-      
+
       if (context.mounted) {
         _showSuccessSnackBar(context, 'Email updated successfully');
       }

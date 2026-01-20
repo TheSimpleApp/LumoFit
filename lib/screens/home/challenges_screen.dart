@@ -49,12 +49,10 @@ class _ChallengesScreenState extends State<ChallengesScreen>
     final allUserChallenges = gamificationService.userChallenges;
 
     // Separate active and completed challenges
-    final activeChallenges = allUserChallenges
-        .where((uc) => !uc.isCompleted)
-        .toList();
-    final completedChallenges = allUserChallenges
-        .where((uc) => uc.isCompleted)
-        .toList();
+    final activeChallenges =
+        allUserChallenges.where((uc) => !uc.isCompleted).toList();
+    final completedChallenges =
+        allUserChallenges.where((uc) => uc.isCompleted).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -243,7 +241,8 @@ class _ChallengeTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getChallengeColor(challenge.type).withValues(alpha: 0.15),
+                  color: _getChallengeColor(challenge.type)
+                      .withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Text(
@@ -306,7 +305,8 @@ class _ChallengeTile extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             challenge.description,
-            style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+            style:
+                textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           Row(
@@ -329,8 +329,8 @@ class _ChallengeTile extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 '${userChallenge.progress}/${challenge.requirementValue}',
-                style:
-                    textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant),
+                style: textStyles.labelSmall
+                    ?.copyWith(color: colors.onSurfaceVariant),
               ),
             ],
           ),

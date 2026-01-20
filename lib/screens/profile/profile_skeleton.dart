@@ -122,12 +122,14 @@ class _SkeletonBoxDark extends StatelessWidget {
         color: Colors.black.withValues(alpha: 0.15),
         borderRadius: borderRadius ?? BorderRadius.circular(AppRadius.xs),
       ),
-    ).animate(
-      onPlay: (controller) => controller.repeat(),
-    ).shimmer(
-      duration: const Duration(milliseconds: 1500),
-      color: Colors.black.withValues(alpha: 0.1),
-    );
+    )
+        .animate(
+          onPlay: (controller) => controller.repeat(),
+        )
+        .shimmer(
+          duration: const Duration(milliseconds: 1500),
+          color: Colors.black.withValues(alpha: 0.1),
+        );
   }
 }
 
@@ -151,12 +153,14 @@ class _SkeletonCircleDark extends StatelessWidget {
           width: 3,
         ),
       ),
-    ).animate(
-      onPlay: (controller) => controller.repeat(),
-    ).shimmer(
-      duration: const Duration(milliseconds: 1500),
-      color: Colors.black.withValues(alpha: 0.1),
-    );
+    )
+        .animate(
+          onPlay: (controller) => controller.repeat(),
+        )
+        .shimmer(
+          duration: const Duration(milliseconds: 1500),
+          color: Colors.black.withValues(alpha: 0.1),
+        );
   }
 }
 
@@ -213,7 +217,8 @@ class _StatCardSkeleton extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+        border:
+            Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
       ),
       child: Row(
         children: [
@@ -302,7 +307,8 @@ class _BadgeItemSkeleton extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+        border:
+            Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -388,7 +394,8 @@ class ContributionsSectionSkeleton extends StatelessWidget {
           decoration: BoxDecoration(
             color: colors.surface,
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+            border: Border.all(
+                color: colors.outline.withValues(alpha: 0.1), width: 1),
           ),
           child: Column(
             children: [
@@ -460,7 +467,8 @@ class StravaSectionSkeleton extends StatelessWidget {
           decoration: BoxDecoration(
             color: colors.surface,
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+            border: Border.all(
+                color: colors.outline.withValues(alpha: 0.1), width: 1),
           ),
           child: Row(
             children: [
@@ -521,7 +529,8 @@ class QuickSettingsSkeleton extends StatelessWidget {
           decoration: BoxDecoration(
             color: colors.surface,
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+            border: Border.all(
+                color: colors.outline.withValues(alpha: 0.1), width: 1),
           ),
           child: Column(
             children: [
@@ -700,11 +709,13 @@ class _SkeletonBox extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: borderRadius ?? BorderRadius.circular(AppRadius.xs),
       ),
-    ).animate(
-      onPlay: (controller) => controller.repeat(),
-    ).shimmer(
-      duration: const Duration(milliseconds: 1500),
-      color: AppColors.surfaceLight.withValues(alpha: 0.5),
-    );
+    )
+        .animate(
+          onPlay: (controller) => controller.repeat(),
+        )
+        .shimmer(
+          duration: const Duration(milliseconds: 1500),
+          color: AppColors.surfaceLight.withValues(alpha: 0.5),
+        );
   }
 }

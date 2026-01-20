@@ -123,7 +123,8 @@ class FeedbackService extends ChangeNotifier {
 
           // Merge: Supabase items + local unsynced items
           final supabaseIds = supabaseItems.map((i) => i.id).toSet();
-          final unsyncedLocal = localItems.where((i) => !supabaseIds.contains(i.id)).toList();
+          final unsyncedLocal =
+              localItems.where((i) => !supabaseIds.contains(i.id)).toList();
 
           _items = [...supabaseItems, ...unsyncedLocal];
 
@@ -206,7 +207,8 @@ class FeedbackService extends ChangeNotifier {
     final unsynced = _items.where((i) => !i.syncedToSupabase).toList();
     if (unsynced.isEmpty) return;
 
-    debugPrint('FeedbackService: Attempting to sync ${unsynced.length} unsynced items');
+    debugPrint(
+        'FeedbackService: Attempting to sync ${unsynced.length} unsynced items');
 
     for (var item in unsynced) {
       try {

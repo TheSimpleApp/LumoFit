@@ -552,8 +552,8 @@ class _VisibilityDetectorState extends State<VisibilityDetector> {
     final size = renderBox.size;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    final isVisible = position.dy < screenHeight &&
-                      position.dy + size.height > 0;
+    final isVisible =
+        position.dy < screenHeight && position.dy + size.height > 0;
 
     if (isVisible != _wasVisible) {
       _wasVisible = isVisible;
@@ -772,6 +772,7 @@ extension StaggeredAnimationExtension on Widget {
   }) {
     return animate()
         .fadeIn(delay: baseDelay * index, duration: duration)
-        .slideY(begin: slideOffset, delay: baseDelay * index, duration: duration);
+        .slideY(
+            begin: slideOffset, delay: baseDelay * index, duration: duration);
   }
 }

@@ -120,8 +120,7 @@ class StravaService extends ChangeNotifier {
     }
   }
 
-  Future<void> _saveTokens(
-      String access, String refresh, int expiresAt) async {
+  Future<void> _saveTokens(String access, String refresh, int expiresAt) async {
     _accessToken = access;
     _refreshToken = refresh;
     _expiresAt = expiresAt;

@@ -328,7 +328,8 @@ class _ItineraryGeneratorScreenState extends State<ItineraryGeneratorScreen> {
                       ),
                     )
                   : const Icon(Icons.auto_awesome),
-              label: Text(_isGenerating ? 'Generating...' : 'Generate Itinerary'),
+              label:
+                  Text(_isGenerating ? 'Generating...' : 'Generate Itinerary'),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),

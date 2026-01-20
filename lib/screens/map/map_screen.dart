@@ -258,7 +258,8 @@ class _MapScreenState extends State<MapScreen> {
           markers.add(Marker(
             markerId: MarkerId('event_${entry.key}'),
             position: LatLng(event.latitude!, event.longitude!),
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueViolet),
             onTap: () => _onMarkerTapped(event),
           ));
         }

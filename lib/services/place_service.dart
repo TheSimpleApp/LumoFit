@@ -10,8 +10,10 @@ class PlaceService extends ChangeNotifier {
   PlaceService();
 
   List<PlaceModel> get savedPlaces => _savedPlaces;
-  List<PlaceModel> get gyms => _savedPlaces.where((p) => p.type == PlaceType.gym).toList();
-  List<PlaceModel> get restaurants => _savedPlaces.where((p) => p.type == PlaceType.restaurant).toList();
+  List<PlaceModel> get gyms =>
+      _savedPlaces.where((p) => p.type == PlaceType.gym).toList();
+  List<PlaceModel> get restaurants =>
+      _savedPlaces.where((p) => p.type == PlaceType.restaurant).toList();
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -63,8 +65,10 @@ class PlaceService extends ChangeNotifier {
     }
 
     // Check if already exists locally
-    final exists = _savedPlaces.any((p) => p.id == place.id ||
-        (place.googlePlaceId != null && p.googlePlaceId == place.googlePlaceId));
+    final exists = _savedPlaces.any((p) =>
+        p.id == place.id ||
+        (place.googlePlaceId != null &&
+            p.googlePlaceId == place.googlePlaceId));
     if (exists) return;
 
     try {

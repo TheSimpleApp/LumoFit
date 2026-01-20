@@ -423,7 +423,8 @@ Start by asking the first question to begin the guided conversation.
     } catch (e) {
       // Suppress 404 errors (function not deployed) to avoid log spam
       if (e.toString().contains('404') || e.toString().contains('NOT_FOUND')) {
-        debugPrint('AiGuideService: generate_quick_insights function not deployed, skipping insights.');
+        debugPrint(
+            'AiGuideService: generate_quick_insights function not deployed, skipping insights.');
       } else {
         debugPrint('AiGuideService.generateQuickInsights error: $e');
       }

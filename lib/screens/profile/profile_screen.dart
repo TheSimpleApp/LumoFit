@@ -62,8 +62,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                   child: Row(
                     children: [
-                      Expanded(child: Text('Profile', style: textStyles.headlineMedium).animate().fadeIn().slideX(begin: -0.1)),
-                      IconButton(onPressed: () => _showSettings(context), icon: const Icon(Icons.settings_outlined)).animate().fadeIn(delay: 200.ms),
+                      Expanded(
+                          child:
+                              Text('Profile', style: textStyles.headlineMedium)
+                                  .animate()
+                                  .fadeIn()
+                                  .slideX(begin: -0.1)),
+                      IconButton(
+                              onPressed: () => _showSettings(context),
+                              icon: const Icon(Icons.settings_outlined))
+                          .animate()
+                          .fadeIn(delay: 200.ms),
                     ],
                   ),
                 ),
@@ -71,19 +80,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                  child: _ProfileCard(user: user).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
+                  child: _ProfileCard(user: user)
+                      .animate()
+                      .fadeIn(delay: 100.ms)
+                      .slideY(begin: 0.1),
                 ),
               ),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                  child: _StatsSection(activities: activityService.activities, user: user).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
+                  child: _StatsSection(
+                          activities: activityService.activities, user: user)
+                      .animate()
+                      .fadeIn(delay: 200.ms)
+                      .slideY(begin: 0.1),
                 ),
               ),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                  child: _BadgesSection(earnedBadges: gamificationService.getEarnedBadges(), allBadges: gamificationService.allBadges).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
+                  child: _BadgesSection(
+                          earnedBadges: gamificationService.getEarnedBadges(),
+                          allBadges: gamificationService.allBadges)
+                      .animate()
+                      .fadeIn(delay: 300.ms)
+                      .slideY(begin: 0.1),
                 ),
               ),
             ],
@@ -94,7 +115,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showSettings(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings coming soon!'), behavior: SnackBarBehavior.floating));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Settings coming soon!'),
+        behavior: SnackBarBehavior.floating));
   }
 }
 
@@ -109,7 +132,9 @@ class _ProfileCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(gradient: AppColors.goldShimmer, borderRadius: BorderRadius.circular(AppRadius.xl)),
+      decoration: BoxDecoration(
+          gradient: AppColors.goldShimmer,
+          borderRadius: BorderRadius.circular(AppRadius.xl)),
       child: Column(
         children: [
           Row(
@@ -120,12 +145,16 @@ class _ProfileCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.5), width: 3),
+                  border: Border.all(
+                      color: Colors.black.withValues(alpha: 0.5), width: 3),
                 ),
                 child: Center(
                   child: Text(
-                    user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : '?',
-                    style: textStyles.headlineMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.bold),
+                    user.displayName.isNotEmpty
+                        ? user.displayName[0].toUpperCase()
+                        : '?',
+                    style: textStyles.headlineMedium?.copyWith(
+                        color: Colors.black, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -134,14 +163,20 @@ class _ProfileCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(user.displayName, style: textStyles.titleLarge?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
+                    Text(user.displayName,
+                        style: textStyles.titleLarge?.copyWith(
+                            color: Colors.black, fontWeight: FontWeight.bold)),
                     if (user.homeCity != null) ...[
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.location_on, size: 14, color: Colors.black.withValues(alpha: 0.7)),
+                          Icon(Icons.location_on,
+                              size: 14,
+                              color: Colors.black.withValues(alpha: 0.7)),
                           const SizedBox(width: 4),
-                          Text(user.homeCity!, style: textStyles.bodySmall?.copyWith(color: Colors.black.withValues(alpha: 0.7))),
+                          Text(user.homeCity!,
+                              style: textStyles.bodySmall?.copyWith(
+                                  color: Colors.black.withValues(alpha: 0.7))),
                         ],
                       ),
                     ],
@@ -149,22 +184,36 @@ class _ProfileCard extends StatelessWidget {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(AppRadius.full)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.full)),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.star, size: 14, color: Colors.black),
                               const SizedBox(width: 4),
-                              Text('Level ${user.level}', style: textStyles.labelSmall?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
+                              Text('Level ${user.level}',
+                                  style: textStyles.labelSmall?.copyWith(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(AppRadius.full)),
-                          child: Text(user.fitnessLevel.name.toUpperCase(), style: textStyles.labelSmall?.copyWith(color: Colors.black, fontWeight: FontWeight.w600)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.full)),
+                          child: Text(user.fitnessLevel.name.toUpperCase(),
+                              style: textStyles.labelSmall?.copyWith(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),
@@ -184,12 +233,18 @@ class _ProfileCard extends StatelessWidget {
                     children: [
                       AnimatedCounter(
                         value: user.totalXp,
-                        style: textStyles.labelMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.bold),
+                        style: textStyles.labelMedium?.copyWith(
+                            color: Colors.black, fontWeight: FontWeight.bold),
                       ),
-                      Text(' XP', style: textStyles.labelMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
+                      Text(' XP',
+                          style: textStyles.labelMedium?.copyWith(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  Text('${user.xpForNextLevel} XP to Level ${user.level + 1}', style: textStyles.labelSmall?.copyWith(color: Colors.black.withValues(alpha: 0.7))),
+                  Text('${user.xpForNextLevel} XP to Level ${user.level + 1}',
+                      style: textStyles.labelSmall?.copyWith(
+                          color: Colors.black.withValues(alpha: 0.7))),
                 ],
               ),
               const SizedBox(height: 8),
@@ -218,9 +273,12 @@ class _StatsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textStyles = Theme.of(context).textTheme;
-    final totalWorkouts = activities.where((a) => a.type == ActivityType.workout).length;
-    final totalCalories = activities.fold(0, (sum, a) => sum + (a.caloriesBurned ?? 0));
-    final totalMinutes = activities.fold(0, (sum, a) => sum + (a.durationMinutes ?? 0));
+    final totalWorkouts =
+        activities.where((a) => a.type == ActivityType.workout).length;
+    final totalCalories =
+        activities.fold(0, (sum, a) => sum + (a.caloriesBurned ?? 0));
+    final totalMinutes =
+        activities.fold(0, (sum, a) => sum + (a.durationMinutes ?? 0));
     final totalHours = (totalMinutes / 60).floor();
 
     return Column(
@@ -309,14 +367,17 @@ class _StatCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: colors.outline.withValues(alpha: 0.1), width: 1),
+          border: Border.all(
+              color: colors.outline.withValues(alpha: 0.1), width: 1),
         ),
         child: Row(
           children: [
             Container(
               width: 40,
               height: 40,
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppRadius.sm)),
+              decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.sm)),
               child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(width: 12),
@@ -328,11 +389,16 @@ class _StatCard extends StatelessWidget {
                     AnimatedFormattedCounter(
                       value: animatedValue!,
                       suffix: suffix,
-                      style: textStyles.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      style: textStyles.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     )
                   else
-                    Text(value, style: textStyles.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                  Text(label, style: textStyles.labelSmall?.copyWith(color: colors.onSurfaceVariant)),
+                    Text(value,
+                        style: textStyles.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(label,
+                      style: textStyles.labelSmall
+                          ?.copyWith(color: colors.onSurfaceVariant)),
                 ],
               ),
             ),
@@ -361,7 +427,9 @@ class _BadgesSection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('Badges', style: textStyles.titleMedium),
-            Text('${earnedBadges.length}/${allBadges.length}', style: textStyles.labelMedium?.copyWith(color: colors.onSurfaceVariant)),
+            Text('${earnedBadges.length}/${allBadges.length}',
+                style: textStyles.labelMedium
+                    ?.copyWith(color: colors.onSurfaceVariant)),
           ],
         ),
         const SizedBox(height: 12),
@@ -374,7 +442,8 @@ class _BadgesSection extends StatelessWidget {
               final badge = allBadges[index];
               final isEarned = earnedBadges.any((b) => b.id == badge.id);
               return Padding(
-                padding: EdgeInsets.only(right: index < allBadges.length - 1 ? 12 : 0),
+                padding: EdgeInsets.only(
+                    right: index < allBadges.length - 1 ? 12 : 0),
                 child: _BadgeItem(badge: badge, isEarned: isEarned),
               );
             },
@@ -393,19 +462,28 @@ class _BadgeItem extends StatelessWidget {
 
   Color _getBadgeColor(String tier) {
     switch (tier) {
-      case 'gold': return const Color(0xFFFFD700);
-      case 'silver': return const Color(0xFFC0C0C0);
-      case 'bronze': default: return const Color(0xFFCD7F32);
+      case 'gold':
+        return const Color(0xFFFFD700);
+      case 'silver':
+        return const Color(0xFFC0C0C0);
+      case 'bronze':
+      default:
+        return const Color(0xFFCD7F32);
     }
   }
 
   IconData _getIconData(String iconName) {
     switch (iconName) {
-      case 'local_fire_department': return Icons.local_fire_department;
-      case 'fitness_center': return Icons.fitness_center;
-      case 'place': return Icons.place;
-      case 'star': return Icons.star;
-      default: return Icons.emoji_events;
+      case 'local_fire_department':
+        return Icons.local_fire_department;
+      case 'fitness_center':
+        return Icons.fitness_center;
+      case 'place':
+        return Icons.place;
+      case 'star':
+        return Icons.star;
+      default:
+        return Icons.emoji_events;
     }
   }
 
@@ -418,9 +496,14 @@ class _BadgeItem extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(badge.name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            Text(badge.name,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text(badge.description, style: Theme.of(context).textTheme.bodyMedium),
+            Text(badge.description,
+                style: Theme.of(context).textTheme.bodyMedium),
           ],
         ),
       ),
@@ -448,7 +531,11 @@ class _BadgeItem extends StatelessWidget {
             decoration: BoxDecoration(
               color: colors.surface,
               borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(color: isEarned ? badgeColor.withValues(alpha: 0.5) : colors.outline.withValues(alpha: 0.2), width: 1),
+              border: Border.all(
+                  color: isEarned
+                      ? badgeColor.withValues(alpha: 0.5)
+                      : colors.outline.withValues(alpha: 0.2),
+                  width: 1),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -456,11 +543,19 @@ class _BadgeItem extends StatelessWidget {
                 Container(
                   width: 48,
                   height: 48,
-                  decoration: BoxDecoration(color: badgeColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppRadius.sm)),
-                  child: Icon(_getIconData(badge.iconName), color: badgeColor, size: 24),
+                  decoration: BoxDecoration(
+                      color: badgeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.sm)),
+                  child: Icon(_getIconData(badge.iconName),
+                      color: badgeColor, size: 24),
                 ),
                 const SizedBox(height: 8),
-                Text(badge.name, style: textStyles.labelSmall?.copyWith(fontWeight: FontWeight.w600), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(badge.name,
+                    style: textStyles.labelSmall
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
               ],
             ),
           ),

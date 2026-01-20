@@ -47,19 +47,27 @@ class _TripsScreenState extends State<TripsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('My Trips', style: textStyles.headlineMedium)
-                              .animate().fadeIn().slideX(begin: -0.1),
+                              .animate()
+                              .fadeIn()
+                              .slideX(begin: -0.1),
                           FilledButton.icon(
                             onPressed: () => _showCreateTripSheet(context),
                             icon: const Icon(Icons.add, size: 18),
                             label: const Text('New Trip'),
-                            style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
-                          ).animate().fadeIn(delay: 200.ms).scale(delay: 200.ms),
+                            style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 10)),
+                          )
+                              .animate()
+                              .fadeIn(delay: 200.ms)
+                              .scale(delay: 200.ms),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Plan and track your fitness travels',
-                        style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+                        style: textStyles.bodyMedium
+                            ?.copyWith(color: colors.onSurfaceVariant),
                       ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.1),
                     ],
                   ),
@@ -81,8 +89,7 @@ class _TripsScreenState extends State<TripsScreen> {
                             HapticUtils.light();
                             context.push('/trip/${tripService.activeTrip!.id}');
                           },
-                        )
-                            .animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
+                        ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
                       ],
                     ),
                   ),
@@ -90,7 +97,9 @@ class _TripsScreenState extends State<TripsScreen> {
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],
               // Current trips that are not active
-              if (tripService.currentTrips.where((t) => !t.isActive).isNotEmpty) ...[
+              if (tripService.currentTrips
+                  .where((t) => !t.isActive)
+                  .isNotEmpty) ...[
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -101,17 +110,24 @@ class _TripsScreenState extends State<TripsScreen> {
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      final currentNonActive = tripService.currentTrips.where((t) => !t.isActive).toList();
+                      final currentNonActive = tripService.currentTrips
+                          .where((t) => !t.isActive)
+                          .toList();
                       final trip = currentNonActive[index];
                       return Padding(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                         child: _TripCard(
                           trip: trip,
                           onTap: () => context.push('/trip/${trip.id}'),
-                        ).animate().fadeIn(delay: ((index + 1) * 100).ms).slideY(begin: 0.1, delay: ((index + 1) * 100).ms),
+                        )
+                            .animate()
+                            .fadeIn(delay: ((index + 1) * 100).ms)
+                            .slideY(begin: 0.1, delay: ((index + 1) * 100).ms),
                       );
                     },
-                    childCount: tripService.currentTrips.where((t) => !t.isActive).length,
+                    childCount: tripService.currentTrips
+                        .where((t) => !t.isActive)
+                        .length,
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 12)),
@@ -133,7 +149,10 @@ class _TripsScreenState extends State<TripsScreen> {
                         child: _TripCard(
                           trip: trip,
                           onTap: () => context.push('/trip/${trip.id}'),
-                        ).animate().fadeIn(delay: ((index + 1) * 100).ms).slideY(begin: 0.1, delay: ((index + 1) * 100).ms),
+                        )
+                            .animate()
+                            .fadeIn(delay: ((index + 1) * 100).ms)
+                            .slideY(begin: 0.1, delay: ((index + 1) * 100).ms),
                       );
                     },
                     childCount: tripService.upcomingTrips.length,
@@ -159,7 +178,10 @@ class _TripsScreenState extends State<TripsScreen> {
                           trip: trip,
                           isPast: true,
                           onTap: () => context.push('/trip/${trip.id}'),
-                        ).animate().fadeIn(delay: ((index + 1) * 100).ms).slideY(begin: 0.1, delay: ((index + 1) * 100).ms),
+                        )
+                            .animate()
+                            .fadeIn(delay: ((index + 1) * 100).ms)
+                            .slideY(begin: 0.1, delay: ((index + 1) * 100).ms),
                       );
                     },
                     childCount: tripService.pastTrips.length,
@@ -222,7 +244,8 @@ class _ActiveTripCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(AppRadius.full),
@@ -230,14 +253,23 @@ class _ActiveTripCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle)),
+                        Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                                color: AppColors.success,
+                                shape: BoxShape.circle)),
                         const SizedBox(width: 6),
-                        Text('Active Now', style: textStyles.labelSmall?.copyWith(color: Colors.black, fontWeight: FontWeight.w600)),
+                        Text('Active Now',
+                            style: textStyles.labelSmall?.copyWith(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
                   const Spacer(),
-                  const Icon(Icons.arrow_forward_ios, color: Colors.black, size: 16),
+                  const Icon(Icons.arrow_forward_ios,
+                      color: Colors.black, size: 16),
                 ],
               ),
               const SizedBox(height: 16),
@@ -249,9 +281,14 @@ class _ActiveTripCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(trip.destinationCity, style: textStyles.titleLarge?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
+                        Text(trip.destinationCity,
+                            style: textStyles.titleLarge?.copyWith(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold)),
                         if (trip.destinationCountry != null)
-                          Text(trip.destinationCountry!, style: textStyles.bodyMedium?.copyWith(color: Colors.black.withValues(alpha: 0.8))),
+                          Text(trip.destinationCountry!,
+                              style: textStyles.bodyMedium?.copyWith(
+                                  color: Colors.black.withValues(alpha: 0.8))),
                       ],
                     ),
                   ),
@@ -266,11 +303,25 @@ class _ActiveTripCard extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Expanded(child: _StatColumn(value: '${trip.durationDays}', label: 'Days')),
-                    Container(width: 1, height: 40, color: Colors.black.withValues(alpha: 0.3)),
-                    Expanded(child: _StatColumn(value: '${trip.savedPlaceIds.length}', label: 'Places')),
-                    Container(width: 1, height: 40, color: Colors.black.withValues(alpha: 0.3)),
-                    Expanded(child: _StatColumn(value: dateFormat.format(trip.endDate), label: 'Ends')),
+                    Expanded(
+                        child: _StatColumn(
+                            value: '${trip.durationDays}', label: 'Days')),
+                    Container(
+                        width: 1,
+                        height: 40,
+                        color: Colors.black.withValues(alpha: 0.3)),
+                    Expanded(
+                        child: _StatColumn(
+                            value: '${trip.savedPlaceIds.length}',
+                            label: 'Places')),
+                    Container(
+                        width: 1,
+                        height: 40,
+                        color: Colors.black.withValues(alpha: 0.3)),
+                    Expanded(
+                        child: _StatColumn(
+                            value: dateFormat.format(trip.endDate),
+                            label: 'Ends')),
                   ],
                 ),
               ),
@@ -293,8 +344,12 @@ class _StatColumn extends StatelessWidget {
     final textStyles = Theme.of(context).textTheme;
     return Column(
       children: [
-        Text(value, style: textStyles.titleMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
-        Text(label, style: textStyles.labelSmall?.copyWith(color: Colors.black.withValues(alpha: 0.8))),
+        Text(value,
+            style: textStyles.titleMedium
+                ?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
+        Text(label,
+            style: textStyles.labelSmall
+                ?.copyWith(color: Colors.black.withValues(alpha: 0.8))),
       ],
     );
   }
@@ -309,11 +364,16 @@ class _TripCard extends StatelessWidget {
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'Active': return AppColors.success;
-      case 'Current': return AppColors.primary;
-      case 'Upcoming': return AppColors.info;
-      case 'Past': return AppColors.muted;
-      default: return AppColors.muted;
+      case 'Active':
+        return AppColors.success;
+      case 'Current':
+        return AppColors.primary;
+      case 'Upcoming':
+        return AppColors.info;
+      case 'Past':
+        return AppColors.muted;
+      default:
+        return AppColors.muted;
     }
   }
 
@@ -337,32 +397,42 @@ class _TripCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: (isPast ? colors.outline : AppColors.info).withValues(alpha: 0.1),
+                  color: (isPast ? colors.outline : AppColors.info)
+                      .withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                child: Center(child: Text(isPast ? '📍' : '✈️', style: const TextStyle(fontSize: 24))),
+                child: Center(
+                    child: Text(isPast ? '📍' : '✈️',
+                        style: const TextStyle(fontSize: 24))),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(trip.destinationCity, style: textStyles.titleSmall?.copyWith(color: isPast ? colors.onSurfaceVariant : null)),
+                    Text(trip.destinationCity,
+                        style: textStyles.titleSmall?.copyWith(
+                            color: isPast ? colors.onSurfaceVariant : null)),
                     const SizedBox(height: 4),
                     Text(
                       '${dateFormat.format(trip.startDate)} - ${dateFormat.format(trip.endDate)}',
-                      style: textStyles.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                      style: textStyles.bodySmall
+                          ?.copyWith(color: colors.onSurfaceVariant),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: _getStatusColor(trip.status).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppRadius.full),
                 ),
-                child: Text(trip.status, style: textStyles.labelSmall?.copyWith(color: _getStatusColor(trip.status), fontWeight: FontWeight.w600)),
+                child: Text(trip.status,
+                    style: textStyles.labelSmall?.copyWith(
+                        color: _getStatusColor(trip.status),
+                        fontWeight: FontWeight.w600)),
               ),
             ],
           ),
@@ -393,7 +463,6 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
   String? _selectedCountry;
 
   // Validation state
-  bool _hasAttemptedSubmit = false;
   String? _cityError;
 
   // Submission state
@@ -438,7 +507,6 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
   /// Returns true if the form is valid and ready to submit
   bool _validateForm() {
     setState(() {
-      _hasAttemptedSubmit = true;
       _cityError = null;
     });
 
@@ -626,187 +694,192 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              // Drag handle
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: colors.outline.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colors.outline.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              // Title
-              Text('New Trip', style: textStyles.titleLarge),
-              const SizedBox(height: 24),
-              // City input field
-              TextField(
-                controller: _cityController,
-                focusNode: _cityFocusNode,
-                onChanged: _onCityChanged,
-                decoration: InputDecoration(
-                  labelText: 'Where are you going?',
-                  hintText: 'Enter a city',
-                  errorText: _cityError,
-                  prefixIcon: const Icon(Icons.location_on_outlined),
-                  suffixIcon: _isLoadingSuggestions
-                      ? const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : _cityController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                HapticUtils.light();
-                                _cityController.clear();
-                                setState(() {
-                                  _citySuggestions = [];
-                                  _selectedCity = null;
-                                  _selectedCountry = null;
-                                  _cityError = null;
-                                });
-                              },
-                            )
-                          : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                ),
-                textInputAction: TextInputAction.next,
-              ),
-              // Autocomplete suggestions dropdown
-              if (_citySuggestions.isNotEmpty && _selectedCity == null)
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    boxShadow: [
-                      BoxShadow(
-                        color: colors.shadow.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      padding: EdgeInsets.zero,
-                      itemCount: _citySuggestions.length,
-                      itemBuilder: (context, index) {
-                        final suggestion = _citySuggestions[index];
-                        return InkWell(
-                          onTap: () => _onSuggestionSelected(suggestion),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
+                const SizedBox(height: 16),
+                // Title
+                Text('New Trip', style: textStyles.titleLarge),
+                const SizedBox(height: 24),
+                // City input field
+                TextField(
+                  controller: _cityController,
+                  focusNode: _cityFocusNode,
+                  onChanged: _onCityChanged,
+                  decoration: InputDecoration(
+                    labelText: 'Where are you going?',
+                    hintText: 'Enter a city',
+                    errorText: _cityError,
+                    prefixIcon: const Icon(Icons.location_on_outlined),
+                    suffixIcon: _isLoadingSuggestions
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.location_on_outlined,
-                                  size: 20,
-                                  color: colors.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        suggestion.city,
-                                        style: textStyles.bodyMedium?.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      if (suggestion.country != null)
+                          )
+                        : _cityController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  HapticUtils.light();
+                                  _cityController.clear();
+                                  setState(() {
+                                    _citySuggestions = [];
+                                    _selectedCity = null;
+                                    _selectedCountry = null;
+                                    _cityError = null;
+                                  });
+                                },
+                              )
+                            : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                  ),
+                  textInputAction: TextInputAction.next,
+                ),
+                // Autocomplete suggestions dropdown
+                if (_citySuggestions.isNotEmpty && _selectedCity == null)
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colors.shadow.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        itemCount: _citySuggestions.length,
+                        itemBuilder: (context, index) {
+                          final suggestion = _citySuggestions[index];
+                          return InkWell(
+                            onTap: () => _onSuggestionSelected(suggestion),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.location_on_outlined,
+                                    size: 20,
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
                                         Text(
-                                          suggestion.country!,
-                                          style: textStyles.bodySmall?.copyWith(
-                                            color: colors.onSurfaceVariant,
+                                          suggestion.city,
+                                          style:
+                                              textStyles.bodyMedium?.copyWith(
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
-                                    ],
+                                        if (suggestion.country != null)
+                                          Text(
+                                            suggestion.country!,
+                                            style:
+                                                textStyles.bodySmall?.copyWith(
+                                              color: colors.onSurfaceVariant,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                // Date pickers
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DateSelector(
+                        label: 'Start Date',
+                        date: _startDate,
+                        onTap: () => _pickDate(true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _DateSelector(
+                        label: 'End Date',
+                        date: _endDate,
+                        onTap: () => _pickDate(false),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Notes field
+                TextField(
+                  controller: _notesController,
+                  maxLines: 4,
+                  minLines: 3,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    labelText: 'Notes (optional)',
+                    hintText: 'Add any travel notes, reminders, or plans...',
+                    alignLabelWithHint: true,
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(bottom: 48),
+                      child: Icon(Icons.notes_outlined),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                   ),
                 ),
-              const SizedBox(height: 16),
-              // Date pickers
-              Row(
-                children: [
-                  Expanded(
-                    child: _DateSelector(
-                      label: 'Start Date',
-                      date: _startDate,
-                      onTap: () => _pickDate(true),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _DateSelector(
-                      label: 'End Date',
-                      date: _endDate,
-                      onTap: () => _pickDate(false),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Notes field
-              TextField(
-                controller: _notesController,
-                maxLines: 4,
-                minLines: 3,
-                keyboardType: TextInputType.multiline,
-                textInputAction: TextInputAction.newline,
-                decoration: InputDecoration(
-                  labelText: 'Notes (optional)',
-                  hintText: 'Add any travel notes, reminders, or plans...',
-                  alignLabelWithHint: true,
-                  prefixIcon: const Padding(
-                    padding: EdgeInsets.only(bottom: 48),
-                    child: Icon(Icons.notes_outlined),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.md),
+                const SizedBox(height: 24),
+                // Create Trip button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed:
+                        (!_canSubmit || _isSubmitting) ? null : _createTrip,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text('Create Trip'),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              // Create Trip button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: (!_canSubmit || _isSubmitting) ? null : _createTrip,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Text('Create Trip'),
-                ),
-              ),
               ],
             ),
           ),

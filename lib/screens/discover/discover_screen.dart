@@ -451,7 +451,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                 child: Row(
                   children: [
                     // Place filters for Gyms, Trails tabs
-                    if (_tabController.index == 0 || _tabController.index == 3) ...[
+                    if (_tabController.index == 0 ||
+                        _tabController.index == 3) ...[
                       _buildSavedOnlyFilter(),
                       const SizedBox(width: 8),
                       _buildOpenNowFilter(),
@@ -517,7 +518,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       if (filteredResults.isEmpty) {
         return EmptyStateWidget(
           title: 'No gyms found',
-          description: 'Try searching with different keywords or adjusting filters',
+          description:
+              'Try searching with different keywords or adjusting filters',
           ctaLabel: 'Browse nearby',
           onCtaPressed: () {
             _searchController.clear();
@@ -572,7 +574,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       if (filteredResults.isEmpty) {
         return EmptyStateWidget(
           title: 'No restaurants found',
-          description: 'Try searching with different keywords or adjusting filters',
+          description:
+              'Try searching with different keywords or adjusting filters',
           ctaLabel: 'Browse nearby',
           onCtaPressed: () {
             _searchController.clear();
@@ -593,7 +596,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     final filteredRestaurants = _filterPlaces(_nearbyRestaurants);
     if (filteredRestaurants.isEmpty) {
       return EmptyStateWidget(
-        title: _filterSavedOnly ? 'No saved restaurants' : 'No restaurants nearby',
+        title:
+            _filterSavedOnly ? 'No saved restaurants' : 'No restaurants nearby',
         description: _filterSavedOnly
             ? 'Save restaurants by tapping the bookmark icon on place details'
             : _hasActiveFilters()
@@ -665,7 +669,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       if (filteredResults.isEmpty) {
         return EmptyStateWidget(
           title: 'No trails found',
-          description: 'Try searching with different keywords or adjusting filters',
+          description:
+              'Try searching with different keywords or adjusting filters',
           ctaLabel: 'Browse nearby',
           onCtaPressed: () {
             _searchController.clear();
@@ -824,27 +829,31 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                             return Container(
                               width: 200,
                               margin: EdgeInsets.only(
-                                right: photoIndex < place.photoReferences.length - 1
+                                right: photoIndex <
+                                        place.photoReferences.length - 1
                                     ? 8
                                     : 0,
                               ),
                               child: ClipRRect(
-                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.md),
                                 child: CachedNetworkImage(
                                   imageUrl: GooglePlacesService().getPhotoUrl(
                                     place.photoReferences[photoIndex],
                                     maxWidth: 400,
                                   ),
                                   fit: BoxFit.cover,
-                                  placeholder: (context, url) => Shimmer.fromColors(
+                                  placeholder: (context, url) =>
+                                      Shimmer.fromColors(
                                     baseColor: AppColors.surface,
                                     highlightColor: AppColors.surfaceLight,
                                     child: Container(color: AppColors.surface),
                                   ),
-                                  errorWidget: (context, url, error) => Container(
+                                  errorWidget: (context, url, error) =>
+                                      Container(
                                     color: typeColor.withValues(alpha: 0.1),
-                                    child:
-                                        Icon(typeIcon, color: typeColor, size: 48),
+                                    child: Icon(typeIcon,
+                                        color: typeColor, size: 48),
                                   ),
                                 ),
                               ),
@@ -875,7 +884,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                             color: AppColors.surface.withValues(alpha: 0.9),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(Icons.bookmark, size: 14, color: AppColors.xp),
+                          child: Icon(Icons.bookmark,
+                              size: 14, color: AppColors.xp),
                         ),
                       ),
                   ],
@@ -1068,7 +1078,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
             // Add image on left side
             if (event.imageUrl != null && event.imageUrl!.isNotEmpty)
               ClipRRect(
-                borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                borderRadius:
+                    const BorderRadius.horizontal(left: Radius.circular(12)),
                 child: CachedNetworkImage(
                   imageUrl: event.imageUrl!,
                   width: 120,
@@ -1087,7 +1098,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                     width: 120,
                     height: 120,
                     color: Colors.purple.withValues(alpha: 0.1),
-                    child: const Icon(Icons.event, color: Colors.purple, size: 40),
+                    child:
+                        const Icon(Icons.event, color: Colors.purple, size: 40),
                   ),
                 ),
               ),
@@ -1255,7 +1267,11 @@ class _DiscoverScreenState extends State<DiscoverScreen>
 
   // Check if any place filters are active
   bool _hasActiveFilters() {
-    return _filterSavedOnly || _filterOpenNow || _filterRating45Plus || _filterPlaceHasPhotos || _selectedDietaryFilters.isNotEmpty;
+    return _filterSavedOnly ||
+        _filterOpenNow ||
+        _filterRating45Plus ||
+        _filterPlaceHasPhotos ||
+        _selectedDietaryFilters.isNotEmpty;
   }
 
   void _showCategoryPicker() {

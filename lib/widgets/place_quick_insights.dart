@@ -25,10 +25,13 @@ class PlaceQuickInsightsWidget extends StatelessWidget {
       return Wrap(
         spacing: 6,
         runSpacing: 6,
-        children: insights.tags.take(3).map((tag) => _QuickInsightChip(
-          label: tag,
-          compact: true,
-        )).toList(),
+        children: insights.tags
+            .take(3)
+            .map((tag) => _QuickInsightChip(
+                  label: tag,
+                  compact: true,
+                ))
+            .toList(),
       );
     }
 
@@ -71,7 +74,8 @@ class PlaceQuickInsightsWidget extends StatelessWidget {
               const Spacer(),
               if (insights.fromCache)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: colors.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(AppRadius.full),
@@ -97,18 +101,20 @@ class PlaceQuickInsightsWidget extends StatelessWidget {
                 ),
             ],
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // Tags
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: insights.tags.map((tag) => _QuickInsightChip(
-              label: tag,
-            )).toList(),
+            children: insights.tags
+                .map((tag) => _QuickInsightChip(
+                      label: tag,
+                    ))
+                .toList(),
           ),
-          
+
           // Vibe & Best For
           if (insights.vibe != null || insights.bestFor != null) ...[
             const SizedBox(height: 12),
@@ -135,7 +141,7 @@ class PlaceQuickInsightsWidget extends StatelessWidget {
               ],
             ),
           ],
-          
+
           // Quick Tip
           if (insights.quickTip != null) ...[
             const SizedBox(height: 12),
@@ -205,7 +211,8 @@ class _QuickInsightChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: (compact ? textStyles.labelSmall : textStyles.labelMedium)?.copyWith(
+        style: (compact ? textStyles.labelSmall : textStyles.labelMedium)
+            ?.copyWith(
           color: colors.primary,
           fontWeight: FontWeight.w600,
         ),
@@ -291,9 +298,9 @@ class PlaceQuickInsightsInline extends StatelessWidget {
           child: Text(
             insights.tags.take(2).join(' • '),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: colors.primary,
-              fontWeight: FontWeight.w600,
-            ),
+                  color: colors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -302,4 +309,3 @@ class PlaceQuickInsightsInline extends StatelessWidget {
     );
   }
 }
-

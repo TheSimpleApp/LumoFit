@@ -238,12 +238,15 @@ class EventDetailScreen extends StatelessWidget {
 
   Future<void> _handleAddToTrip(BuildContext context) async {
     final tripService = context.read<TripService>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final active = tripService.activeTrip;
     if (active == null) {
       await HapticUtils.error();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No active trip. Create a trip first.')),
-      );
+      if (context.mounted) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(content: Text('No active trip. Create a trip first.')),
+        );
+      }
       return;
     }
 
@@ -269,7 +272,7 @@ class EventDetailScreen extends StatelessWidget {
     await tripService.addItineraryItem(active.id, item);
     await HapticUtils.success();
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text(inRange
               ? 'Added to ${active.destinationCity} itinerary'

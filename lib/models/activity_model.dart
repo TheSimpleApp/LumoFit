@@ -198,7 +198,7 @@ class ActivityModel {
       ActivityType.yoga: 30,
       ActivityType.other: 10,
     };
-    
+
     int base = basXp[type] ?? 10;
     if (durationMinutes != null && durationMinutes > 0) {
       base += (durationMinutes / 10).floor() * 5;

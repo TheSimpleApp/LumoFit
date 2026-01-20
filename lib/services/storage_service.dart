@@ -110,7 +110,7 @@ class StorageService {
     try {
       final List<String>? stringList = _prefs!.getStringList(key);
       if (stringList == null) return null;
-      
+
       final List<Map<String, dynamic>> result = [];
       for (final s in stringList) {
         try {
