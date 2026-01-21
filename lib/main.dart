@@ -6,9 +6,10 @@ import 'package:fittravel/nav.dart';
 import 'package:fittravel/services/services.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
 import 'package:fittravel/config/app_config.dart';
+import 'package:marionette_flutter/marionette_flutter.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  MarionetteBinding.ensureInitialized(const MarionetteConfiguration());
 
   // Global error handling to reduce noisy preview logs and capture unexpected errors
   FlutterError.onError = (FlutterErrorDetails details) {
