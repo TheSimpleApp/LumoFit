@@ -30,6 +30,13 @@ class StreakCard extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: AppColors.goldShimmer,
             borderRadius: BorderRadius.circular(AppRadius.xl),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.4),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Row(
             children: [

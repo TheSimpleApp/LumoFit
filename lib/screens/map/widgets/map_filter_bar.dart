@@ -66,7 +66,7 @@ class MapFilterBar extends StatelessWidget {
                 isSelected: activeFilters.contains(MapFilterType.gyms),
                 onTap: () => _handleFilterTap(MapFilterType.gyms),
                 colors: colors,
-                markerColor: Colors.blue,
+                markerColor: AppColors.categoryGym,
               ),
               const SizedBox(width: 8),
               _FilterChip(
@@ -75,7 +75,7 @@ class MapFilterBar extends StatelessWidget {
                 isSelected: activeFilters.contains(MapFilterType.food),
                 onTap: () => _handleFilterTap(MapFilterType.food),
                 colors: colors,
-                markerColor: Colors.orange,
+                markerColor: AppColors.categoryFood,
               ),
               const SizedBox(width: 8),
               _FilterChip(
@@ -84,7 +84,7 @@ class MapFilterBar extends StatelessWidget {
                 isSelected: activeFilters.contains(MapFilterType.trails),
                 onTap: () => _handleFilterTap(MapFilterType.trails),
                 colors: colors,
-                markerColor: Colors.green,
+                markerColor: AppColors.categoryTrail,
               ),
               const SizedBox(width: 8),
               _FilterChip(
@@ -93,7 +93,7 @@ class MapFilterBar extends StatelessWidget {
                 isSelected: activeFilters.contains(MapFilterType.events),
                 onTap: () => _handleFilterTap(MapFilterType.events),
                 colors: colors,
-                markerColor: Colors.purple,
+                markerColor: AppColors.categoryEvent,
               ),
               const SizedBox(width: 8),
               _FilterChip(
@@ -320,22 +320,30 @@ class _FilterChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: isSelected
-                ? colors.primaryContainer
+                ? AppColors.primaryMuted
                 : colors.surface.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isSelected
-                  ? colors.primary
+                  ? AppColors.primary
                   : colors.outline.withValues(alpha: 0.3),
-              width: isSelected ? 2 : 1,
+              width: isSelected ? 1.5 : 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -355,7 +363,7 @@ class _FilterChip extends StatelessWidget {
                 icon,
                 size: 18,
                 color: isSelected
-                    ? colors.onPrimaryContainer
+                    ? AppColors.primary
                     : colors.onSurface.withValues(alpha: 0.7),
               ),
               const SizedBox(width: 6),
@@ -365,7 +373,7 @@ class _FilterChip extends StatelessWidget {
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
-                      ? colors.onPrimaryContainer
+                      ? AppColors.primary
                       : colors.onSurface.withValues(alpha: 0.8),
                 ),
               ),

@@ -390,8 +390,12 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                 isScrollable: true,
                 tabAlignment: TabAlignment.start,
                 indicator: BoxDecoration(
-                  color: colors.surface,
+                  color: AppColors.primaryMuted,
                   borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
                 dividerColor: Colors.transparent,
@@ -796,20 +800,14 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               color: colors.surface,
               borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(
-                color: colors.outline.withValues(alpha: 0.15),
-                width: 1.5,
+                color: AppColors.borderGold,
+                width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
+                  color: AppColors.primary.withValues(alpha: 0.08),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
-                  spreadRadius: 0,
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
                   spreadRadius: 0,
                 ),
               ],
