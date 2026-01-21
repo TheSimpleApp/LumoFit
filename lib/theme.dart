@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // =============================================================================
-// FITTRAVEL DARK LUXURY THEME
-// Design: Black background, warm gold accent, ultra-minimal
-// References: Gentler Streak, Slopes, Opal
+// FITTRAVEL PREMIUM EXECUTIVE THEME
+// Design: Black background, classic gold accent, executive luxury
+// Target: High-level executives, entrepreneurs, business travelers
+// Inspired by: Amex Gold, Four Seasons, executive timepieces
 // =============================================================================
 
 class AppSpacing {
@@ -42,33 +43,73 @@ class AppRadius {
 }
 
 // =============================================================================
-// CORE COLOR PALETTE - Dark Luxury
+// CORE COLOR PALETTE - Premium Executive
 // =============================================================================
 
 class AppColors {
+  // -------------------------------------------------------------------------
   // Backgrounds - Pure black foundation
+  // -------------------------------------------------------------------------
   static const Color background = Color(0xFF0A0A0A);
   static const Color surface = Color(0xFF1A1A1A);
   static const Color surfaceLight = Color(0xFF242424);
   static const Color surfaceBorder = Color(0xFF2A2A2A);
+  // Premium surface additions
+  static const Color surfaceElevated = Color(0xFF1E1E1E);
+  static const Color surfaceGlass = Color(0xCC151515); // 80% opacity
 
-  // Primary Accent - Warm Gold (used sparingly)
-  static const Color primary = Color(0xFFE8C547);
-  static const Color primaryMuted = Color(0x26E8C547); // 15% opacity
-  static const Color primaryDim = Color(0x4DE8C547); // 30% opacity
+  // -------------------------------------------------------------------------
+  // Primary Accent - Classic Gold (executive, sophisticated)
+  // -------------------------------------------------------------------------
+  static const Color primary = Color(0xFFD4AF37); // Classic gold
+  static const Color primaryMuted = Color(0x26D4AF37); // 15% opacity
+  static const Color primaryDim = Color(0x4DD4AF37); // 30% opacity
+  // Premium gold variations
+  static const Color goldLight = Color(0xFFF5D76E); // Highlights, shimmer peaks
+  static const Color goldDark = Color(0xFFB8860B); // Shadows, depth
+  static const Color goldGlow = Color(0x80D4AF37); // 50% for glow effects
+  static const Color borderGold = Color(0x33D4AF37); // 20% for subtle borders
+  static const Color champagne = Color(0xFFF7E7CE); // Premium text highlights
 
+  // -------------------------------------------------------------------------
+  // Category Colors - Premium palette for map pins & UI accents
+  // Carefully selected to complement gold and feel sophisticated
+  // -------------------------------------------------------------------------
+  static const Color categoryGym = Color(0xFF3B82F6); // Sapphire Blue
+  static const Color categoryGymMuted = Color(0x263B82F6);
+  static const Color categoryFood = Color(0xFFF97316); // Warm Coral
+  static const Color categoryFoodMuted = Color(0x26F97316);
+  static const Color categoryTrail = Color(0xFF10B981); // Emerald Green
+  static const Color categoryTrailMuted = Color(0x2610B981);
+  static const Color categoryEvent = Color(0xFF8B5CF6); // Royal Purple
+  static const Color categoryEventMuted = Color(0x268B5CF6);
+
+  // Marker hue values for Google Maps (HSL hue 0-360)
+  // These correspond to the category colors above
+  static const double markerHueGym = 217.0; // Sapphire Blue
+  static const double markerHueFood = 25.0; // Warm Coral
+  static const double markerHueTrail = 160.0; // Emerald Green
+  static const double markerHueEvent = 258.0; // Royal Purple
+  static const double markerHueSaved = 45.0; // Gold (saved places)
+
+  // -------------------------------------------------------------------------
   // Neutral - Gray scale
+  // -------------------------------------------------------------------------
   static const Color inactive = Color(0xFF3A3A3A);
   static const Color muted = Color(0xFF4A4A4A);
   static const Color subtle = Color(0xFF5A5A5A);
 
+  // -------------------------------------------------------------------------
   // Text hierarchy
+  // -------------------------------------------------------------------------
   static const Color textPrimary = Color(0xFFFFFFFF);
   static const Color textSecondary = Color(0xFFA0A0A0);
   static const Color textTertiary = Color(0xFF6A6A6A);
   static const Color textMuted = Color(0xFF4A4A4A);
 
+  // -------------------------------------------------------------------------
   // Semantic - Keep minimal and muted
+  // -------------------------------------------------------------------------
   static const Color success = Color(0xFF4ADE80);
   static const Color successMuted = Color(0x264ADE80);
   static const Color error = Color(0xFFEF4444);
@@ -78,18 +119,45 @@ class AppColors {
   static const Color info = Color(0xFF60A5FA);
   static const Color infoMuted = Color(0x2660A5FA);
 
+  // -------------------------------------------------------------------------
   // XP/Gamification - All gold-based for consistency
+  // -------------------------------------------------------------------------
   static const Color xp = primary;
   static const Color xpMuted = primaryMuted;
   static const Color badge = primary;
   static const Color level = primary;
 
-  // Gradients (use sparingly)
-  static const LinearGradient goldShimmer = LinearGradient(
-    colors: [Color(0xFFE8C547), Color(0xFFF5D76E)],
+  // -------------------------------------------------------------------------
+  // Gradients - Premium (use sparingly)
+  // -------------------------------------------------------------------------
+
+  /// Rich gold gradient for premium buttons and headers
+  static const LinearGradient goldPremium = LinearGradient(
+    colors: [Color(0xFFD4AF37), Color(0xFFB8860B)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  /// Shimmer effect for badges and highlights
+  static const LinearGradient goldShimmer = LinearGradient(
+    colors: [Color(0xFFD4AF37), Color(0xFFF5D76E), Color(0xFFD4AF37)],
+    stops: [0.0, 0.5, 1.0],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Subtle surface gradient for premium cards
+  static const LinearGradient surfacePremium = LinearGradient(
+    colors: [Color(0xFF1A1A1A), Color(0xFF151515)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+
+  /// Radial gold glow for focused elements
+  static RadialGradient goldRadialGlow(double radius) => RadialGradient(
+        colors: [goldGlow, Colors.transparent],
+        radius: radius,
+      );
 }
 
 // =============================================================================
@@ -229,6 +297,17 @@ extension TextStyleExtensions on TextStyle {
   TextStyle withColor(Color color) => copyWith(color: color);
   TextStyle withSize(double size) => copyWith(fontSize: size);
   TextStyle withHeight(double height) => copyWith(height: height);
+
+  // Premium gold text styles
+  TextStyle get gold => copyWith(color: AppColors.primary);
+  TextStyle get goldLight => copyWith(color: AppColors.goldLight);
+  TextStyle get champagne => copyWith(color: AppColors.champagne);
+
+  // Category color text styles
+  TextStyle get gym => copyWith(color: AppColors.categoryGym);
+  TextStyle get food => copyWith(color: AppColors.categoryFood);
+  TextStyle get trail => copyWith(color: AppColors.categoryTrail);
+  TextStyle get event => copyWith(color: AppColors.categoryEvent);
 }
 
 extension ContextExtensions on BuildContext {
@@ -586,6 +665,10 @@ ThemeData get appTheme => ThemeData(
 // =============================================================================
 
 class AppDecorations {
+  // -------------------------------------------------------------------------
+  // Standard Decorations
+  // -------------------------------------------------------------------------
+
   /// Standard card decoration with border
   static BoxDecoration get card => BoxDecoration(
         color: AppColors.surface,
@@ -621,4 +704,92 @@ class AppDecorations {
         borderRadius: BorderRadius.circular(AppRadius.sm),
         border: Border.all(color: AppColors.surfaceBorder, width: 1),
       );
+
+  // -------------------------------------------------------------------------
+  // Premium Decorations
+  // -------------------------------------------------------------------------
+
+  /// Premium card with subtle gold border accent
+  static BoxDecoration get cardPremium => BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.borderGold, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      );
+
+  /// Glass-morphism card with gold tint
+  static BoxDecoration get cardGlass => BoxDecoration(
+        color: AppColors.surfaceGlass,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.borderGold, width: 1),
+      );
+
+  /// Premium badge with gold shimmer gradient
+  static BoxDecoration get badgePremium => BoxDecoration(
+        gradient: AppColors.goldShimmer,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      );
+
+  /// Selected state with gold glow
+  static BoxDecoration get selectedPremium => BoxDecoration(
+        color: AppColors.primaryMuted,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.primary, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.2),
+            blurRadius: 8,
+            spreadRadius: 0,
+          ),
+        ],
+      );
+
+  /// Premium button with gradient background
+  static BoxDecoration get buttonPremium => BoxDecoration(
+        gradient: AppColors.goldPremium,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.goldDark.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      );
+
+  // -------------------------------------------------------------------------
+  // Category Decorations (for chips, badges, map markers)
+  // -------------------------------------------------------------------------
+
+  static BoxDecoration categoryChip(Color color, Color mutedColor) =>
+      BoxDecoration(
+        color: mutedColor,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+      );
+
+  static BoxDecoration get gymChip =>
+      categoryChip(AppColors.categoryGym, AppColors.categoryGymMuted);
+
+  static BoxDecoration get foodChip =>
+      categoryChip(AppColors.categoryFood, AppColors.categoryFoodMuted);
+
+  static BoxDecoration get trailChip =>
+      categoryChip(AppColors.categoryTrail, AppColors.categoryTrailMuted);
+
+  static BoxDecoration get eventChip =>
+      categoryChip(AppColors.categoryEvent, AppColors.categoryEventMuted);
 }

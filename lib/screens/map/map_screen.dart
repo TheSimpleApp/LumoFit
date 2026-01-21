@@ -264,7 +264,7 @@ class _MapScreenState extends State<MapScreen> {
       ));
     }
 
-    // Add event markers
+    // Add event markers (Royal Purple from premium theme)
     if (_activeFilters.contains(MapFilterType.all) ||
         _activeFilters.contains(MapFilterType.events)) {
       for (final entry in _eventMarkers.entries) {
@@ -274,7 +274,7 @@ class _MapScreenState extends State<MapScreen> {
             markerId: MarkerId('event_${entry.key}'),
             position: LatLng(event.latitude!, event.longitude!),
             icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueViolet),
+                AppColors.markerHueEvent),
             onTap: () => _onMarkerTapped(event),
           ));
         }
@@ -301,20 +301,20 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   BitmapDescriptor _getMarkerIcon(PlaceType type, {bool isSaved = false}) {
-    // Saved places get a gold/yellow marker to stand out
+    // Saved places get a gold marker to stand out (matches premium theme)
     if (isSaved) {
-      return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow);
+      return BitmapDescriptor.defaultMarkerWithHue(AppColors.markerHueSaved);
     }
 
+    // Category-specific colors from premium theme palette
     switch (type) {
       case PlaceType.gym:
-        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue);
+        return BitmapDescriptor.defaultMarkerWithHue(AppColors.markerHueGym);
       case PlaceType.restaurant:
-        return BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueOrange);
+        return BitmapDescriptor.defaultMarkerWithHue(AppColors.markerHueFood);
       case PlaceType.trail:
       case PlaceType.park:
-        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+        return BitmapDescriptor.defaultMarkerWithHue(AppColors.markerHueTrail);
       default:
         return BitmapDescriptor.defaultMarker;
     }
@@ -674,8 +674,8 @@ class _MapScreenState extends State<MapScreen> {
         newMarkers.add(Marker(
           markerId: MarkerId('ai_${place.name}'),
           position: LatLng(place.lat!, place.lng!),
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+              AppColors.markerHueEvent), // AI suggestions use event color
           infoWindow: InfoWindow(
             title: place.name,
             snippet: place.neighborhood ?? place.type,
