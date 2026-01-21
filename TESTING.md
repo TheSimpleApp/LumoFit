@@ -280,6 +280,72 @@ echo "Now run: flutter run -d 'iPhone 15 Pro'"
 
 ---
 
+## 🎭 Marionette App Testing
+
+Marionette allows Claude to interact with your running Flutter app directly.
+
+### Setup
+1. Run `/setup-marionette` to install Marionette (one-time setup)
+2. Launch app on any platform:
+   ```bash
+   # Windows Desktop
+   flutter run -d windows
+
+   # iOS Simulator (macOS only)
+   flutter run -d "iPhone 15 Pro"
+
+   # Android Emulator
+   flutter run -d emulator
+   ```
+3. Copy the **VM Service URL** from console output:
+   ```
+   A Dart VM Service on Windows is available at: ws://127.0.0.1:XXXXX/XXXXX=/ws
+   ```
+
+### Using Marionette
+
+**Take screenshots:**
+```
+"Take a screenshot of the current screen"
+```
+
+**Find elements:**
+```
+"Show me all buttons on this screen"
+"Find the login email field"
+```
+
+**Interact with UI:**
+```
+"Tap the login button"
+"Enter test@example.com in the email field"
+"Scroll down on the discover screen"
+```
+
+**Test flows:**
+```
+"Test the login flow with test credentials"
+"Navigate to the map tab and take a screenshot"
+"Find and tap the save button"
+```
+
+**Automated analysis:**
+```
+/analyze-app
+```
+Then provide the VM service URL when prompted.
+
+### Test Credentials for Marionette
+Use these when testing authentication:
+- Email: `test@example.com`
+- Password: `Test123`
+
+### Platform Notes
+- **Windows Desktop**: Best performance, native experience
+- **iOS Simulator**: Requires macOS
+- **Web**: Limited Marionette support
+- **VM Service URL changes** each time you restart the app
+
 ## 🌐 Browser Automation Testing
 
 Claude Code can use browser automation to test web-based flows:
@@ -398,3 +464,48 @@ flutter clean
 flutter pub get
 flutter run
 ```
+
+### "Marionette MCP not recognized" (Windows)
+
+**Error:** `'marionette_mcp' is not recognized as an internal or external command`
+
+**Root Cause:** Marionette MCP is a Dart package (not npm). On Windows, Dart global executables are `.bat` files that need `cmd /c` to run.
+
+**Fix:** Update MCP config to use proper Windows invocation:
+
+**WRONG:**
+```json
+{
+  "marionette": {
+    "command": "marionette_mcp",
+    "args": []
+  }
+}
+```
+
+**CORRECT:**
+```json
+{
+  "marionette": {
+    "command": "cmd",
+    "args": ["/c", "marionette_mcp"]
+  }
+}
+```
+
+**Config file locations:**
+- Cursor: `~/.cursor/mcp.json`
+- Claude Desktop: `%APPDATA%\Claude\claude_desktop_config.json`
+- Claude Code: `~/.config/claude-code/mcp.json`
+
+**Verify installation:**
+```bash
+# Check Marionette is installed
+dart pub global activate marionette_mcp
+
+# Test it works
+cmd /c "marionette_mcp --version"
+# Expected: marionette_mcp version: 0.2.4
+```
+
+**See:** `.claude/analysis/marionette-mcp-setup-windows.md` for full guide

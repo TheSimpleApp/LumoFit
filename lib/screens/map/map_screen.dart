@@ -241,9 +241,8 @@ class _MapScreenState extends State<MapScreen> {
   void _updateMarkersFromItems() {
     final markers = <Marker>{};
     final placeService = context.read<PlaceService>();
-    final savedPlaceIds = placeService.savedPlaces
-        .map((p) => p.googlePlaceId ?? p.id)
-        .toSet();
+    final savedPlaceIds =
+        placeService.savedPlaces.map((p) => p.googlePlaceId ?? p.id).toSet();
 
     // Add place markers
     for (final entry in _placeMarkers.entries) {

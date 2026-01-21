@@ -24,7 +24,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     final user = context.read<UserService>().currentUser;
-    _displayNameController = TextEditingController(text: user?.displayName ?? '');
+    _displayNameController =
+        TextEditingController(text: user?.displayName ?? '');
     _homeCityController = TextEditingController(text: user?.homeCity ?? '');
     _fitnessLevel = user?.fitnessLevel ?? FitnessLevel.beginner;
   }
@@ -235,7 +236,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 const SizedBox(height: 8),
                 Container(
                   decoration: BoxDecoration(
-                    color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                    color:
+                        colors.surfaceContainerHighest.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
                   child: RadioGroup<FitnessLevel>(
@@ -250,10 +252,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         final isSelected = _fitnessLevel == level;
                         return RadioListTile<FitnessLevel>(
                           title: Text(
-                            level.name[0].toUpperCase() + level.name.substring(1),
+                            level.name[0].toUpperCase() +
+                                level.name.substring(1),
                             style: TextStyle(
-                              fontWeight:
-                                  isSelected ? FontWeight.w600 : FontWeight.normal,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                             ),
                           ),
                           subtitle: Text(
