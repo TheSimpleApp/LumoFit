@@ -458,11 +458,13 @@ class _ItineraryTabState extends State<_ItineraryTab> {
               return Padding(
                 key: ValueKey(it.id),
                 padding: EdgeInsets.fromLTRB(
-                    20, 0, 20, index == items.length - 1 ? 80 : 12),
+                    12, index == 0 ? 8 : 0, 16, index == items.length - 1 ? 80 : 0),
                 child: _ItineraryTile(
                   item: it,
                   place: match,
                   index: index,
+                  isFirst: index == 0,
+                  isLast: index == items.length - 1,
                   onEdit: () => _showEditItemSheet(context, it),
                   onDelete: () => context
                       .read<TripService>()
@@ -551,10 +553,10 @@ class _DayPickerHeaderDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get minExtent => 66;
+  double get minExtent => 88;
 
   @override
-  double get maxExtent => 66;
+  double get maxExtent => 88;
 
   @override
   Widget build(
@@ -565,37 +567,88 @@ class _DayPickerHeaderDelegate extends SliverPersistentHeaderDelegate {
         children: [
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
                 itemCount: days.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
                   final d = days[index];
                   final isSel = d.year == selectedDate.year &&
                       d.month == selectedDate.month &&
                       d.day == selectedDate.day;
-                  return ChoiceChip(
-                    showCheckmark: false,
-                    selected: isSel,
-                    label: Text(DateFormat('EEE, MMM d').format(d)),
-                    onSelected: (_) => onDateSelected(d),
-                    selectedColor: colors.primaryContainer,
-                    labelStyle: textStyles.labelMedium?.copyWith(
-                      color:
-                          isSel ? colors.onPrimaryContainer : colors.onSurface,
-                      fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                  final isToday = _isSameDay(d, DateTime.now());
+
+                  return GestureDetector(
+                    onTap: () => onDateSelected(d),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 56,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSel
+                            ? colors.primary
+                            : isToday
+                                ? colors.primaryContainer.withValues(alpha: 0.5)
+                                : colors.surfaceContainerHighest
+                                    .withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(16),
+                        border: isToday && !isSel
+                            ? Border.all(
+                                color: colors.primary.withValues(alpha: 0.5),
+                                width: 2)
+                            : null,
+                        boxShadow: isSel
+                            ? [
+                                BoxShadow(
+                                  color: colors.primary.withValues(alpha: 0.4),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Day ${index + 1}',
+                            style: textStyles.labelSmall?.copyWith(
+                              color: isSel
+                                  ? colors.onPrimary.withValues(alpha: 0.8)
+                                  : colors.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 10,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${d.day}',
+                            style: textStyles.titleLarge?.copyWith(
+                              color: isSel
+                                  ? colors.onPrimary
+                                  : colors.onSurface,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            DateFormat('EEE').format(d),
+                            style: textStyles.labelSmall?.copyWith(
+                              color: isSel
+                                  ? colors.onPrimary.withValues(alpha: 0.9)
+                                  : colors.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    side: BorderSide.none,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.full)),
                   );
                 },
               ),
             ),
           ),
-          // Bottom border to prevent content overlap appearance
           Container(
             height: 1,
             color: colors.outline.withValues(alpha: 0.1),
@@ -604,6 +657,9 @@ class _DayPickerHeaderDelegate extends SliverPersistentHeaderDelegate {
       ),
     );
   }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 
   @override
   bool shouldRebuild(covariant _DayPickerHeaderDelegate oldDelegate) {
@@ -897,6 +953,8 @@ class _ItineraryTile extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final int index;
+  final bool isFirst;
+  final bool isLast;
 
   const _ItineraryTile({
     required this.item,
@@ -904,6 +962,8 @@ class _ItineraryTile extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.index,
+    this.isFirst = false,
+    this.isLast = false,
   });
 
   @override
@@ -914,116 +974,202 @@ class _ItineraryTile extends StatelessWidget {
     String timeLabel = item.startTime ?? '--:--';
     final emoji = place?.typeEmoji ?? '📝';
     final subtitle = item.notes;
+    final typeColor = _getTypeColor(place?.type, colors);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.08)),
-      ),
-      child: Row(
-        children: [
-          // Drag handle
-          ReorderableDragStartListener(
-            index: index,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-              child:
-                  Icon(Icons.drag_indicator, color: colors.outline, size: 20),
-            ),
-          ),
-          // Leading emoji
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: colors.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-            ),
-            child: Center(
-                child: Text(emoji, style: const TextStyle(fontSize: 20))),
-          ),
-          const SizedBox(width: 12),
-          // Content
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: colors.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(timeLabel,
-                            style: textStyles.labelSmall
-                                ?.copyWith(color: colors.onSurfaceVariant)),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Timeline column
+        SizedBox(
+          width: 60,
+          child: Column(
+            children: [
+              // Time label
+              Text(
+                timeLabel,
+                style: textStyles.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colors.primary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              // Timeline dot and line
+              SizedBox(
+                height: 60,
+                child: Column(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: typeColor,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: typeColor.withValues(alpha: 0.4),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
+                    ),
+                    if (!isLast)
                       Expanded(
-                        child: Text(
+                        child: Container(
+                          width: 2,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                typeColor,
+                                typeColor.withValues(alpha: 0.3),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Card content
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: colors.outline.withValues(alpha: 0.08)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Drag handle
+                ReorderableDragStartListener(
+                  index: index,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                    child: Icon(Icons.drag_indicator,
+                        color: colors.outline, size: 20),
+                  ),
+                ),
+                // Leading emoji
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: typeColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Center(
+                      child: Text(emoji, style: const TextStyle(fontSize: 22))),
+                ),
+                const SizedBox(width: 12),
+                // Content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
                           item.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: textStyles.titleSmall
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
-                      ),
-                    ],
+                        if (item.durationMinutes != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.schedule,
+                                  size: 14, color: colors.onSurfaceVariant),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${item.durationMinutes} min',
+                                style: textStyles.labelSmall
+                                    ?.copyWith(color: colors.onSurfaceVariant),
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (subtitle != null && subtitle.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textStyles.bodySmall
+                                  ?.copyWith(color: colors.onSurfaceVariant)),
+                        ],
+                      ],
+                    ),
                   ),
-                  if (subtitle != null && subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textStyles.bodySmall
-                            ?.copyWith(color: colors.onSurfaceVariant)),
+                ),
+                // Actions menu
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert, color: colors.onSurfaceVariant),
+                  padding: EdgeInsets.zero,
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 20),
+                          SizedBox(width: 12),
+                          Text('Edit'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline,
+                              size: 20, color: colors.error),
+                          const SizedBox(width: 12),
+                          Text('Delete', style: TextStyle(color: colors.error)),
+                        ],
+                      ),
+                    ),
                   ],
-                ],
-              ),
+                  onSelected: (value) {
+                    if (value == 'edit') onEdit();
+                    if (value == 'delete') onDelete();
+                  },
+                ),
+                const SizedBox(width: 4),
+              ],
             ),
           ),
-          // Actions menu
-          PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: colors.onSurfaceVariant),
-            padding: EdgeInsets.zero,
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit_outlined, size: 20),
-                    SizedBox(width: 12),
-                    Text('Edit'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline, size: 20, color: colors.error),
-                    const SizedBox(width: 12),
-                    Text('Delete', style: TextStyle(color: colors.error)),
-                  ],
-                ),
-              ),
-            ],
-            onSelected: (value) {
-              if (value == 'edit') onEdit();
-              if (value == 'delete') onDelete();
-            },
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
+        ),
+      ],
     );
+  }
+
+  Color _getTypeColor(PlaceType? type, ColorScheme colors) {
+    switch (type) {
+      case PlaceType.gym:
+        return Colors.blue;
+      case PlaceType.restaurant:
+        return Colors.orange;
+      case PlaceType.trail:
+      case PlaceType.park:
+        return Colors.green;
+      default:
+        return colors.primary;
+    }
   }
 }
 

@@ -11,6 +11,7 @@ import 'package:fittravel/models/activity_model.dart';
 import 'package:fittravel/models/badge_model.dart';
 import 'package:fittravel/screens/profile/profile_skeleton.dart';
 import 'package:fittravel/widgets/polish_widgets.dart';
+import 'package:fittravel/supabase/supabase_config.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -69,11 +70,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   .animate()
                                   .fadeIn()
                                   .slideX(begin: -0.1)),
-                      IconButton(
-                              onPressed: () => _showSettings(context),
-                              icon: const Icon(Icons.settings_outlined))
-                          .animate()
-                          .fadeIn(delay: 200.ms),
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.settings_outlined),
+                        onSelected: (value) => _handleMenuSelection(context, value),
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_outlined, size: 20),
+                                SizedBox(width: 12),
+                                Text('Edit Profile'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'logout',
+                            child: Row(
+                              children: [
+                                Icon(Icons.logout, size: 20, color: AppColors.error),
+                                SizedBox(width: 12),
+                                Text('Log Out', style: TextStyle(color: AppColors.error)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ).animate().fadeIn(delay: 200.ms),
                     ],
                   ),
                 ),
@@ -115,8 +137,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showSettings(BuildContext context) {
-    context.push('/edit-profile');
+  void _handleMenuSelection(BuildContext context, String value) {
+    switch (value) {
+      case 'edit':
+        context.push('/edit-profile');
+        break;
+      case 'logout':
+        _showLogoutDialog(context);
+        break;
+    }
+  }
+
+  Future<void> _showLogoutDialog(BuildContext context) async {
+    final colors = Theme.of(context).colorScheme;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Log Out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: colors.error),
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      // Clear user service
+      context.read<UserService>().clearUser();
+      // Sign out from Supabase
+      await SupabaseConfig.auth.signOut();
+    }
   }
 }
 
@@ -147,14 +205,34 @@ class _ProfileCard extends StatelessWidget {
                   border: Border.all(
                       color: Colors.black.withValues(alpha: 0.5), width: 3),
                 ),
-                child: Center(
-                  child: Text(
-                    user.displayName.isNotEmpty
-                        ? user.displayName[0].toUpperCase()
-                        : '?',
-                    style: textStyles.headlineMedium?.copyWith(
-                        color: Colors.black, fontWeight: FontWeight.bold),
-                  ),
+                child: ClipOval(
+                  child: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
+                      ? Image.network(
+                          user.avatarUrl!,
+                          width: 72,
+                          height: 72,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Center(
+                            child: Text(
+                              user.displayName.isNotEmpty
+                                  ? user.displayName[0].toUpperCase()
+                                  : '?',
+                              style: textStyles.headlineMedium?.copyWith(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: Text(
+                            user.displayName.isNotEmpty
+                                ? user.displayName[0].toUpperCase()
+                                : '?',
+                            style: textStyles.headlineMedium?.copyWith(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(width: 16),

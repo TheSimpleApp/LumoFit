@@ -92,6 +92,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _initializeMapCenter() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
@@ -110,6 +111,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ).timeout(const Duration(seconds: 10));
 
+          if (!mounted) return;
           _center = LatLng(position.latitude, position.longitude);
         }
       } catch (e) {
@@ -121,6 +123,7 @@ class _MapScreenState extends State<MapScreen> {
       debugPrint(st.toString());
     }
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
     _loadPlacesForCurrentLocation();
   }
@@ -416,7 +419,7 @@ class _MapScreenState extends State<MapScreen> {
 
     try {
       final bounds = await _mapController?.getVisibleRegion();
-      if (bounds == null) return;
+      if (bounds == null || !mounted) return;
 
       final segments = await stravaService.exploreSegments(
         swLat: bounds.southwest.latitude,
@@ -425,6 +428,7 @@ class _MapScreenState extends State<MapScreen> {
         neLng: bounds.northeast.longitude,
       );
 
+      if (!mounted) return;
       setState(() {
         _stravaPolylines = segments
             .map((seg) => Polyline(
@@ -448,6 +452,7 @@ class _MapScreenState extends State<MapScreen> {
         ),
       );
 
+      if (!mounted) return;
       _center = LatLng(position.latitude, position.longitude);
       _mapController?.animateCamera(
         CameraUpdate.newLatLngZoom(_center, 14),
@@ -727,6 +732,7 @@ class _MapScreenState extends State<MapScreen> {
           placeType,
         );
 
+        if (!mounted) return;
         if (fullPlace != null) {
           setState(() {
             _selectedItem = fullPlace;
@@ -749,6 +755,7 @@ class _MapScreenState extends State<MapScreen> {
         isVisited: false,
       );
 
+      if (!mounted) return;
       setState(() {
         _selectedItem = tempPlace;
       });
