@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/models/place_model.dart';
 import 'package:fittravel/services/place_service.dart';
@@ -1754,6 +1756,7 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
   final _controller = TextEditingController();
   bool _isSubmitting = false;
   String? _pickedDataUrl;
+  Uint8List? _pickedBytes;
 
   @override
   void dispose() {
@@ -1883,12 +1886,26 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
         return;
       }
 
-      if (hasHttpUrl) {
-        await photoService.addPhotoUrl(placeId: widget.placeId, imageUrl: url);
-      } else if (hasPicked) {
-        await photoService.addPhotoUrl(
-            placeId: widget.placeId, imageUrl: _pickedDataUrl!);
+      // Upload photo using new addPhoto() method with bytes
+      Uint8List imageBytes;
+      if (hasPicked) {
+        // Use stored bytes from picked image
+        imageBytes = _pickedBytes!;
+      } else if (hasHttpUrl) {
+        // Download bytes from HTTP URL
+        final response = await http.get(Uri.parse(url));
+        if (response.statusCode != 200) {
+          throw Exception('Failed to download image from URL');
+        }
+        imageBytes = response.bodyBytes;
+      } else {
+        throw Exception('No image source available');
       }
+
+      await photoService.addPhoto(
+        placeId: widget.placeId,
+        imageBytes: imageBytes,
+      );
       // Award XP for contribution and check XP badges
       await userService.addXp(10);
       final totalXp = userService.currentUser?.totalXp ?? 0;
@@ -2007,7 +2024,10 @@ class _AddPhotoSheetState extends State<_AddPhotoSheet> {
       final mime = _inferMimeType(file.name);
       final dataUrl = 'data:$mime;base64,${base64Encode(bytes)}';
       if (mounted) {
-        setState(() => _pickedDataUrl = dataUrl);
+        setState(() {
+          _pickedDataUrl = dataUrl;
+          _pickedBytes = bytes;
+        });
       }
     } catch (e, st) {
       debugPrint('Image pick failed: $e');

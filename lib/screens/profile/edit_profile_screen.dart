@@ -238,37 +238,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
-                  child: Column(
-                    children: FitnessLevel.values.map((level) {
-                      final isSelected = _fitnessLevel == level;
-                      return RadioListTile<FitnessLevel>(
-                        title: Text(
-                          level.name[0].toUpperCase() + level.name.substring(1),
-                          style: TextStyle(
-                            fontWeight:
-                                isSelected ? FontWeight.w600 : FontWeight.normal,
+                  child: RadioGroup<FitnessLevel>(
+                    groupValue: _fitnessLevel,
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _fitnessLevel = value);
+                      }
+                    },
+                    child: Column(
+                      children: FitnessLevel.values.map((level) {
+                        final isSelected = _fitnessLevel == level;
+                        return RadioListTile<FitnessLevel>(
+                          title: Text(
+                            level.name[0].toUpperCase() + level.name.substring(1),
+                            style: TextStyle(
+                              fontWeight:
+                                  isSelected ? FontWeight.w600 : FontWeight.normal,
+                            ),
                           ),
-                        ),
-                        subtitle: Text(
-                          _getFitnessLevelDescription(level),
-                          style: textStyles.bodySmall?.copyWith(
-                            color: colors.onSurfaceVariant,
+                          subtitle: Text(
+                            _getFitnessLevelDescription(level),
+                            style: textStyles.bodySmall?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
                           ),
-                        ),
-                        value: level,
-                        groupValue: _fitnessLevel,
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _fitnessLevel = value);
-                          }
-                        },
-                        activeColor: colors.primary,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                      );
-                    }).toList(),
+                          value: level,
+                          activeColor: colors.primary,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
 
