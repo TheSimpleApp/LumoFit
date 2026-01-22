@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/services.dart';
 import 'package:fittravel/screens/home/widgets/widgets.dart';
@@ -31,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
       gamificationService.initialize(),
       tripService.initialize(),
     ]);
+    await HapticUtils.success();
   }
 
   @override
@@ -126,80 +128,191 @@ class _HomeScreenState extends State<HomeScreen> {
                     return const SliverToBoxAdapter(child: SizedBox.shrink());
                   }
 
+                  final hasImage = activeTrip.imageUrl != null &&
+                      activeTrip.imageUrl!.isNotEmpty;
+
                   return SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                      child: InkWell(
-                        onTap: () => context.push('/trip/${activeTrip.id}'),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
+                      child: Hero(
+                        tag: 'trip_image_${activeTrip.id}',
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => context.push('/trip/${activeTrip.id}'),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.4),
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.15),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
+                            child: Container(
+                              height: 96,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                color: colors.surface,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.2),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: colors.primary.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  Icons.flight_takeoff,
-                                  color: colors.primary,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Stack(
+                                  fit: StackFit.expand,
                                   children: [
-                                    Text(
-                                      'Active Trip',
-                                      style: textStyles.labelSmall?.copyWith(
-                                        color: colors.primary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      activeTrip.destinationCity,
-                                      style: textStyles.titleMedium?.copyWith(
-                                        color: colors.onPrimaryContainer,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    if (activeTrip.destinationCountry != null)
-                                      Text(
-                                        activeTrip.destinationCountry!,
-                                        style: textStyles.bodySmall?.copyWith(
-                                          color: colors.onPrimaryContainer
-                                              .withValues(alpha: 0.7),
+                                    // Background image with caching
+                                    if (hasImage)
+                                      CachedNetworkImage(
+                                        imageUrl: activeTrip.imageUrl!,
+                                        fit: BoxFit.cover,
+                                        color: Colors.black.withValues(alpha: 0.4),
+                                        colorBlendMode: BlendMode.darken,
+                                        placeholder: (_, __) => Container(
+                                          color: colors.surfaceContainerHighest,
+                                        ),
+                                        errorWidget: (_, __, ___) => Container(
+                                          color: colors.surface,
+                                        ),
+                                      )
+                                    else
+                                      Container(color: colors.surface),
+                                    // Cinematic gradient overlay
+                                    if (hasImage)
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.centerLeft,
+                                            end: Alignment.centerRight,
+                                            colors: [
+                                              Colors.black.withValues(alpha: 0.55),
+                                              Colors.black.withValues(alpha: 0.25),
+                                              Colors.black.withValues(alpha: 0.45),
+                                            ],
+                                            stops: const [0.0, 0.5, 1.0],
+                                          ),
                                         ),
                                       ),
+                                    // Content
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 14),
+                                      child: Row(
+                                        children: [
+                                          // Icon container
+                                          Container(
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              color: hasImage
+                                                  ? Colors.white.withValues(alpha: 0.15)
+                                                  : colors.primary.withValues(alpha: 0.15),
+                                              borderRadius: BorderRadius.circular(14),
+                                              border: hasImage
+                                                  ? Border.all(
+                                                      color: Colors.white
+                                                          .withValues(alpha: 0.1),
+                                                      width: 1,
+                                                    )
+                                                  : null,
+                                            ),
+                                            child: Icon(
+                                              Icons.flight_takeoff_rounded,
+                                              color: hasImage
+                                                  ? Colors.white
+                                                  : colors.primary,
+                                              size: 22,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 14),
+                                          // Text content
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Container(
+                                                      width: 6,
+                                                      height: 6,
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(0xFF4ADE80),
+                                                        shape: BoxShape.circle,
+                                                        boxShadow: [
+                                                          BoxShadow(
+                                                            color: const Color(0xFF4ADE80)
+                                                                .withValues(alpha: 0.5),
+                                                            blurRadius: 4,
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    Text(
+                                                      'Active Trip',
+                                                      style: textStyles.labelSmall
+                                                          ?.copyWith(
+                                                        color: hasImage
+                                                            ? Colors.white
+                                                                .withValues(alpha: 0.85)
+                                                            : colors.primary,
+                                                        fontWeight: FontWeight.w600,
+                                                        letterSpacing: 0.2,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  activeTrip.destinationCity,
+                                                  style: textStyles.titleMedium?.copyWith(
+                                                    color: hasImage
+                                                        ? Colors.white
+                                                        : colors.onSurface,
+                                                    fontWeight: FontWeight.bold,
+                                                    letterSpacing: -0.3,
+                                                  ),
+                                                ),
+                                                if (activeTrip.destinationCountry != null)
+                                                  Text(
+                                                    activeTrip.destinationCountry!,
+                                                    style: textStyles.bodySmall?.copyWith(
+                                                      color: hasImage
+                                                          ? Colors.white
+                                                              .withValues(alpha: 0.7)
+                                                          : colors.onSurfaceVariant,
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                          // Arrow
+                                          Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: hasImage
+                                                  ? Colors.white.withValues(alpha: 0.1)
+                                                  : colors.primary.withValues(alpha: 0.1),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              Icons.arrow_forward_ios_rounded,
+                                              color: hasImage
+                                                  ? Colors.white.withValues(alpha: 0.7)
+                                                  : colors.primary.withValues(alpha: 0.6),
+                                              size: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
-                              Icon(
-                                Icons.arrow_forward_ios,
-                                color: colors.primary.withValues(alpha: 0.6),
-                                size: 16,
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                       )

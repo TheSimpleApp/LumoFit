@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fittravel/theme.dart';
+import 'package:fittravel/utils/haptic_utils.dart';
 
 // =============================================================================
 // SKELETON LOADERS - Shimmer placeholders for loading states
@@ -371,6 +372,7 @@ class _PressableScaleState extends State<PressableScale>
   void _onTapUp(TapUpDetails details) {
     _controller.reverse();
     if (widget.enabled) {
+      HapticUtils.light();
       widget.onPressed?.call();
     }
   }

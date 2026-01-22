@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:fittravel/models/place_model.dart';
 import 'package:fittravel/models/event_model.dart';
 import 'package:fittravel/theme.dart';
+import 'package:fittravel/utils/haptic_utils.dart';
 
 /// Bottom sheet preview when a marker is tapped
 class MapPlacePreview extends StatefulWidget {
@@ -348,6 +349,7 @@ class _MapPlacePreviewState extends State<MapPlacePreview>
   }
 
   void _openDirections(BuildContext context) async {
+    HapticUtils.light();
     double? lat, lng;
 
     if (widget.item is PlaceModel) {
@@ -371,6 +373,7 @@ class _MapPlacePreviewState extends State<MapPlacePreview>
   }
 
   void _openDetails(BuildContext context) {
+    HapticUtils.light();
     if (widget.item is PlaceModel) {
       context.push('/place-detail', extra: widget.item);
     } else if (widget.item is EventModel) {

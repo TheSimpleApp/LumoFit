@@ -5,6 +5,10 @@ import 'package:fittravel/models/event_model.dart';
 
 /// Service to share map context (location, places, radius) between Map and Discover tabs.
 /// When the user searches or navigates on the Map, Discover can show the same places as a list view.
+///
+/// This service is also the SOURCE OF TRUTH for AI chat location context.
+/// When the user searches or navigates on the Map, AI chats (Fitness Guide, etc.)
+/// will use this location instead of the active trip destination.
 class MapContextService extends ChangeNotifier {
   // Current map center
   double _centerLat = 40.7128;
@@ -15,6 +19,10 @@ class MapContextService extends ChangeNotifier {
 
   // Location name (from search or geocoding)
   String? _locationName;
+
+  // Whether the user has explicitly set a location (via map search/navigation)
+  // This takes precedence over active trip for AI chats
+  bool _hasUserSetLocation = false;
 
   // Loaded places from map
   List<PlaceModel> _gyms = [];
@@ -31,19 +39,52 @@ class MapContextService extends ChangeNotifier {
   int get searchRadiusMiles => _searchRadiusMiles;
   String? get locationName => _locationName;
   bool get hasLoadedData => _hasLoadedData;
+  bool get hasUserSetLocation => _hasUserSetLocation;
+
+  /// Get the current location context for AI chats.
+  /// Returns the location name if set, otherwise returns null.
+  /// AI chats should use this instead of the active trip destination
+  /// when the user has explicitly searched/navigated on the map.
+  String? get aiChatLocationContext => _hasUserSetLocation ? _locationName : null;
+
+  /// Get the current coordinates for AI chats.
+  /// Returns (lat, lng) tuple if user has set a location.
+  (double, double)? get aiChatCoordinates =>
+      _hasUserSetLocation ? (_centerLat, _centerLng) : null;
 
   List<PlaceModel> get gyms => _gyms;
   List<PlaceModel> get restaurants => _restaurants;
   List<PlaceModel> get trails => _trails;
   List<EventModel> get events => _events;
 
-  /// Update map center location
+  /// Update map center location.
+  /// When a name is provided, this marks the location as user-set,
+  /// which means AI chats will use this location instead of the active trip.
   void updateCenter(double lat, double lng, {String? name}) {
     _centerLat = lat;
     _centerLng = lng;
     if (name != null) {
       _locationName = name;
+      _hasUserSetLocation = true;
     }
+    notifyListeners();
+  }
+
+  /// Clear the user-set location, reverting AI chats to use active trip.
+  /// Call this when the user wants to reset to their trip destination.
+  void clearUserLocation() {
+    _hasUserSetLocation = false;
+    _locationName = null;
+    notifyListeners();
+  }
+
+  /// Explicitly set the AI chat location context.
+  /// This is useful when you want to set the location without updating the map center.
+  void setAiChatLocation(String name, double lat, double lng) {
+    _locationName = name;
+    _centerLat = lat;
+    _centerLng = lng;
+    _hasUserSetLocation = true;
     notifyListeners();
   }
 

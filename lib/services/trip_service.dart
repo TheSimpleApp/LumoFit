@@ -20,12 +20,19 @@ class TripService extends ChangeNotifier {
       _trips.where((t) => t.isUpcoming).toList();
   List<TripModel> get pastTrips => _trips.where((t) => t.isPast).toList();
   List<TripModel> get currentTrips => _trips.where((t) => t.isCurrent).toList();
+
+  /// Get the active trip based on current date.
+  /// Returns the trip where today's date falls within start/end dates.
+  /// If multiple trips are current, returns the one with the most recent start date.
+  /// Returns null if no trip is currently active.
   TripModel? get activeTrip {
-    try {
-      return _trips.firstWhere((t) => t.isActive);
-    } catch (e) {
-      return null;
-    }
+    final current = currentTrips;
+    if (current.isEmpty) return null;
+    if (current.length == 1) return current.first;
+
+    // If multiple current trips, return the most recently started one
+    current.sort((a, b) => b.startDate.compareTo(a.startDate));
+    return current.first;
   }
 
   /// Get coordinates of the active trip destination for map centering
@@ -84,6 +91,9 @@ class TripService extends ChangeNotifier {
 
       // Load all itineraries for user's trips
       await _loadAllItineraries();
+
+      // Fetch missing trip images in the background
+      _fetchMissingTripImages();
     } catch (e) {
       _error = 'Failed to load trips';
       debugPrint('TripService.initialize error: $e');
@@ -142,7 +152,7 @@ class TripService extends ChangeNotifier {
         'start_date': startDate.toIso8601String().split('T')[0],
         'end_date': endDate.toIso8601String().split('T')[0],
         'notes': notes,
-        'is_active': false,
+        // is_active is deprecated - trips are now automatically active based on dates
       };
 
       final result = await SupabaseService.insert('trips', data);
@@ -185,6 +195,9 @@ class TripService extends ChangeNotifier {
         longitude: destinationLongitude,
         tripId: trip.id,
       );
+
+      // Fetch destination image in background
+      fetchTripImage(trip.id);
 
       return trip;
     } catch (e) {
@@ -255,53 +268,20 @@ class TripService extends ChangeNotifier {
     }
   }
 
+  /// DEPRECATED: Trips are now automatically active when current date falls within trip dates.
+  /// This method is kept for backwards compatibility but does nothing.
+  /// To explore a trip's destination temporarily, use MapContextService.setAiChatLocation instead.
+  @Deprecated('Trips are now automatically active based on dates. Use MapContextService for temporary location exploration.')
   Future<void> setActiveTrip(String tripId) async {
-    final userId = _currentUserId;
-    if (userId == null) return;
+    debugPrint('TripService.setActiveTrip: This method is deprecated and does nothing. '
+        'Trips are now automatically active based on dates.');
 
-    try {
-      // First, deactivate all trips for this user
-      await SupabaseConfig.client
-          .from('trips')
-          .update({'is_active': false}).eq('user_id', userId);
-
-      // Then activate the selected trip
-      await SupabaseConfig.client
-          .from('trips')
-          .update({'is_active': true}).eq('id', tripId);
-
-      // Update local state
-      for (int i = 0; i < _trips.length; i++) {
-        _trips[i] = _trips[i].copyWith(isActive: _trips[i].id == tripId);
-      }
-      _error = null;
-      notifyListeners();
-
-      // If the trip has no coordinates, geocode the destination
-      final trip = getTripById(tripId);
-      if (trip != null &&
-          trip.destinationLatitude == null &&
-          trip.destinationLongitude == null) {
-        await _geocodeTripDestination(trip);
-      }
-
-      // Fetch events for the active trip destination
-      // This ensures events are fetched for any trip, including previously created ones
-      if (trip != null) {
-        _fetchEventsForDestination(
-          city: trip.destinationCity,
-          country: trip.destinationCountry,
-          startDate: trip.startDate,
-          endDate: trip.endDate,
-          latitude: trip.destinationLatitude,
-          longitude: trip.destinationLongitude,
-          tripId: trip.id,
-        );
-      }
-    } catch (e) {
-      _error = 'Failed to set active trip';
-      debugPrint('TripService.setActiveTrip error: $e');
-      notifyListeners();
+    // For backwards compatibility, still geocode the trip if needed
+    final trip = getTripById(tripId);
+    if (trip != null &&
+        trip.destinationLatitude == null &&
+        trip.destinationLongitude == null) {
+      await _geocodeTripDestination(trip);
     }
   }
 
@@ -341,6 +321,52 @@ class TripService extends ChangeNotifier {
     } catch (e) {
       // Non-fatal: don't fail trip creation if event fetching fails
       debugPrint('TripService._fetchEventsForDestination error: $e');
+    }
+  }
+
+  /// Fetch and cache a destination photo for a trip
+  /// This provides the beautiful background images for trip cards
+  Future<void> fetchTripImage(String tripId) async {
+    final trip = getTripById(tripId);
+    if (trip == null) return;
+
+    // Skip if already has an image
+    if (trip.imageUrl != null && trip.imageUrl!.isNotEmpty) return;
+
+    try {
+      final placesService = GooglePlacesService();
+      final imageUrl = await placesService.getCityPhoto(
+        trip.destinationCity,
+        country: trip.destinationCountry,
+      );
+
+      if (imageUrl != null) {
+        // Update in database
+        await SupabaseConfig.client.from('trips').update({
+          'image_url': imageUrl,
+        }).eq('id', tripId);
+
+        // Update local state
+        final index = _trips.indexWhere((t) => t.id == tripId);
+        if (index >= 0) {
+          _trips[index] = _trips[index].copyWith(imageUrl: imageUrl);
+          notifyListeners();
+          debugPrint('TripService: Fetched image for ${trip.destinationCity}');
+        }
+      }
+    } catch (e) {
+      debugPrint('TripService.fetchTripImage error: $e');
+      // Non-fatal: trip still works without image
+    }
+  }
+
+  /// Fetch images for all trips that don't have one (background task)
+  Future<void> _fetchMissingTripImages() async {
+    for (final trip in _trips) {
+      if (trip.imageUrl == null || trip.imageUrl!.isEmpty) {
+        // Don't await - let it run in background
+        fetchTripImage(trip.id);
+      }
     }
   }
 

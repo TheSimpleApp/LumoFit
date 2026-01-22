@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:fittravel/models/models.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
@@ -192,6 +193,45 @@ class PlaceService extends ChangeNotifier {
           (p.address?.toLowerCase().contains(lowerQuery) ?? false);
     }).toList();
   }
+
+  /// Get saved places near a specific location (for trip planning).
+  /// Returns places within [radiusMiles] of the given coordinates.
+  /// Useful for filtering saved places to only show those relevant to a trip destination.
+  List<PlaceModel> getPlacesNearLocation({
+    required double latitude,
+    required double longitude,
+    double radiusMiles = 50, // Default 50 mile radius
+  }) {
+    return _savedPlaces.where((place) {
+      if (place.latitude == null || place.longitude == null) return false;
+
+      final distanceMiles = _calculateDistanceInMiles(
+        latitude,
+        longitude,
+        place.latitude!,
+        place.longitude!,
+      );
+
+      return distanceMiles <= radiusMiles;
+    }).toList();
+  }
+
+  /// Calculate distance between two points in miles using Haversine formula
+  double _calculateDistanceInMiles(
+      double lat1, double lon1, double lat2, double lon2) {
+    const R = 6371.0; // Earth's radius in km
+    final dLat = _deg2rad(lat2 - lat1);
+    final dLon = _deg2rad(lon2 - lon1);
+    final a = (sin(dLat / 2) * sin(dLat / 2)) +
+        cos(_deg2rad(lat1)) *
+            cos(_deg2rad(lat2)) *
+            (sin(dLon / 2) * sin(dLon / 2));
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    final km = R * c;
+    return km * 0.621371; // Convert km to miles
+  }
+
+  double _deg2rad(double deg) => deg * (pi / 180.0);
 
   /// Clear local state (called on logout)
   void clearPlaces() {

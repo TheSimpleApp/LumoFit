@@ -261,6 +261,49 @@ class GooglePlacesService {
     return 'https://places.googleapis.com/v1/$photoReference/media?maxWidthPx=$maxWidth&key=$_apiKey';
   }
 
+  /// Get a representative photo for a city/destination
+  /// Returns a photo URL suitable for background images in trip cards
+  Future<String?> getCityPhoto(String cityName, {String? country, int maxWidth = 800}) async {
+    try {
+      final query = country != null ? '$cityName, $country' : cityName;
+
+      final response = await http.post(
+        Uri.parse('$_baseUrl:searchText'),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': _apiKey,
+          'X-Goog-FieldMask': 'places.photos',
+        },
+        body: jsonEncode({
+          'textQuery': '$query landmark tourist attraction',
+          'maxResultCount': 5,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final places = data['places'] as List<dynamic>? ?? [];
+
+        // Find a place with photos
+        for (final place in places) {
+          final photos = place['photos'] as List<dynamic>?;
+          if (photos != null && photos.isNotEmpty) {
+            final photoRef = photos.first['name'] as String?;
+            if (photoRef != null) {
+              return getPhotoUrl(photoRef, maxWidth: maxWidth);
+            }
+          }
+        }
+      } else {
+        debugPrint('Google Places city photo error: ${response.statusCode} - ${response.body}');
+      }
+      return null;
+    } catch (e) {
+      debugPrint('GooglePlacesService.getCityPhoto error: $e');
+      return null;
+    }
+  }
+
   /// Geocode a city name to get coordinates
   /// Returns (latitude, longitude) or null if not found
   Future<(double, double)?> geocodeCity(String cityName,

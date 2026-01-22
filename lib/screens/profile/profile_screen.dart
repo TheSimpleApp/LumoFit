@@ -12,6 +12,7 @@ import 'package:fittravel/models/badge_model.dart';
 import 'package:fittravel/screens/profile/profile_skeleton.dart';
 import 'package:fittravel/widgets/polish_widgets.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
+import 'package:fittravel/utils/haptic_utils.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -31,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       activityService.initialize(),
       gamificationService.initialize(),
     ]);
+    await HapticUtils.success();
   }
 
   @override

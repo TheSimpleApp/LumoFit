@@ -9,7 +9,13 @@ class TripModel {
   final double? destinationLongitude;
   final DateTime startDate;
   final DateTime endDate;
+
+  /// DEPRECATED: Manual trip activation is no longer used.
+  /// Trips are now automatically active when current date falls within start/end dates.
+  /// This field is kept for backwards compatibility with existing database records.
+  @Deprecated('Trips are now automatically active based on dates. Use isCurrent instead.')
   final bool isActive;
+
   final String? notes;
   final String? imageUrl;
   final List<String> savedPlaceIds;
@@ -34,6 +40,7 @@ class TripModel {
   })  : createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
+  // ignore: deprecated_member_use_from_same_package
   TripModel copyWith({
     String? id,
     String? userId,
@@ -59,6 +66,7 @@ class TripModel {
       destinationLongitude: destinationLongitude ?? this.destinationLongitude,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
+      // ignore: deprecated_member_use_from_same_package
       isActive: isActive ?? this.isActive,
       notes: notes ?? this.notes,
       imageUrl: imageUrl ?? this.imageUrl,
@@ -68,6 +76,7 @@ class TripModel {
     );
   }
 
+  // ignore: deprecated_member_use_from_same_package
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -78,6 +87,7 @@ class TripModel {
       'destinationLongitude': destinationLongitude,
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
+      // ignore: deprecated_member_use_from_same_package
       'isActive': isActive,
       'notes': notes,
       'imageUrl': imageUrl,
@@ -144,6 +154,7 @@ class TripModel {
 
   /// Convert to Supabase JSON (snake_case keys)
   /// Note: savedPlaceIds are stored in trip_places junction table, not here
+  // ignore: deprecated_member_use_from_same_package
   Map<String, dynamic> toSupabaseJson(String userId) {
     return {
       'user_id': userId,
@@ -153,6 +164,7 @@ class TripModel {
       'destination_longitude': destinationLongitude,
       'start_date': startDate.toIso8601String().split('T')[0],
       'end_date': endDate.toIso8601String().split('T')[0],
+      // ignore: deprecated_member_use_from_same_package
       'is_active': isActive,
       'notes': notes,
       'image_url': imageUrl,
@@ -168,13 +180,17 @@ class TripModel {
 
   bool get isUpcoming => startDate.isAfter(DateTime.now());
   bool get isPast => endDate.isBefore(DateTime.now());
+
+  /// Returns true if current date falls within trip's start and end dates.
+  /// This is now the primary way to determine if a trip is "active".
   bool get isCurrent {
     final now = DateTime.now();
     return !startDate.isAfter(now) && !endDate.isBefore(now);
   }
 
+  /// Trip status prioritizing date-based current state over manual activation.
+  /// "Current" means today's date is within the trip dates (automatic).
   String get status {
-    if (isActive) return 'Active';
     if (isCurrent) return 'Current';
     if (isUpcoming) return 'Upcoming';
     return 'Past';

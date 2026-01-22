@@ -280,6 +280,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               child: TabBar(
                 controller: _tabController,
                 onTap: (_) {
+                  HapticUtils.light();
                   // Re-search when tab changes
                   if (_searchQuery.isNotEmpty) {
                     _performSearch(_searchQuery);
@@ -564,13 +565,90 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       return _buildEventsList(_eventResults);
     }
 
+    // Get current location from map context
+    final mapContext = context.read<MapContextService>();
+    final locationName = mapContext.locationName ?? 'this area';
+    final centerLat = mapContext.centerLat;
+    final centerLng = mapContext.centerLng;
+    final eventService = context.read<EventService>();
+
+    // Show loading state if discovering events
+    if (_isSearchingEvents || eventService.isDiscoveringEvents) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return EmptyStateWidget(
       title: 'Search for events',
       description: 'Find fitness classes, yoga, sports and more',
-      ctaLabel: 'Start searching',
-      onCtaPressed: () {
-        // Focus is not available on TextEditingController in Flutter 3.38+
-        // User can tap search field directly
+      ctaLabel: 'Discover events here',
+      onCtaPressed: () async {
+        // Show loading state
+        setState(() => _isSearchingEvents = true);
+
+        try {
+          // Call n8n webhook to discover events
+          await eventService.discoverEventsForLocation(
+            locationName: locationName,
+            latitude: centerLat,
+            longitude: centerLng,
+          );
+
+          if (!mounted) return;
+
+          // Check for errors
+          if (eventService.lastDiscoveryError != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(eventService.lastDiscoveryError!),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+            setState(() => _isSearchingEvents = false);
+            return;
+          }
+
+          // Reload events from Supabase and show them
+          final range = _currentDateRange();
+          final results = await eventService.fetchExternalEvents(
+            startDate: range.$1,
+            endDate: range.$2,
+            centerLat: centerLat,
+            centerLng: centerLng,
+            radiusKm: 50,
+            limit: 60,
+          );
+
+          if (mounted) {
+            setState(() {
+              _eventResults = results;
+              _isSearchingEvents = false;
+              // Set a search query to show results
+              _searchQuery = locationName;
+            });
+          }
+
+          if (results.isNotEmpty && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Found ${results.length} events in $locationName!'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to discover events: $e'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+            setState(() => _isSearchingEvents = false);
+          }
+        }
       },
     );
   }
@@ -1055,7 +1133,10 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   Widget _buildEventRatingFilter() {
     return FilterChip(
       label: const Text('4+ Rating'),
-      onSelected: (selected) => setState(() => _filterRating4Plus = selected),
+      onSelected: (selected) {
+        HapticUtils.selection();
+        setState(() => _filterRating4Plus = selected);
+      },
       selected: _filterRating4Plus,
     );
   }
@@ -1063,7 +1144,10 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   Widget _buildEventPhotosFilter() {
     return FilterChip(
       label: const Text('Has photos'),
-      onSelected: (selected) => setState(() => _filterHasPhotos = selected),
+      onSelected: (selected) {
+        HapticUtils.selection();
+        setState(() => _filterHasPhotos = selected);
+      },
       selected: _filterHasPhotos,
     );
   }
@@ -1081,6 +1165,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     return FilterChip(
       label: const Text('Open now'),
       onSelected: (selected) {
+        HapticUtils.selection();
         setState(() => _filterOpenNow = selected);
         _applyPlaceFilters();
       },
@@ -1092,6 +1177,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     return FilterChip(
       label: const Text('4.5+ stars'),
       onSelected: (selected) {
+        HapticUtils.selection();
         setState(() => _filterRating45Plus = selected);
         _applyPlaceFilters();
       },
@@ -1103,6 +1189,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     return FilterChip(
       label: const Text('Has photos'),
       onSelected: (selected) {
+        HapticUtils.selection();
         setState(() => _filterPlaceHasPhotos = selected);
         _applyPlaceFilters();
       },
@@ -1118,6 +1205,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       ),
       label: const Text('Saved'),
       onSelected: (selected) {
+        HapticUtils.selection();
         setState(() => _filterSavedOnly = selected);
         _applyPlaceFilters();
       },
@@ -1178,14 +1266,17 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   }
 
   void _showCategoryPicker() {
+    HapticUtils.selection();
     // Implementation for category picker
   }
 
   void _showDateFilterPicker() {
+    HapticUtils.selection();
     // Implementation for date filter picker
   }
 
   void _showDietaryFilterPicker() {
+    HapticUtils.selection();
     // Implementation for dietary filter picker
   }
 

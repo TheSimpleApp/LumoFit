@@ -11,6 +11,11 @@ import 'package:fittravel/models/place_model.dart';
 
 /// Fitness Guide - AI-powered fitness recommendations for any location
 /// Formerly CairoGuideScreen, now location-aware
+///
+/// Location priority:
+/// 1. MapContextService location (if user has searched/navigated on the map)
+/// 2. Active trip destination (fallback)
+/// 3. "your area" (default)
 class FitnessGuideScreen extends StatefulWidget {
   const FitnessGuideScreen({super.key});
 
@@ -30,6 +35,8 @@ class _FitnessGuideScreenState extends State<FitnessGuideScreen> {
 
   // Location-aware destination
   String _currentDestination = 'your area';
+  double? _currentLat;
+  double? _currentLng;
 
   @override
   void initState() {
@@ -37,34 +44,58 @@ class _FitnessGuideScreenState extends State<FitnessGuideScreen> {
     _loadConversation();
     _initDestination();
 
-    // Listen for trip changes to update destination
+    // Listen for trip and map context changes to update destination
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TripService>().addListener(_onTripChanged);
+      context.read<TripService>().addListener(_onLocationContextChanged);
+      context.read<MapContextService>().addListener(_onLocationContextChanged);
     });
   }
 
-  /// Initialize destination from active trip or default
+  /// Initialize destination based on location priority:
+  /// 1. MapContextService location (if user has searched/navigated on the map)
+  /// 2. Active trip destination (fallback)
+  /// 3. "your area" (default)
   void _initDestination() {
+    final mapContext = context.read<MapContextService>();
     final tripService = context.read<TripService>();
+
+    // Priority 1: Use map context if user has explicitly set a location
+    if (mapContext.hasUserSetLocation && mapContext.locationName != null) {
+      setState(() {
+        _currentDestination = mapContext.locationName!;
+        _currentLat = mapContext.centerLat;
+        _currentLng = mapContext.centerLng;
+      });
+      return;
+    }
+
+    // Priority 2: Use active trip destination
     final activeTrip = tripService.activeTrip;
     if (activeTrip != null) {
       setState(() {
         _currentDestination = activeTrip.destinationCity;
+        _currentLat = activeTrip.destinationLatitude;
+        _currentLng = activeTrip.destinationLongitude;
       });
-    } else {
-      setState(() {
-        _currentDestination = 'your area';
-      });
+      return;
     }
+
+    // Priority 3: Default to "your area"
+    setState(() {
+      _currentDestination = 'your area';
+      _currentLat = null;
+      _currentLng = null;
+    });
   }
 
-  void _onTripChanged() {
+  void _onLocationContextChanged() {
     _initDestination();
   }
 
   @override
   void dispose() {
-    context.read<TripService>().removeListener(_onTripChanged);
+    context.read<TripService>().removeListener(_onLocationContextChanged);
+    context.read<MapContextService>().removeListener(_onLocationContextChanged);
     _questionController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -187,10 +218,12 @@ class _FitnessGuideScreenState extends State<FitnessGuideScreen> {
 
     try {
       // Use askFitnessGuide to get structured response with suggested places
+      // Location priority: MapContextService > Active Trip > "your area"
       final response = await _aiGuide.askFitnessGuide(
         question: question,
-        destination:
-            _currentDestination, // Use active trip destination or user's area
+        destination: _currentDestination,
+        userLat: _currentLat,
+        userLng: _currentLng,
       );
 
       if (mounted) {

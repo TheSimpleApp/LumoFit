@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/trip_service.dart';
 import 'package:fittravel/services/google_places_service.dart';
@@ -22,6 +23,7 @@ class _TripsScreenState extends State<TripsScreen> {
   Future<void> _onRefresh() async {
     final tripService = context.read<TripService>();
     await tripService.initialize();
+    await HapticUtils.success();
   }
 
   @override
@@ -96,42 +98,8 @@ class _TripsScreenState extends State<TripsScreen> {
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],
-              // Current trips that are not active
-              if (tripService.currentTrips
-                  .where((t) => !t.isActive)
-                  .isNotEmpty) ...[
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Text('Current Trips', style: textStyles.titleMedium),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final currentNonActive = tripService.currentTrips
-                          .where((t) => !t.isActive)
-                          .toList();
-                      final trip = currentNonActive[index];
-                      return Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                        child: _TripCard(
-                          trip: trip,
-                          onTap: () => context.push('/trip/${trip.id}'),
-                        )
-                            .animate()
-                            .fadeIn(delay: ((index + 1) * 100).ms)
-                            .slideY(begin: 0.1, delay: ((index + 1) * 100).ms),
-                      );
-                    },
-                    childCount: tripService.currentTrips
-                        .where((t) => !t.isActive)
-                        .length,
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 12)),
-              ],
+              // Note: "Current trips" section removed - trips are now automatically active based on dates.
+              // The activeTrip getter returns the trip where today falls within start/end dates.
               if (tripService.upcomingTrips.isNotEmpty) ...[
                 SliverToBoxAdapter(
                   child: Padding(
@@ -224,108 +192,243 @@ class _ActiveTripCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textStyles = Theme.of(context).textTheme;
     final dateFormat = DateFormat('MMM d');
+    final hasImage = trip.imageUrl != null && trip.imageUrl!.isNotEmpty;
 
-    return Material(
-      color: Colors.transparent,
-      clipBehavior: Clip.antiAlias,
-      borderRadius: BorderRadius.circular(AppRadius.xl),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: AppColors.goldShimmer,
-            borderRadius: BorderRadius.circular(AppRadius.xl),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+    return Hero(
+      tag: 'trip_image_${trip.id}',
+      child: Material(
+        color: Colors.transparent,
+        clipBehavior: Clip.antiAlias,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            height: 200,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(AppRadius.full),
+                  // Background image or gradient
+                  if (hasImage)
+                    CachedNetworkImage(
+                      imageUrl: trip.imageUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(
+                        decoration: const BoxDecoration(
+                          gradient: AppColors.goldShimmer,
+                        ),
+                      ),
+                      errorWidget: (_, __, ___) => Container(
+                        decoration: const BoxDecoration(
+                          gradient: AppColors.goldShimmer,
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      decoration: const BoxDecoration(
+                        gradient: AppColors.goldShimmer,
+                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                                color: AppColors.success,
-                                shape: BoxShape.circle)),
-                        const SizedBox(width: 6),
-                        Text('Active Now',
-                            style: textStyles.labelSmall?.copyWith(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w600)),
-                      ],
+                  // Cinematic overlay - darker, more sophisticated
+                  if (hasImage) ...[
+                    // Base darkening
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.2),
+                            Colors.black.withValues(alpha: 0.4),
+                            Colors.black.withValues(alpha: 0.75),
+                          ],
+                          stops: const [0.0, 0.4, 1.0],
+                        ),
+                      ),
                     ),
-                  ),
-                  const Spacer(),
-                  const Icon(Icons.arrow_forward_ios,
-                      color: Colors.black, size: 16),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  const Text('✈️', style: TextStyle(fontSize: 32)),
-                  const SizedBox(width: 12),
-                  Expanded(
+                    // Vignette effect
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: Alignment.center,
+                          radius: 1.2,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.4),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Subtle warm tint
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFFD4AF37).withValues(alpha: 0.08),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(trip.destinationCity,
-                            style: textStyles.titleLarge?.copyWith(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold)),
-                        if (trip.destinationCountry != null)
-                          Text(trip.destinationCountry!,
-                              style: textStyles.bodyMedium?.copyWith(
-                                  color: Colors.black.withValues(alpha: 0.8))),
+                        // Top row - status badge and arrow
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: hasImage
+                                    ? Colors.white.withValues(alpha: 0.15)
+                                    : Colors.black.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: hasImage
+                                      ? Colors.white.withValues(alpha: 0.2)
+                                      : Colors.transparent,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF4ADE80),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF4ADE80)
+                                              .withValues(alpha: 0.5),
+                                          blurRadius: 6,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Active Now',
+                                    style: textStyles.labelSmall?.copyWith(
+                                      color: hasImage
+                                          ? Colors.white
+                                          : Colors.black,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: hasImage
+                                    ? Colors.white.withValues(alpha: 0.1)
+                                    : Colors.black.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                color: hasImage
+                                    ? Colors.white.withValues(alpha: 0.8)
+                                    : Colors.black.withValues(alpha: 0.6),
+                                size: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        // Destination info
+                        Text(
+                          trip.destinationCity,
+                          style: textStyles.headlineSmall?.copyWith(
+                            color: hasImage ? Colors.white : Colors.black,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                            height: 1.1,
+                          ),
+                        ),
+                        if (trip.destinationCountry != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            trip.destinationCountry!,
+                            style: textStyles.bodyMedium?.copyWith(
+                              color: hasImage
+                                  ? Colors.white.withValues(alpha: 0.8)
+                                  : Colors.black.withValues(alpha: 0.7),
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 14),
+                        // Stats row - cleaner design
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: hasImage
+                                ? Colors.white.withValues(alpha: 0.1)
+                                : Colors.black.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: hasImage
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : Colors.black.withValues(alpha: 0.05),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              _StatItem(
+                                value: '${trip.durationDays}',
+                                label: 'days',
+                                lightText: hasImage,
+                              ),
+                              _StatDivider(lightText: hasImage),
+                              _StatItem(
+                                value: '${trip.savedPlaceIds.length}',
+                                label: 'places',
+                                lightText: hasImage,
+                              ),
+                              _StatDivider(lightText: hasImage),
+                              _StatItem(
+                                value: dateFormat.format(trip.endDate),
+                                label: 'ends',
+                                lightText: hasImage,
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                        child: _StatColumn(
-                            value: '${trip.durationDays}', label: 'Days')),
-                    Container(
-                        width: 1,
-                        height: 40,
-                        color: Colors.black.withValues(alpha: 0.3)),
-                    Expanded(
-                        child: _StatColumn(
-                            value: '${trip.savedPlaceIds.length}',
-                            label: 'Places')),
-                    Container(
-                        width: 1,
-                        height: 40,
-                        color: Colors.black.withValues(alpha: 0.3)),
-                    Expanded(
-                        child: _StatColumn(
-                            value: dateFormat.format(trip.endDate),
-                            label: 'Ends')),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -333,24 +436,73 @@ class _ActiveTripCard extends StatelessWidget {
   }
 }
 
-class _StatColumn extends StatelessWidget {
+class _StatItem extends StatelessWidget {
   final String value;
   final String label;
+  final bool lightText;
 
-  const _StatColumn({required this.value, required this.label});
+  const _StatItem({
+    required this.value,
+    required this.label,
+    this.lightText = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final textStyles = Theme.of(context).textTheme;
-    return Column(
-      children: [
-        Text(value,
-            style: textStyles.titleMedium
-                ?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
-        Text(label,
-            style: textStyles.labelSmall
-                ?.copyWith(color: Colors.black.withValues(alpha: 0.8))),
-      ],
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            style: textStyles.titleMedium?.copyWith(
+              color: lightText ? Colors.white : Colors.black,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: textStyles.labelSmall?.copyWith(
+              color: lightText
+                  ? Colors.white.withValues(alpha: 0.6)
+                  : Colors.black.withValues(alpha: 0.5),
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatDivider extends StatelessWidget {
+  final bool lightText;
+
+  const _StatDivider({this.lightText = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 28,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,
+            lightText
+                ? Colors.white.withValues(alpha: 0.2)
+                : Colors.black.withValues(alpha: 0.15),
+            Colors.transparent,
+          ],
+        ),
+      ),
     );
   }
 }
@@ -381,60 +533,158 @@ class _TripCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
-    final dateFormat = DateFormat('MMM d, yyyy');
+    final dateFormat = DateFormat('MMM d');
+    final hasImage = trip.imageUrl != null && trip.imageUrl!.isNotEmpty;
 
-    return Material(
-      color: colors.surface,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: (isPast ? colors.outline : AppColors.info)
-                      .withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Center(
-                    child: Text(isPast ? '📍' : '✈️',
-                        style: const TextStyle(fontSize: 24))),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(trip.destinationCity,
-                        style: textStyles.titleSmall?.copyWith(
-                            color: isPast ? colors.onSurfaceVariant : null)),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${dateFormat.format(trip.startDate)} - ${dateFormat.format(trip.endDate)}',
-                      style: textStyles.bodySmall
-                          ?.copyWith(color: colors.onSurfaceVariant),
+    return Hero(
+      tag: 'trip_image_${trip.id}',
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Container(
+            height: 88,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: colors.surface,
+            ),
+            child: Stack(
+              children: [
+                // Full-width subtle background image
+                if (hasImage)
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: CachedNetworkImage(
+                        imageUrl: trip.imageUrl!,
+                        fit: BoxFit.cover,
+                        color: Colors.black.withValues(alpha: isPast ? 0.7 : 0.5),
+                        colorBlendMode: BlendMode.darken,
+                        placeholder: (_, __) => Container(
+                          color: colors.surfaceContainerHighest,
+                        ),
+                        errorWidget: (_, __, ___) => Container(
+                          color: colors.surface,
+                        ),
+                      ),
                     ),
-                  ],
+                  ),
+                // Gradient overlay for depth
+                if (hasImage)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.6),
+                            Colors.black.withValues(alpha: 0.3),
+                            Colors.black.withValues(alpha: 0.5),
+                          ],
+                          stops: const [0.0, 0.5, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                // Content
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      // Icon container
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: hasImage
+                              ? Colors.white.withValues(alpha: 0.15)
+                              : (isPast ? colors.outline : AppColors.info)
+                                  .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(14),
+                          border: hasImage
+                              ? Border.all(
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                  width: 1,
+                                )
+                              : null,
+                        ),
+                        child: Center(
+                          child: Text(
+                            isPast ? '📍' : '✈️',
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      // Text content
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              trip.destinationCity,
+                              style: textStyles.titleMedium?.copyWith(
+                                color: hasImage
+                                    ? Colors.white
+                                    : (isPast
+                                        ? colors.onSurfaceVariant
+                                        : colors.onSurface),
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${dateFormat.format(trip.startDate)} - ${dateFormat.format(trip.endDate)}, ${trip.endDate.year}',
+                              style: textStyles.bodySmall?.copyWith(
+                                color: hasImage
+                                    ? Colors.white.withValues(alpha: 0.7)
+                                    : colors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Status badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: hasImage
+                              ? _getStatusColor(trip.status)
+                                  .withValues(alpha: 0.25)
+                              : _getStatusColor(trip.status)
+                                  .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: hasImage
+                              ? Border.all(
+                                  color: _getStatusColor(trip.status)
+                                      .withValues(alpha: 0.4),
+                                  width: 1,
+                                )
+                              : null,
+                        ),
+                        child: Text(
+                          trip.status,
+                          style: textStyles.labelSmall?.copyWith(
+                            color: hasImage
+                                ? Colors.white
+                                : _getStatusColor(trip.status),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(trip.status).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                ),
-                child: Text(trip.status,
-                    style: textStyles.labelSmall?.copyWith(
-                        color: _getStatusColor(trip.status),
-                        fontWeight: FontWeight.w600)),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

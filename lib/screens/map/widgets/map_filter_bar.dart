@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fittravel/theme.dart';
+import 'package:fittravel/utils/haptic_utils.dart';
 
 /// Filter types for the map
 enum MapFilterType {
@@ -182,6 +183,7 @@ class MapFilterBar extends StatelessWidget {
   }
 
   void _handleFilterTap(MapFilterType filter) {
+    HapticUtils.selection();
     if (filter == MapFilterType.all) {
       // "All" toggles everything
       onFilterChanged({MapFilterType.all});
@@ -207,6 +209,7 @@ class MapFilterBar extends StatelessWidget {
   }
 
   void _handleDietaryFilterTap(DietaryFilterType filter) {
+    HapticUtils.selection();
     if (onDietaryFilterChanged == null) return;
 
     final newFilters = Set<DietaryFilterType>.from(activeDietaryFilters);

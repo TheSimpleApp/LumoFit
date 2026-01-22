@@ -18,6 +18,8 @@ import 'package:fittravel/screens/map/widgets/map_filter_bar.dart';
 import 'package:fittravel/screens/map/widgets/map_place_preview.dart';
 import 'package:fittravel/screens/map/widgets/location_search_bar.dart';
 import 'package:fittravel/widgets/ai_map_concierge.dart';
+import 'package:fittravel/utils/haptic_utils.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fittravel/models/ai_models.dart';
 
 /// Main map discovery screen with fitness places and events
@@ -396,6 +398,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _onMarkerTapped(dynamic item) {
+    HapticUtils.light();
     setState(() => _selectedItem = item);
   }
 
@@ -442,6 +445,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _searchThisArea() {
+    HapticUtils.medium();
     if (_currentCameraPosition != null) {
       _center = _currentCameraPosition!.target;
       _lastSearchCenter = _center;
@@ -888,6 +892,16 @@ class _MapScreenState extends State<MapScreen> {
           ),
 
           // Place preview bottom sheet
+          // Backdrop when bottom sheet is open
+          if (_selectedItem != null)
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedItem = null),
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.3),
+                ).animate().fadeIn(duration: 200.ms),
+              ),
+            ),
           if (_selectedItem != null)
             Positioned(
               left: 0,
@@ -900,8 +914,11 @@ class _MapScreenState extends State<MapScreen> {
             ),
 
           // AI Map Concierge (floating chat)
+          // Use map's current location (from search) if available, fallback to active trip
           AiMapConcierge(
-            destination: activeTrip?.destinationCity,
+            destination: mapContext.hasUserSetLocation
+                ? mapContext.locationName
+                : activeTrip?.destinationCity,
             userLat: _center.latitude,
             userLng: _center.longitude,
             onPlacesSuggested: _onAiPlacesSuggested,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fittravel/nav.dart';
 import 'package:fittravel/theme.dart';
+import 'package:fittravel/utils/haptic_utils.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
@@ -28,6 +29,7 @@ class MainShell extends StatelessWidget {
         child: NavigationBar(
           selectedIndex: currentIndex,
           onDestinationSelected: (index) {
+            HapticUtils.selection();
             context.go(AppRouter.getPathForIndex(index));
           },
           destinations: const [

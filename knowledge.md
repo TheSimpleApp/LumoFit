@@ -31,10 +31,7 @@ The project is connected to Supabase (Dreamflow Supabase panel). **All data serv
   - `community-photos` (5MB limit, JPEG/PNG/WebP/HEIC)
   - `quick-photos` (5MB limit, JPEG/PNG/WebP/HEIC)
   - `avatars` (2MB limit, JPEG/PNG/WebP)
-- **Edge Functions:** 7 active functions
-  - `list_events_combined` - Aggregates Eventbrite + RunSignup events
-  - `list_events_eventbrite` - Eventbrite API integration
-  - `list_events_runsignup` - RunSignup API integration
+- **Edge Functions:** 4 active functions
   - `cairo_guide` - Gemini AI integration for Cairo recommendations
   - `egypt_fitness_guide` - Egypt-wide AI concierge (8 destinations)
   - `get_place_insights` - AI-generated place tips with 7-day cache
@@ -385,7 +382,7 @@ AIzaSyDReP4tFXyqU6W8PusrlZdFVFLAYwFr6ZA
 ### Phase 4 — Events Discovery (In Progress)
 - Events surface with filters (date range, categories: running, yoga, hiking, cycling, CrossFit)
 - Event detail (location, time/date, website/registration, add-to-itinerary)
-- Data source: TBD (Eventbrite, Meetup, sports-specific APIs)
+- Data source: n8n webhook API (lifestyle event discovery agent)
 
 ### Phase 5 — Trails/Routes
 - Trails/Routes discovery (distance, elevation, safety/lighting)
@@ -495,7 +492,7 @@ static const String kTrails = 'trails'; // Phase 5
 | Session | QuickPhoto model/service added (local-first) + Profile “Quick Added Photos” gallery | Phase 4 |
 | Session | Home FAB switched to camera-first capture → saved to Quick Photos | Phase 4 |
 | Session | Discover TabBar polished (scrollable, no splash, responsive tabs) | Phase 4 |
-| Session | Events Edge Function deployed (Eventbrite + RunSignup aggregation) | Phase 4 |
+| Session | Events integration via n8n webhook API | Phase 4 |
 | Session | Supabase Auth integrated (email/password login/signup) | Phase 9 |
 | Session | All 8 data services migrated from SharedPreferences to Supabase | Phase 9 |
 | Session | Seeded 14 badges and 5 challenges into Supabase database | Phase 9 |
@@ -559,7 +556,7 @@ static const String kTrails = 'trails'; // Phase 5
 ## 10. Open Questions & Future Research
 
 ### Phase 4 (Events)
-- Which event API(s) to use? (Eventbrite, Meetup, sports-specific)
+- Event discovery via n8n webhook API (lifestyle event discovery agent)
 - Pricing constraints for API usage
 - Do we need current location permissions for MVP?
 
