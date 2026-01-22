@@ -50,10 +50,99 @@ class _DiscoverScreenState extends State<DiscoverScreen>
         length: 4,
         vsync: this,
         initialIndex: widget.initialTabIndex.clamp(0, 3));
+
+    // Auto-load events when Events tab is selected
+    _tabController.addListener(_onTabChanged);
+
+    // If starting on Events tab, load events after build
+    if (widget.initialTabIndex == 2) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadEventsForLocation());
+    }
+  }
+
+  void _onTabChanged() {
+    if (_tabController.index == 2 && _eventResults.isEmpty && !_isSearchingEvents) {
+      _loadEventsForLocation();
+    }
+  }
+
+  /// Load events from Supabase for current location
+  Future<void> _loadEventsForLocation() async {
+    final mapContext = context.read<MapContextService>();
+    final tripService = context.read<TripService>();
+    final eventService = context.read<EventService>();
+
+    // Try to get location from active trip first, then map context
+    final activeTrip = tripService.activeTrip;
+    String locationName;
+    double centerLat;
+    double centerLng;
+
+    if (activeTrip != null) {
+      // Use active trip destination
+      locationName = activeTrip.destinationCity;
+      if (activeTrip.destinationCountry != null) {
+        locationName = '$locationName, ${activeTrip.destinationCountry}';
+      }
+      centerLat = activeTrip.destinationLatitude ?? mapContext.centerLat;
+      centerLng = activeTrip.destinationLongitude ?? mapContext.centerLng;
+    } else if (mapContext.locationName != null) {
+      // Use map context location
+      locationName = mapContext.locationName!;
+      centerLat = mapContext.centerLat;
+      centerLng = mapContext.centerLng;
+    } else {
+      // No location available
+      debugPrint('DiscoverScreen: No location available for event discovery');
+      return;
+    }
+
+    // Parse city from location name
+    final parts = locationName.split(',').map((s) => s.trim()).toList();
+    final city = parts.isNotEmpty ? parts[0] : locationName;
+
+    setState(() => _isSearchingEvents = true);
+
+    try {
+      // First try to load from Supabase (cached events)
+      await eventService.fetchEventsForCity(city: city);
+
+      // Get events from the date range filter
+      // Use destinationOnly when we have an active trip to show only relevant events
+      final range = _currentDateRange();
+      final hasActiveTrip = tripService.activeTrip != null;
+      final results = eventService.search(
+        query: '',
+        startDate: range.$1,
+        endDate: range.$2,
+        centerLat: centerLat,
+        centerLng: centerLng,
+        radiusKm: 80, // ~50 miles
+        destinationOnly: hasActiveTrip,
+      );
+
+      if (mounted) {
+        setState(() {
+          _eventResults = results;
+          _isSearchingEvents = false;
+          if (results.isNotEmpty) {
+            _searchQuery = city; // Show results view
+          }
+        });
+      }
+
+      debugPrint('DiscoverScreen: Loaded ${results.length} events for $city from Supabase');
+    } catch (e) {
+      debugPrint('DiscoverScreen: Error loading events: $e');
+      if (mounted) {
+        setState(() => _isSearchingEvents = false);
+      }
+    }
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -74,65 +163,32 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       return;
     }
 
-    // Events tab
+    // Events tab - search locally loaded events
     if (_tabController.index == 2) {
       setState(() => _isSearchingEvents = true);
       final eventService = context.read<EventService>();
+      final tripService = context.read<TripService>();
       final range = _currentDateRange();
-      try {
-        // Prefer external providers via combined edge function
-        final results = await eventService.fetchExternalEvents(
-          query: query,
-          startDate: range.$1,
-          endDate: range.$2,
-          centerLat: centerLat,
-          centerLng: centerLng,
-          radiusKm: 50,
-          limit: 60,
-        );
+      final hasActiveTrip = tripService.activeTrip != null;
 
-        // Fallback if external API returns empty
-        if (results.isEmpty) {
-          final local = eventService.search(
-            query: query,
-            categories: _selectedCategories,
-            startDate: range.$1,
-            endDate: range.$2,
-            centerLat: centerLat,
-            centerLng: centerLng,
-            radiusKm: 50,
-          );
-          if (mounted) {
-            setState(() {
-              _eventResults = local;
-              _isSearchingEvents = false;
-            });
-          }
-        } else {
-          if (mounted) {
-            setState(() {
-              _eventResults = results;
-              _isSearchingEvents = false;
-            });
-          }
-        }
-      } catch (_) {
-        // Fallback to local search if remote fails
-        final local = eventService.search(
-          query: query,
-          categories: _selectedCategories,
-          startDate: range.$1,
-          endDate: range.$2,
-          centerLat: centerLat,
-          centerLng: centerLng,
-          radiusKm: 50,
-        );
-        if (mounted) {
-          setState(() {
-            _eventResults = local;
-            _isSearchingEvents = false;
-          });
-        }
+      // Search locally loaded events (from Supabase)
+      // Use destinationOnly when we have an active trip
+      final results = eventService.search(
+        query: query,
+        categories: _selectedCategories,
+        startDate: range.$1,
+        endDate: range.$2,
+        centerLat: centerLat,
+        centerLng: centerLng,
+        radiusKm: 80, // ~50 miles - consistent radius
+        destinationOnly: hasActiveTrip,
+      );
+
+      if (mounted) {
+        setState(() {
+          _eventResults = results;
+          _isSearchingEvents = false;
+        });
       }
       return;
     }
@@ -540,46 +596,50 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   }
 
   Widget _buildEventsTab() {
-    if (_searchQuery.isNotEmpty) {
-      if (_isSearchingEvents) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      if (_eventResults.isEmpty) {
-        return EmptyStateWidget(
-          title: 'No events found',
-          description: 'Try different dates or locations',
-          ctaLabel: 'Reset filters',
-          onCtaPressed: () {
-            _searchController.clear();
-            setState(() {
-              _searchQuery = '';
-              _eventResults = [];
-              _selectedCategories.clear();
-              _dateFilter = 'this_week';
-              _filterRating4Plus = false;
-              _filterHasPhotos = false;
-            });
-          },
-        );
-      }
-      return _buildEventsList(_eventResults);
-    }
-
-    // Get current location from map context
     final mapContext = context.read<MapContextService>();
-    final locationName = mapContext.locationName ?? 'this area';
-    final centerLat = mapContext.centerLat;
-    final centerLng = mapContext.centerLng;
+    final tripService = context.read<TripService>();
     final eventService = context.read<EventService>();
 
-    // Show loading state if discovering events
+    // Try to get location from active trip first, then map context
+    final activeTrip = tripService.activeTrip;
+    String locationName;
+    double centerLat;
+    double centerLng;
+
+    if (activeTrip != null) {
+      // Use active trip destination
+      locationName = activeTrip.destinationCity;
+      if (activeTrip.destinationCountry != null) {
+        locationName = '$locationName, ${activeTrip.destinationCountry}';
+      }
+      centerLat = activeTrip.destinationLatitude ?? mapContext.centerLat;
+      centerLng = activeTrip.destinationLongitude ?? mapContext.centerLng;
+    } else if (mapContext.locationName != null) {
+      // Use map context location
+      locationName = mapContext.locationName!;
+      centerLat = mapContext.centerLat;
+      centerLng = mapContext.centerLng;
+    } else {
+      // No location - show empty state with different message
+      locationName = 'this area';
+      centerLat = mapContext.centerLat;
+      centerLng = mapContext.centerLng;
+    }
+
+    // Show loading state if discovering or loading events
     if (_isSearchingEvents || eventService.isDiscoveringEvents) {
       return const Center(child: CircularProgressIndicator());
     }
 
+    // If we have events (from search or auto-load), show them
+    if (_eventResults.isNotEmpty) {
+      return _buildEventsList(_eventResults);
+    }
+
+    // No events found - show discover button
     return EmptyStateWidget(
-      title: 'Search for events',
-      description: 'Find fitness classes, yoga, sports and more',
+      title: 'No events found',
+      description: 'Discover fitness events, yoga classes, runs and more in $locationName',
       ctaLabel: 'Discover events here',
       onCtaPressed: () async {
         // Show loading state
@@ -609,14 +669,17 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           }
 
           // Reload events from Supabase and show them
+          // Use destinationOnly when we have an active trip
           final range = _currentDateRange();
-          final results = await eventService.fetchExternalEvents(
+          final hasActiveTrip = activeTrip != null;
+          final results = eventService.search(
+            query: '',
             startDate: range.$1,
             endDate: range.$2,
             centerLat: centerLat,
             centerLng: centerLng,
-            radiusKm: 50,
-            limit: 60,
+            radiusKm: 80, // ~50 miles - consistent with _loadEventsForLocation
+            destinationOnly: hasActiveTrip,
           );
 
           if (mounted) {

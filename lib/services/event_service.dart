@@ -1,8 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'dart:math';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:fittravel/models/event_model.dart';
 import 'package:fittravel/supabase/supabase_config.dart';
+
+const String _n8nWebhookUrl = 'https://thesimpleapp.app.n8n.cloud/webhook/lifestyle-events';
 
 /// EventService fetches events from Supabase database and Edge Functions.
 /// Events are shared across all users and fetched per destination.
@@ -96,9 +100,11 @@ class EventService extends ChangeNotifier {
     required String city,
     DateTime? startDate,
     DateTime? endDate,
+    bool forceRefresh = false,
   }) async {
-    if (_currentCity == city && _destinationEvents.isNotEmpty) {
-      // Already have events for this city
+    if (!forceRefresh && _currentCity == city && _destinationEvents.isNotEmpty) {
+      // Already have events for this city, use cached
+      debugPrint('EventService: Using cached ${_destinationEvents.length} events for $city');
       return;
     }
 
@@ -283,6 +289,8 @@ class EventService extends ChangeNotifier {
   }
 
   /// Basic text search with optional category and date window filters.
+  /// Searches both general events and destination-specific events.
+  /// If destinationOnly is true, only searches _destinationEvents for the current city.
   List<EventModel> search({
     required String query,
     Set<EventCategory>? categories,
@@ -291,8 +299,24 @@ class EventService extends ChangeNotifier {
     double? centerLat,
     double? centerLng,
     double? radiusKm,
+    bool destinationOnly = false,
   }) {
-    var out = _events;
+    List<EventModel> out;
+
+    if (destinationOnly && _destinationEvents.isNotEmpty) {
+      // Only use destination events (for trip-specific views)
+      out = List.from(_destinationEvents);
+    } else {
+      // Combine all events and deduplicate by ID
+      final allEvents = <String, EventModel>{};
+      for (final e in _events) {
+        allEvents[e.id] = e;
+      }
+      for (final e in _destinationEvents) {
+        allEvents[e.id] = e;
+      }
+      out = allEvents.values.toList();
+    }
 
     if (query.isNotEmpty) {
       final q = query.toLowerCase();
@@ -381,8 +405,8 @@ class EventService extends ChangeNotifier {
 
   double _deg2rad(double deg) => deg * (3.141592653589793 / 180.0);
 
-  /// Discover events for a location using the Supabase edge function
-  /// This will fetch events using AI and save them to Supabase
+  /// Discover events for a location using the n8n webhook
+  /// This fetches events from multiple sources and saves them to Supabase
   Future<void> discoverEventsForLocation({
     required String locationName,
     required double latitude,
@@ -395,53 +419,44 @@ class EventService extends ChangeNotifier {
     try {
       debugPrint('EventService: Discovering events for $locationName...');
 
-      // Parse city from location name (handle formats like "Austin, TX" or "Austin, Texas, USA")
+      // Parse city/state/country from location name
       final parts = locationName.split(',').map((s) => s.trim()).toList();
       final city = parts.isNotEmpty ? parts[0] : locationName;
-      final country = parts.length > 2 ? parts.last : (parts.length > 1 ? parts[1] : null);
+      final state = parts.length > 1 ? parts[1] : null;
+      final country = parts.length > 2 ? parts.last : 'USA';
 
       // Calculate date range (today to 3 months from now)
       final now = DateTime.now();
       final endDate = DateTime(now.year, now.month + 3, now.day);
 
-      // Call Supabase edge function
-      final response = await SupabaseConfig.client.functions.invoke(
-        'fetch_destination_events',
-        body: {
-          'city': city,
-          if (country != null) 'country': country,
-          'start_date': now.toIso8601String().split('T')[0],
-          'end_date': endDate.toIso8601String().split('T')[0],
-          'latitude': latitude,
-          'longitude': longitude,
-          'max_events': 50,
-        },
+      // Call n8n webhook to discover events
+      final events = await _fetchEventsFromN8n(
+        city: city,
+        state: state,
+        country: country,
+        startDate: now,
+        endDate: endDate,
+        latitude: latitude,
+        longitude: longitude,
       );
 
-      if (response.status != 200) {
-        throw Exception('Edge function returned ${response.status}: ${response.data}');
-      }
+      debugPrint('EventService: n8n returned ${events.length} events');
 
-      final data = response.data as Map<String, dynamic>;
-      final eventsCount = data['events_count'] as int? ?? 0;
-      final cached = data['cached'] as bool? ?? false;
-
-      debugPrint('EventService: Edge function returned $eventsCount events (cached: $cached)');
-
-      if (eventsCount == 0) {
+      if (events.isEmpty) {
         _lastDiscoveryError = 'No events found for this location';
         notifyListeners();
         _isDiscoveringEvents = false;
         return;
       }
 
-      // Reload events from Supabase (edge function already saved them)
+      // Save events to Supabase
+      await _saveEventsToSupabase(events, city, country);
+
+      // Reload events from Supabase (force refresh to get new events)
       await _loadEventsFromSupabase();
+      await fetchEventsForCity(city: city, forceRefresh: true);
 
-      // Also fetch for this specific city
-      await fetchEventsForCity(city: city);
-
-      debugPrint('EventService: Successfully loaded $eventsCount events');
+      debugPrint('EventService: Successfully saved and loaded ${events.length} events');
     } catch (e, st) {
       debugPrint('EventService.discoverEventsForLocation error: $e');
       debugPrint(st.toString());
@@ -450,6 +465,220 @@ class EventService extends ChangeNotifier {
       _isDiscoveringEvents = false;
       notifyListeners();
     }
+  }
+
+  /// Fetch events from the n8n webhook
+  Future<List<Map<String, dynamic>>> _fetchEventsFromN8n({
+    required String city,
+    String? state,
+    String? country,
+    required DateTime startDate,
+    required DateTime endDate,
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(_n8nWebhookUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'city': city,
+          if (state != null) 'state': state,
+          'country': country ?? 'USA',
+          'start_date': startDate.toIso8601String().split('T')[0],
+          'end_date': endDate.toIso8601String().split('T')[0],
+          'latitude': latitude,
+          'longitude': longitude,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        debugPrint('n8n webhook error: ${response.statusCode} - ${response.body}');
+        return [];
+      }
+
+      // Parse the response - n8n returns markdown-wrapped JSON
+      String content = response.body;
+
+      // Try to parse as JSON first
+      Map<String, dynamic> parsed;
+      try {
+        parsed = jsonDecode(content) as Map<String, dynamic>;
+      } catch (_) {
+        debugPrint('n8n response not direct JSON, trying to extract');
+        return [];
+      }
+
+      // Check if response has 'output' field with markdown-wrapped JSON
+      if (parsed.containsKey('output')) {
+        String output = parsed['output'] as String;
+
+        // Remove markdown code fences if present
+        final codeFenceMatch = RegExp(r'```(?:json)?\s*([\s\S]*?)\s*```').firstMatch(output);
+        if (codeFenceMatch != null) {
+          output = codeFenceMatch.group(1) ?? output;
+        }
+
+        try {
+          parsed = jsonDecode(output) as Map<String, dynamic>;
+        } catch (e) {
+          debugPrint('Failed to parse n8n output JSON: $e');
+          return [];
+        }
+      }
+
+      // Extract events array
+      final events = parsed['events'] as List<dynamic>? ?? [];
+      return events.cast<Map<String, dynamic>>();
+    } catch (e, st) {
+      debugPrint('_fetchEventsFromN8n error: $e');
+      debugPrint(st.toString());
+      return [];
+    }
+  }
+
+  /// Save events to Supabase
+  Future<void> _saveEventsToSupabase(
+    List<Map<String, dynamic>> events,
+    String city,
+    String? country,
+  ) async {
+    try {
+      final eventsToInsert = events.map((e) {
+        final details = e['details'] as Map<String, dynamic>? ?? {};
+        final tags = (e['tags'] as List<dynamic>?)?.cast<String>() ?? [];
+
+        // Parse date and time from n8n format
+        final dateStr = details['date'] as String? ?? '';
+        final timeStr = details['time'] as String? ?? '';
+        DateTime? startDate;
+        DateTime? endDate;
+
+        if (dateStr.isNotEmpty) {
+          try {
+            // Parse date (YYYY-MM-DD format)
+            startDate = DateTime.parse(dateStr);
+
+            // Try to parse time range (e.g., "6:00 PM" or "6:00 PM - 7:00 PM")
+            if (timeStr.isNotEmpty) {
+              final timeParts = timeStr.split(' - ');
+              final startTime = _parseTime(timeParts[0].trim());
+              if (startTime != null) {
+                startDate = DateTime(
+                  startDate.year, startDate.month, startDate.day,
+                  startTime.hour, startTime.minute,
+                );
+              }
+              if (timeParts.length > 1) {
+                final endTime = _parseTime(timeParts[1].trim());
+                if (endTime != null) {
+                  endDate = DateTime(
+                    startDate.year, startDate.month, startDate.day,
+                    endTime.hour, endTime.minute,
+                  );
+                }
+              }
+            }
+          } catch (e) {
+            debugPrint('Failed to parse date: $dateStr - $e');
+          }
+        }
+
+        // Map tags to category
+        String category = 'other';
+        for (final tag in tags) {
+          final mapped = _mapTagToCategory(tag);
+          if (mapped != 'other') {
+            category = mapped;
+            break;
+          }
+        }
+
+        // Generate unique external_id
+        final title = e['title'] as String? ?? 'Untitled Event';
+        final externalId = 'n8n_${city.replaceAll(' ', '_')}_${title.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_').substring(0, min(30, title.length))}_${dateStr.replaceAll('-', '')}';
+
+        return {
+          'title': title,
+          'category': category,
+          'start_date': startDate?.toIso8601String(),
+          'end_date': endDate?.toIso8601String(),
+          'description': e['description'] as String?,
+          'venue_name': details['location']?.toString().split(',').first ?? 'TBA',
+          'address': details['location'] as String?,
+          'website_url': e['source_url'] as String?,
+          'price_info': details['price'] as String?,
+          'source': 'n8n_webhook',
+          'external_id': externalId,
+          'city': city,
+          'country': country,
+          'fetched_at': DateTime.now().toIso8601String(),
+          'expires_at': DateTime.now().add(const Duration(days: 7)).toIso8601String(),
+        };
+      }).where((e) => e['start_date'] != null).toList();
+
+      if (eventsToInsert.isEmpty) {
+        debugPrint('No valid events to insert');
+        return;
+      }
+
+      debugPrint('Inserting ${eventsToInsert.length} events to Supabase...');
+
+      // Upsert events (uses external_id unique constraint)
+      await SupabaseConfig.client
+          .from('events')
+          .upsert(eventsToInsert, onConflict: 'external_id', ignoreDuplicates: true);
+
+      debugPrint('Events saved to Supabase');
+    } catch (e, st) {
+      debugPrint('_saveEventsToSupabase error: $e');
+      debugPrint(st.toString());
+    }
+  }
+
+  /// Parse time string like "6:00 PM" or "18:00" to DateTime
+  DateTime? _parseTime(String timeStr) {
+    try {
+      timeStr = timeStr.trim().toUpperCase();
+
+      // Handle 12-hour format (6:00 PM)
+      final match12 = RegExp(r'(\d{1,2}):(\d{2})\s*(AM|PM)?').firstMatch(timeStr);
+      if (match12 != null) {
+        int hour = int.parse(match12.group(1)!);
+        final minute = int.parse(match12.group(2)!);
+        final period = match12.group(3);
+
+        if (period == 'PM' && hour != 12) hour += 12;
+        if (period == 'AM' && hour == 12) hour = 0;
+
+        return DateTime(2000, 1, 1, hour, minute);
+      }
+
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Map event tag to category
+  String _mapTagToCategory(String tag) {
+    final lower = tag.toLowerCase();
+    if (lower.contains('run') || lower.contains('5k') || lower.contains('10k') || lower.contains('marathon')) return 'running';
+    if (lower.contains('yoga') || lower.contains('pilates')) return 'yoga';
+    if (lower.contains('hik') || lower.contains('outdoor') || lower.contains('trek')) return 'hiking';
+    if (lower.contains('cycl') || lower.contains('bike') || lower.contains('spin')) return 'cycling';
+    if (lower.contains('crossfit') || lower.contains('functional')) return 'crossfit';
+    if (lower.contains('swim')) return 'swimming';
+    if (lower.contains('boot') || lower.contains('hiit') || lower.contains('fitness')) return 'bootcamp';
+    if (lower.contains('triath')) return 'triathlon';
+    if (lower.contains('obstacle') || lower.contains('spartan')) return 'obstacle';
+    if (lower.contains('class') || lower.contains('group')) return 'group_fitness';
+    if (lower.contains('martial') || lower.contains('boxing') || lower.contains('mma')) return 'martial_arts';
+    if (lower.contains('dance') || lower.contains('zumba')) return 'dance';
+    if (lower.contains('climb') || lower.contains('boulder')) return 'climbing';
+    if (lower.contains('well') || lower.contains('spa') || lower.contains('meditat')) return 'wellness';
+    if (lower.contains('sport') || lower.contains('social')) return 'sports';
+    return 'other';
   }
 
   /// Get events near a specific location (for trip planning).
