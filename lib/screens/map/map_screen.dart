@@ -10,6 +10,7 @@ import 'package:fittravel/services/place_service.dart';
 import 'package:fittravel/services/google_places_service.dart';
 import 'package:fittravel/services/event_service.dart';
 import 'package:fittravel/services/strava_service.dart';
+import 'package:fittravel/services/map_context_service.dart';
 import 'package:fittravel/models/place_model.dart';
 import 'package:fittravel/models/event_model.dart';
 import 'package:fittravel/theme.dart';
@@ -69,6 +70,9 @@ class _MapScreenState extends State<MapScreen> {
   // Filters
   Set<MapFilterType> _activeFilters = {MapFilterType.all};
 
+  // PlaceService listener
+  void Function()? _placeServiceListener;
+
   // Search radius in miles
   int _searchRadiusMiles = 5;
   static const List<int> _radiusOptions = [1, 5, 10, 25];
@@ -89,6 +93,23 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _initializeMapCenter();
+    _setupPlaceServiceListener();
+  }
+
+  void _setupPlaceServiceListener() {
+    // Listen to PlaceService changes to update markers when places are saved/removed
+    _placeServiceListener = () {
+      if (mounted) {
+        _updateMarkersFromItems();
+      }
+    };
+
+    // Add listener after first frame to avoid calling during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<PlaceService>().addListener(_placeServiceListener!);
+      }
+    });
   }
 
   Future<void> _initializeMapCenter() async {
@@ -96,27 +117,39 @@ class _MapScreenState extends State<MapScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Default to current GPS location
-      try {
-        LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
-        }
+      // First, check if we have a persisted location in MapContextService
+      final mapContext = context.read<MapContextService>();
+      final hasPersistedLocation = mapContext.locationName != null;
 
-        if (permission == LocationPermission.whileInUse ||
-            permission == LocationPermission.always) {
-          final position = await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.medium,
-            ),
-          ).timeout(const Duration(seconds: 10));
+      if (hasPersistedLocation) {
+        // Use the persisted location from previous session
+        _center = LatLng(mapContext.centerLat, mapContext.centerLng);
+        _searchRadiusMiles = mapContext.searchRadiusMiles;
+        debugPrint(
+            'MapScreen: Using persisted location: ${mapContext.locationName}');
+      } else {
+        // No persisted location, try GPS
+        try {
+          LocationPermission permission = await Geolocator.checkPermission();
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission();
+          }
 
-          if (!mounted) return;
-          _center = LatLng(position.latitude, position.longitude);
+          if (permission == LocationPermission.whileInUse ||
+              permission == LocationPermission.always) {
+            final position = await Geolocator.getCurrentPosition(
+              locationSettings: const LocationSettings(
+                accuracy: LocationAccuracy.medium,
+              ),
+            ).timeout(const Duration(seconds: 10));
+
+            if (!mounted) return;
+            _center = LatLng(position.latitude, position.longitude);
+          }
+        } catch (e) {
+          debugPrint('MapScreen: Could not get GPS location: $e');
+          // Keep default fallback center
         }
-      } catch (e) {
-        debugPrint('MapScreen: Could not get GPS location: $e');
-        // Keep default fallback center
       }
     } catch (e, st) {
       debugPrint('MapScreen: Error initializing map: $e');
@@ -129,6 +162,11 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _loadPlacesForCurrentLocation() async {
+    // Update MapContextService with current center
+    final mapContext = context.read<MapContextService>();
+    mapContext.updateCenter(_center.latitude, _center.longitude);
+    mapContext.updateRadius(_searchRadiusMiles);
+
     // If "Saved" filter is active, load from saved places only
     if (_activeFilters.contains(MapFilterType.saved)) {
       _loadSavedPlaces();
@@ -171,6 +209,42 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     _updateMarkersFromItems();
+
+    // Update MapContextService with loaded places
+    _syncPlacesToMapContext();
+  }
+
+  void _syncPlacesToMapContext() {
+    final mapContext = context.read<MapContextService>();
+
+    // Separate places by type
+    final gyms = <PlaceModel>[];
+    final restaurants = <PlaceModel>[];
+    final trails = <PlaceModel>[];
+
+    for (final place in _placeMarkers.values) {
+      switch (place.type) {
+        case PlaceType.gym:
+          gyms.add(place);
+          break;
+        case PlaceType.restaurant:
+          restaurants.add(place);
+          break;
+        case PlaceType.trail:
+        case PlaceType.park:
+          trails.add(place);
+          break;
+        default:
+          break;
+      }
+    }
+
+    mapContext.updatePlaces(
+      gyms: gyms,
+      restaurants: restaurants,
+      trails: trails,
+      events: _eventMarkers.values.toList(),
+    );
   }
 
   void _loadSavedPlaces() {
@@ -273,8 +347,8 @@ class _MapScreenState extends State<MapScreen> {
           markers.add(Marker(
             markerId: MarkerId('event_${entry.key}'),
             position: LatLng(event.latitude!, event.longitude!),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                AppColors.markerHueEvent),
+            icon:
+                BitmapDescriptor.defaultMarkerWithHue(AppColors.markerHueEvent),
             onTap: () => _onMarkerTapped(event),
           ));
         }
@@ -286,6 +360,7 @@ class _MapScreenState extends State<MapScreen> {
 
   bool _shouldShowPlace(PlaceModel place) {
     if (_activeFilters.contains(MapFilterType.all)) return true;
+    if (_activeFilters.contains(MapFilterType.saved)) return true;
 
     switch (place.type) {
       case PlaceType.gym:
@@ -331,10 +406,13 @@ class _MapScreenState extends State<MapScreen> {
       _selectedItem = null;
     });
 
-    // If Strava filter was toggled, we need to load/unload segments
+    // If Saved filter or Strava filter was toggled, reload data
+    final savedWasActive = previousFilters.contains(MapFilterType.saved);
+    final savedIsActive = filters.contains(MapFilterType.saved);
     final stravaWasActive = previousFilters.contains(MapFilterType.strava);
     final stravaIsActive = filters.contains(MapFilterType.strava);
-    if (stravaWasActive != stravaIsActive) {
+
+    if (savedWasActive != savedIsActive || stravaWasActive != stravaIsActive) {
       _loadPlacesForCurrentLocation();
     } else {
       _updateMarkersFromItems();
@@ -377,6 +455,10 @@ class _MapScreenState extends State<MapScreen> {
   void _onLocationSearchSelected(double lat, double lng, String locationName) {
     _center = LatLng(lat, lng);
     _lastSearchCenter = _center;
+
+    // Update MapContextService with location name
+    final mapContext = context.read<MapContextService>();
+    mapContext.updateCenter(lat, lng, name: locationName);
 
     // Animate to the new location
     _mapController?.animateCamera(
@@ -474,6 +556,7 @@ class _MapScreenState extends State<MapScreen> {
     final tripService = context.watch<TripService>();
     final activeTrip = tripService.activeTrip;
     final colors = context.colorScheme;
+    final mapContext = context.watch<MapContextService>();
 
     return Scaffold(
       body: Stack(
@@ -512,6 +595,7 @@ class _MapScreenState extends State<MapScreen> {
                 // Location search bar
                 LocationSearchBar(
                   onLocationSelected: _onLocationSearchSelected,
+                  initialLocation: mapContext.locationName,
                 ),
                 const SizedBox(height: 8),
                 Consumer<StravaService>(
@@ -565,6 +649,9 @@ class _MapScreenState extends State<MapScreen> {
                             onChanged: (r) {
                               if (r != null && r != _searchRadiusMiles) {
                                 setState(() => _searchRadiusMiles = r);
+                                context
+                                    .read<MapContextService>()
+                                    .updateRadius(r);
                                 _loadPlacesForCurrentLocation();
                               }
                             },
@@ -801,6 +888,14 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
+    // Remove PlaceService listener
+    if (_placeServiceListener != null) {
+      try {
+        context.read<PlaceService>().removeListener(_placeServiceListener!);
+      } catch (e) {
+        debugPrint('MapScreen: Error removing PlaceService listener: $e');
+      }
+    }
     _mapController?.dispose();
     super.dispose();
   }
