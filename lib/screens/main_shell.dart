@@ -46,12 +46,11 @@ class MainShell extends StatelessWidget {
               selectedIcon: Icon(Icons.explore),
               label: 'Discover',
             ),
-            // Commented out for D2D Con demo - simplified 4-tab layout
-            // NavigationDestination(
-            //   icon: Icon(Icons.luggage_outlined),
-            //   selectedIcon: Icon(Icons.luggage),
-            //   label: 'Trips',
-            // ),
+            NavigationDestination(
+              icon: Icon(Icons.luggage_outlined),
+              selectedIcon: Icon(Icons.luggage),
+              label: 'Trips',
+            ),
             NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person),

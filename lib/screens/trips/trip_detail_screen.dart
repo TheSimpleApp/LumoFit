@@ -553,106 +553,117 @@ class _DayPickerHeaderDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get minExtent => 88;
+  double get minExtent => 80;
 
   @override
-  double get maxExtent => 88;
+  double get maxExtent => 80;
 
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final now = DateTime.now();
+    final todayIndex = days.indexWhere((d) => _isSameDay(d, now));
+    final selectedIndex = days.indexWhere((d) => _isSameDay(d, selectedDate));
+
     return Container(
       color: colors.surface,
       child: Column(
         children: [
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: days.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final d = days[index];
-                  final isSel = d.year == selectedDate.year &&
-                      d.month == selectedDate.month &&
-                      d.day == selectedDate.day;
-                  final isToday = _isSameDay(d, DateTime.now());
-
-                  return GestureDetector(
-                    onTap: () => onDateSelected(d),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 56,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSel
-                            ? colors.primary
-                            : isToday
-                                ? colors.primaryContainer.withValues(alpha: 0.5)
-                                : colors.surfaceContainerHighest
-                                    .withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(16),
-                        border: isToday && !isSel
-                            ? Border.all(
-                                color: colors.primary.withValues(alpha: 0.5),
-                                width: 2)
-                            : null,
-                        boxShadow: isSel
-                            ? [
-                                BoxShadow(
-                                  color: colors.primary.withValues(alpha: 0.4),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Day ${index + 1}',
-                            style: textStyles.labelSmall?.copyWith(
-                              color: isSel
-                                  ? colors.onPrimary.withValues(alpha: 0.8)
-                                  : colors.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 10,
+            child: Row(
+              children: [
+                // Today button (if today is within trip dates)
+                if (todayIndex >= 0)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => onDateSelected(days[todayIndex]),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: colors.primaryContainer.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Today',
+                            style: textStyles.labelMedium?.copyWith(
+                              color: colors.primary,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${d.day}',
-                            style: textStyles.titleLarge?.copyWith(
-                              color: isSel
-                                  ? colors.onPrimary
-                                  : colors.onSurface,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            DateFormat('EEE').format(d),
-                            style: textStyles.labelSmall?.copyWith(
-                              color: isSel
-                                  ? colors.onPrimary.withValues(alpha: 0.9)
-                                  : colors.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                // Day picker
+                Expanded(
+                  child: ListView.separated(
+                    padding: EdgeInsets.fromLTRB(todayIndex >= 0 ? 8 : 16, 8, 16, 8),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: days.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final d = days[index];
+                      final isSel = index == selectedIndex;
+                      final isToday = _isSameDay(d, now);
+
+                      return GestureDetector(
+                        onTap: () => onDateSelected(d),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 52,
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isSel
+                                ? colors.primary
+                                : isToday
+                                    ? colors.primaryContainer.withValues(alpha: 0.5)
+                                    : colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(12),
+                            border: isToday && !isSel
+                                ? Border.all(color: colors.primary, width: 2)
+                                : null,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                DateFormat('EEE').format(d),
+                                style: textStyles.labelSmall?.copyWith(
+                                  color: isSel ? colors.onPrimary.withValues(alpha: 0.9) : colors.onSurfaceVariant,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 10,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${d.day}',
+                                style: textStyles.titleMedium?.copyWith(
+                                  color: isSel ? colors.onPrimary : colors.onSurface,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                DateFormat('MMM').format(d),
+                                style: textStyles.labelSmall?.copyWith(
+                                  color: isSel ? colors.onPrimary.withValues(alpha: 0.8) : colors.onSurfaceVariant,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
-          Container(
-            height: 1,
-            color: colors.outline.withValues(alpha: 0.1),
-          ),
+          Container(height: 1, color: colors.outline.withValues(alpha: 0.1)),
         ],
       ),
     );
@@ -1397,112 +1408,150 @@ class _AddPlacesSheet extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
     final places = context.watch<PlaceService>().savedPlaces;
+    final tripPlaceIds = context.watch<TripService>().getTripById(trip.id)?.savedPlaceIds ?? trip.savedPlaceIds;
+    final addedCount = tripPlaceIds.length;
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                  child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                          color: colors.outline.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 12),
-              Text('Add places to trip', style: textStyles.titleLarge),
-              const SizedBox(height: 12),
-              if (places.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('You have no saved places yet.',
-                          style: textStyles.bodyMedium),
-                      const SizedBox(height: 8),
-                      TextButton.icon(
-                        onPressed: () => context.go('/discover'),
-                        icon: const Icon(Icons.explore),
-                        label: const Text('Discover places'),
-                      ),
-                    ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header with close button
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Add Places', style: textStyles.titleLarge),
+                        Text(
+                          '$addedCount places in trip',
+                          style: textStyles.bodySmall?.copyWith(
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                )
-              else
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: places.length,
-                    itemBuilder: (context, index) {
-                      final p = places[index];
-                      final already = trip.savedPlaceIds.contains(p.id);
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Material(
-                          color: colors.surfaceContainerHighest
-                              .withValues(alpha: 0.4),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Done'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
+            // Content
+            if (places.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    Icon(Icons.bookmark_border, size: 48, color: colors.outline),
+                    const SizedBox(height: 16),
+                    Text('No saved places yet', style: textStyles.titleMedium),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Discover and save places first, then add them to your trip.',
+                      textAlign: TextAlign.center,
+                      style: textStyles.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        context.go('/discover');
+                      },
+                      icon: const Icon(Icons.explore),
+                      label: const Text('Discover Places'),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  itemCount: places.length,
+                  itemBuilder: (context, index) {
+                    final p = places[index];
+                    final isAdded = tripPlaceIds.contains(p.id);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Material(
+                        color: isAdded
+                            ? colors.primaryContainer.withValues(alpha: 0.3)
+                            : colors.surfaceContainerHighest.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        child: InkWell(
                           borderRadius: BorderRadius.circular(AppRadius.md),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                            onTap: already
-                                ? null
-                                : () async {
-                                    await context
-                                        .read<TripService>()
-                                        .addPlaceToTrip(trip.id, p.id);
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                            content: Text('Added ${p.name}'),
-                                            behavior:
-                                                SnackBarBehavior.floating),
-                                      );
-                                    }
-                                  },
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: colors.primary
-                                          .withValues(alpha: 0.15),
-                                      borderRadius:
-                                          BorderRadius.circular(AppRadius.sm),
-                                    ),
-                                    child: Center(child: Text(p.typeEmoji)),
+                          onTap: () async {
+                            final tripService = context.read<TripService>();
+                            if (isAdded) {
+                              await tripService.removePlaceFromTrip(trip.id, p.id);
+                            } else {
+                              await tripService.addPlaceToTrip(trip.id, p.id);
+                            }
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: colors.primary.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(AppRadius.sm),
                                   ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                      child: Text(p.name,
-                                          style: textStyles.bodyMedium)),
-                                  if (already)
-                                    Icon(Icons.check, color: AppColors.success)
-                                  else
-                                    Icon(Icons.add, color: colors.primary),
-                                ],
-                              ),
+                                  child: Center(child: Text(p.typeEmoji)),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        p.name,
+                                        style: textStyles.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        p.typeLabel,
+                                        style: textStyles.bodySmall?.copyWith(
+                                          color: colors.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  isAdded ? Icons.check_circle : Icons.add_circle_outline,
+                                  color: isAdded ? AppColors.success : colors.primary,
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
@@ -1523,6 +1572,7 @@ class _EditTripSheetState extends State<_EditTripSheet> {
   late TextEditingController _notesController;
   late DateTime _startDate;
   late DateTime _endDate;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -1549,68 +1599,119 @@ class _EditTripSheetState extends State<_EditTripSheet> {
     final textStyles = Theme.of(context).textTheme;
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-              20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                  child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                          color: colors.outline.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 16),
-              Text('Edit Trip', style: textStyles.titleLarge),
-              const SizedBox(height: 16),
-              TextField(
-                  controller: _cityController,
-                  decoration:
-                      const InputDecoration(labelText: 'Destination City')),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: _countryController,
-                  decoration:
-                      const InputDecoration(labelText: 'Country (optional)')),
-              const SizedBox(height: 12),
-              Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+              child: Row(
                 children: [
                   Expanded(
-                      child: _DateSelector(
-                          label: 'Start Date',
-                          date: _startDate,
-                          onTap: () => _pickDate(true))),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: _DateSelector(
-                          label: 'End Date',
-                          date: _endDate,
-                          onTap: () => _pickDate(false))),
+                    child: Text('Edit Trip', style: textStyles.titleLarge),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
                 ],
               ),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: _notesController,
-                  decoration:
-                      const InputDecoration(labelText: 'Notes (optional)')),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _save,
-                  child: const Text('Save Changes'),
+            ),
+            const SizedBox(height: 8),
+            Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
+            // Form
+            Flexible(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  20, 16, 20,
+                  MediaQuery.of(context).viewInsets.bottom + 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _cityController,
+                      decoration: InputDecoration(
+                        labelText: 'Destination City',
+                        prefixIcon: const Icon(Icons.location_city),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _countryController,
+                      decoration: InputDecoration(
+                        labelText: 'Country (optional)',
+                        prefixIcon: const Icon(Icons.flag_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _DateSelector(
+                            label: 'Start Date',
+                            date: _startDate,
+                            onTap: () => _pickDate(true),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _DateSelector(
+                            label: 'End Date',
+                            date: _endDate,
+                            onTap: () => _pickDate(false),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _notesController,
+                      decoration: InputDecoration(
+                        labelText: 'Notes (optional)',
+                        prefixIcon: const Icon(Icons.notes_outlined),
+                        alignLabelWithHint: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                      ),
+                      minLines: 2,
+                      maxLines: 4,
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _isSaving ? null : _save,
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Save Changes'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1639,20 +1740,27 @@ class _EditTripSheetState extends State<_EditTripSheet> {
 
   Future<void> _save() async {
     if (_cityController.text.trim().isEmpty) return;
-    final svc = context.read<TripService>();
-    final updated = widget.trip.copyWith(
-      destinationCity: _cityController.text.trim(),
-      destinationCountry: _countryController.text.trim().isEmpty
-          ? null
-          : _countryController.text.trim(),
-      startDate: _startDate,
-      endDate: _endDate,
-      notes: _notesController.text.trim().isEmpty
-          ? null
-          : _notesController.text.trim(),
-    );
-    await svc.updateTrip(updated);
-    if (mounted) Navigator.pop(context);
+
+    setState(() => _isSaving = true);
+
+    try {
+      final svc = context.read<TripService>();
+      final updated = widget.trip.copyWith(
+        destinationCity: _cityController.text.trim(),
+        destinationCountry: _countryController.text.trim().isEmpty
+            ? null
+            : _countryController.text.trim(),
+        startDate: _startDate,
+        endDate: _endDate,
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
+      );
+      await svc.updateTrip(updated);
+      if (mounted) Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 }
 
@@ -1699,11 +1807,12 @@ class _AddOrEditItinerarySheet extends StatefulWidget {
   final DateTime date;
   final List<PlaceModel> associatedPlaces;
   final ItineraryItem? existing;
-  const _AddOrEditItinerarySheet(
-      {required this.trip,
-      required this.date,
-      required this.associatedPlaces,
-      this.existing});
+  const _AddOrEditItinerarySheet({
+    required this.trip,
+    required this.date,
+    required this.associatedPlaces,
+    this.existing,
+  });
 
   @override
   State<_AddOrEditItinerarySheet> createState() =>
@@ -1711,37 +1820,34 @@ class _AddOrEditItinerarySheet extends StatefulWidget {
 }
 
 class _AddOrEditItinerarySheetState extends State<_AddOrEditItinerarySheet> {
-  String _mode = 'place'; // 'place' or 'custom'
   PlaceModel? _selectedPlace;
   late TextEditingController _titleController;
   late TextEditingController _notesController;
-  String? _startTime; // HH:mm
-  int? _duration;
+  String? _startTime;
+  int _duration = 60;
+
+  static const List<int> _durationOptions = [15, 30, 45, 60, 90, 120, 180];
 
   @override
   void initState() {
     super.initState();
-    _mode = widget.existing?.placeId == null ? 'custom' : 'place';
-    if (widget.existing == null) {
-      _selectedPlace = widget.associatedPlaces.isNotEmpty
-          ? widget.associatedPlaces.first
-          : null;
-    } else {
-      try {
-        _selectedPlace = widget.associatedPlaces
-            .firstWhere((p) => p.id == widget.existing!.placeId);
-      } catch (_) {
-        _selectedPlace = widget.associatedPlaces.isNotEmpty
-            ? widget.associatedPlaces.first
-            : null;
+    // Initialize from existing item if editing
+    if (widget.existing != null) {
+      _titleController = TextEditingController(text: widget.existing!.title);
+      _notesController = TextEditingController(text: widget.existing?.notes ?? '');
+      _startTime = widget.existing?.startTime;
+      _duration = widget.existing?.durationMinutes ?? 60;
+      // Find matching place if exists
+      if (widget.existing!.placeId != null) {
+        try {
+          _selectedPlace = widget.associatedPlaces
+              .firstWhere((p) => p.id == widget.existing!.placeId);
+        } catch (_) {}
       }
+    } else {
+      _titleController = TextEditingController();
+      _notesController = TextEditingController();
     }
-    _titleController =
-        TextEditingController(text: widget.existing?.title ?? '');
-    _notesController =
-        TextEditingController(text: widget.existing?.notes ?? '');
-    _startTime = widget.existing?.startTime;
-    _duration = widget.existing?.durationMinutes ?? 60;
   }
 
   @override
@@ -1755,131 +1861,197 @@ class _AddOrEditItinerarySheetState extends State<_AddOrEditItinerarySheet> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
+    final isEditing = widget.existing != null;
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-              20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Center(
-                  child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                          color: colors.outline.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 16),
-              Text(
-                  widget.existing == null
-                      ? 'Add Itinerary Item'
-                      : 'Edit Itinerary Item',
-                  style: textStyles.titleLarge),
-              const SizedBox(height: 16),
-              Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+              child: Row(
                 children: [
-                  ChoiceChip(
-                    selected: _mode == 'place',
-                    label: const Text('From places'),
-                    onSelected: (_) => setState(() => _mode = 'place'),
-                    selectedColor: colors.primary.withValues(alpha: 0.15),
+                  Expanded(
+                    child: Text(
+                      isEditing ? 'Edit Activity' : 'Add Activity',
+                      style: textStyles.titleLarge,
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  ChoiceChip(
-                    selected: _mode == 'custom',
-                    label: const Text('Custom'),
-                    onSelected: (_) => setState(() => _mode = 'custom'),
-                    selectedColor: colors.primary.withValues(alpha: 0.15),
+                  IconButton(
+                    key: const ValueKey('close_activity_sheet'),
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              if (_mode == 'place')
-                _buildPlacePicker(textStyles, colors)
-              else
-                _buildCustomFields(textStyles, colors),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _pickTime,
-                      icon: const Icon(Icons.schedule),
-                      label: Text(_startTime ?? 'Start time'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _pickDuration,
-                      icon: const Icon(Icons.timelapse),
-                      label: Text('${_duration ?? 60} min'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _notesController,
-                decoration:
-                    const InputDecoration(labelText: 'Notes (optional)'),
-                minLines: 1,
-                maxLines: 3,
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _save,
-                  child: Text(widget.existing == null ? 'Add' : 'Save'),
+            ),
+            const SizedBox(height: 8),
+            Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
+            // Form
+            Flexible(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  20, 16, 20,
+                  MediaQuery.of(context).viewInsets.bottom + 20,
                 ),
-              )
-            ],
-          ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title field
+                    TextField(
+                      controller: _titleController,
+                      decoration: InputDecoration(
+                        labelText: 'Activity name',
+                        hintText: 'e.g., Morning Run, Gym Session',
+                        prefixIcon: const Icon(Icons.edit_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                      ),
+                      textCapitalization: TextCapitalization.sentences,
+                      onChanged: (_) {
+                        // Clear place selection when typing custom title
+                        if (_selectedPlace != null) {
+                          setState(() => _selectedPlace = null);
+                        }
+                      },
+                    ),
+                    // Place selector (if places available)
+                    if (widget.associatedPlaces.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        'Or select from your saved places:',
+                        style: textStyles.labelMedium?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 44,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: widget.associatedPlaces.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final place = widget.associatedPlaces[index];
+                            final isSelected = _selectedPlace?.id == place.id;
+                            return FilterChip(
+                              selected: isSelected,
+                              label: Text(
+                                '${place.typeEmoji} ${place.name}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onSelected: (selected) {
+                                setState(() {
+                                  if (selected) {
+                                    _selectedPlace = place;
+                                    _titleController.text = place.name;
+                                  } else {
+                                    _selectedPlace = null;
+                                  }
+                                });
+                              },
+                              selectedColor: colors.primaryContainer,
+                              checkmarkColor: colors.primary,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    // Time picker
+                    Text('Time', style: textStyles.labelLarge),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: _pickTime,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: colors.outline.withValues(alpha: 0.3)),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.schedule, color: colors.primary, size: 20),
+                            const SizedBox(width: 12),
+                            Text(
+                              _startTime ?? 'Set start time',
+                              style: textStyles.bodyLarge?.copyWith(
+                                color: _startTime != null ? colors.onSurface : colors.onSurfaceVariant,
+                              ),
+                            ),
+                            const Spacer(),
+                            Icon(Icons.arrow_drop_down, color: colors.onSurfaceVariant),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Duration picker (inline chips)
+                    Text('Duration', style: textStyles.labelLarge),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _durationOptions.map((mins) {
+                        final isSelected = _duration == mins;
+                        final label = mins >= 60
+                            ? '${mins ~/ 60}h${mins % 60 > 0 ? ' ${mins % 60}m' : ''}'
+                            : '${mins}m';
+                        return ChoiceChip(
+                          selected: isSelected,
+                          label: Text(label),
+                          onSelected: (_) => setState(() => _duration = mins),
+                          selectedColor: colors.primaryContainer,
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    // Notes
+                    TextField(
+                      controller: _notesController,
+                      decoration: InputDecoration(
+                        labelText: 'Notes (optional)',
+                        hintText: 'Add any details...',
+                        prefixIcon: const Icon(Icons.notes_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                      ),
+                      minLines: 1,
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 24),
+                    // Save button
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _canSave ? _save : null,
+                        child: Text(isEditing ? 'Save Changes' : 'Add to Itinerary'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildPlacePicker(TextTheme textStyles, ColorScheme colors) {
-    if (widget.associatedPlaces.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerHighest.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Text('No places in this trip yet. Add from Bucket List tab.',
-            style: textStyles.bodyMedium),
-      );
-    }
-    return DropdownButtonFormField<PlaceModel>(
-      initialValue: _selectedPlace,
-      items: widget.associatedPlaces
-          .map((p) => DropdownMenuItem(
-              value: p,
-              child: Text('${p.typeEmoji}  ${p.name}',
-                  overflow: TextOverflow.ellipsis)))
-          .toList(),
-      onChanged: (p) => setState(() => _selectedPlace = p),
-      decoration: const InputDecoration(labelText: 'Select place'),
-    );
-  }
-
-  Widget _buildCustomFields(TextTheme textStyles, ColorScheme colors) {
-    return TextField(
-      controller: _titleController,
-      decoration: const InputDecoration(
-          labelText: 'Title', hintText: 'e.g., Morning Run, Hotel Check-in'),
-    );
-  }
+  bool get _canSave => _titleController.text.trim().isNotEmpty;
 
   Future<void> _pickTime() async {
     final initial = _startTime ?? '09:00';
@@ -1887,100 +2059,42 @@ class _AddOrEditItinerarySheetState extends State<_AddOrEditItinerarySheet> {
     final t = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(
-          hour: int.tryParse(parts[0]) ?? 9,
-          minute: int.tryParse(parts[1]) ?? 0),
+        hour: int.tryParse(parts[0]) ?? 9,
+        minute: int.tryParse(parts[1]) ?? 0,
+      ),
     );
-    if (t != null) setState(() => _startTime = _fmt(t));
+    if (t != null) {
+      setState(() {
+        _startTime = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+      });
+    }
   }
-
-  Future<void> _pickDuration() async {
-    final options = [30, 45, 60, 90, 120];
-    final picked = await showModalBottomSheet<int>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final colors = Theme.of(context).colorScheme;
-        return Container(
-          decoration: BoxDecoration(
-              color: colors.surface,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24))),
-          child: SafeArea(
-            child: ListView(
-              shrinkWrap: true,
-              children: options
-                  .map((m) => ListTile(
-                        title: Text('$m minutes'),
-                        onTap: () => Navigator.pop(context, m),
-                      ))
-                  .toList(),
-            ),
-          ),
-        );
-      },
-    );
-    if (picked != null) setState(() => _duration = picked);
-  }
-
-  String _fmt(TimeOfDay t) =>
-      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}'
-          .toString();
 
   Future<void> _save() async {
+    if (!_canSave) return;
+
     final svc = context.read<TripService>();
     final date = DateTime(widget.date.year, widget.date.month, widget.date.day);
-    if (_mode == 'place') {
-      if (_selectedPlace == null) return;
-      final item = (widget.existing ??
-              ItineraryItem(
-                id: const Uuid().v4(),
-                date: date,
-                title: _selectedPlace!.name,
-                placeId: _selectedPlace!.id,
-              ))
-          .copyWith(
-        date: date,
-        title: _selectedPlace!.name,
-        placeId: _selectedPlace!.id,
-        startTime: _startTime,
-        durationMinutes: _duration,
-        notes: _notesController.text.trim().isEmpty
-            ? null
-            : _notesController.text.trim(),
-      );
-      if (widget.existing == null) {
-        await svc.addItineraryItem(widget.trip.id, item);
-      } else {
-        await svc.updateItineraryItem(widget.trip.id, item);
-      }
+
+    final item = (widget.existing ?? ItineraryItem(
+      id: const Uuid().v4(),
+      date: date,
+      title: _titleController.text.trim(),
+    )).copyWith(
+      date: date,
+      title: _titleController.text.trim(),
+      placeId: _selectedPlace?.id,
+      startTime: _startTime,
+      durationMinutes: _duration,
+      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+    );
+
+    if (widget.existing == null) {
+      await svc.addItineraryItem(widget.trip.id, item);
     } else {
-      if (_titleController.text.trim().isEmpty && widget.existing == null) {
-        return;
-      }
-      final item = (widget.existing ??
-              ItineraryItem(
-                id: const Uuid().v4(),
-                date: date,
-                title: _titleController.text.trim(),
-              ))
-          .copyWith(
-        date: date,
-        title: _titleController.text.trim().isEmpty
-            ? (widget.existing?.title ?? 'Untitled')
-            : _titleController.text.trim(),
-        startTime: _startTime,
-        durationMinutes: _duration,
-        notes: _notesController.text.trim().isEmpty
-            ? null
-            : _notesController.text.trim(),
-        placeId: null,
-      );
-      if (widget.existing == null) {
-        await svc.addItineraryItem(widget.trip.id, item);
-      } else {
-        await svc.updateItineraryItem(widget.trip.id, item);
-      }
+      await svc.updateItineraryItem(widget.trip.id, item);
     }
+
     if (mounted) Navigator.pop(context);
   }
 }

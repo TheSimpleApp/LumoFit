@@ -7,7 +7,6 @@ import 'package:fittravel/theme.dart';
 import 'package:fittravel/services/services.dart';
 import 'package:fittravel/models/place_model.dart';
 import 'package:fittravel/models/event_model.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fittravel/utils/haptic_utils.dart';
 import 'package:fittravel/widgets/polish_widgets.dart';
@@ -43,18 +42,6 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   bool _filterRating45Plus = false;
   bool _filterPlaceHasPhotos = false;
   bool _filterSavedOnly = false;
-  // Location (fallback when no trip and GPS fails)
-  double _centerLat = 40.7128; // New York
-  double _centerLng = -74.0060;
-  // Active trip context
-  String? _activeTripDestination;
-  // Auto-loaded nearby places
-  bool _isLoadingNearby = false;
-  List<PlaceModel> _nearbyGyms = [];
-  List<PlaceModel> _nearbyRestaurants = [];
-  List<PlaceModel> _nearbyTrails = [];
-  // Store reference for safe disposal
-  TripService? _tripService;
 
   @override
   void initState() {
@@ -63,30 +50,20 @@ class _DiscoverScreenState extends State<DiscoverScreen>
         length: 4,
         vsync: this,
         initialIndex: widget.initialTabIndex.clamp(0, 3));
-    _initLocation();
-    _loadNearbyPlaces();
-
-    // Listen for trip changes to update location
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _tripService = context.read<TripService>();
-      _tripService?.addListener(_onTripChanged);
-    });
-  }
-
-  void _onTripChanged() {
-    // Re-initialize location when active trip changes
-    _initLocation();
   }
 
   @override
   void dispose() {
-    _tripService?.removeListener(_onTripChanged);
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _performSearch(String query) async {
+    final mapContext = context.read<MapContextService>();
+    final centerLat = mapContext.centerLat;
+    final centerLng = mapContext.centerLng;
+
     if (query.isEmpty) {
       setState(() {
         _searchResults = [];
@@ -108,8 +85,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           query: query,
           startDate: range.$1,
           endDate: range.$2,
-          centerLat: _centerLat,
-          centerLng: _centerLng,
+          centerLat: centerLat,
+          centerLng: centerLng,
           radiusKm: 50,
           limit: 60,
         );
@@ -121,8 +98,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
             categories: _selectedCategories,
             startDate: range.$1,
             endDate: range.$2,
-            centerLat: _centerLat,
-            centerLng: _centerLng,
+            centerLat: centerLat,
+            centerLng: centerLng,
             radiusKm: 50,
           );
           if (mounted) {
@@ -146,8 +123,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           categories: _selectedCategories,
           startDate: range.$1,
           endDate: range.$2,
-          centerLat: _centerLat,
-          centerLng: _centerLng,
+          centerLat: centerLat,
+          centerLng: centerLng,
           radiusKm: 50,
         );
         if (mounted) {
@@ -176,9 +153,9 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       final results = await googlePlaces.searchPlacesByText(
         query: query,
         placeType: placeType,
-        // Use current location if available
-        latitude: _centerLat,
-        longitude: _centerLng,
+        // Use current location from map context
+        latitude: centerLat,
+        longitude: centerLng,
       );
 
       if (mounted) {
@@ -201,93 +178,12 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     }
   }
 
-  Future<void> _initLocation() async {
-    // Priority 1: Active trip destination
-    final tripService = context.read<TripService>();
-    final tripCoords = tripService.activeTripCoordinates;
-    final activeTrip = tripService.activeTrip;
-
-    if (tripCoords != null) {
-      setState(() {
-        _centerLat = tripCoords.$1;
-        _centerLng = tripCoords.$2;
-        _activeTripDestination = activeTrip?.destinationCity;
-      });
-      _loadNearbyPlaces();
-      return;
-    }
-
-    // Priority 2: GPS location
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      final enabled = await Geolocator.isLocationServiceEnabled();
-      if (!enabled) return;
-      final pos = await Geolocator.getCurrentPosition();
-      if (!mounted) return;
-      setState(() {
-        _centerLat = pos.latitude;
-        _centerLng = pos.longitude;
-        _activeTripDestination = null;
-      });
-      // Reload nearby places with updated location
-      _loadNearbyPlaces();
-    } catch (e) {
-      // Non-fatal: keep defaults
-    }
-  }
-
-  Future<void> _loadNearbyPlaces() async {
-    if (_isLoadingNearby) return;
-    setState(() => _isLoadingNearby = true);
-
-    final googlePlaces = GooglePlacesService();
-
-    try {
-      // Load nearby places for each type in parallel
-      final results = await Future.wait([
-        googlePlaces.searchNearbyPlaces(
-          latitude: _centerLat,
-          longitude: _centerLng,
-          placeType: PlaceType.gym,
-          radiusMeters: 5000,
-        ),
-        googlePlaces.searchNearbyPlaces(
-          latitude: _centerLat,
-          longitude: _centerLng,
-          placeType: PlaceType.restaurant,
-          radiusMeters: 5000,
-        ),
-        googlePlaces.searchNearbyPlaces(
-          latitude: _centerLat,
-          longitude: _centerLng,
-          placeType: PlaceType.trail,
-          radiusMeters: 5000,
-        ),
-      ]);
-
-      if (mounted) {
-        setState(() {
-          _nearbyGyms = results[0];
-          _nearbyRestaurants = results[1];
-          _nearbyTrails = results[2];
-          _isLoadingNearby = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading nearby places: $e');
-      if (mounted) {
-        setState(() => _isLoadingNearby = false);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
+    // Watch MapContextService for updates from Map tab
+    final mapContext = context.watch<MapContextService>();
 
     return Scaffold(
       body: SafeArea(
@@ -306,14 +202,16 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                       .slideX(begin: -0.1),
                   const SizedBox(height: 4),
                   Text(
-                    _activeTripDestination != null
-                        ? 'Exploring $_activeTripDestination'
-                        : 'Find gyms, food & events nearby',
+                    mapContext.locationName != null
+                        ? 'Exploring ${mapContext.locationName}'
+                        : mapContext.hasLoadedData
+                            ? 'Showing ${mapContext.searchRadiusMiles}mi radius'
+                            : 'Search on Map tab to discover places',
                     style: textStyles.bodyMedium?.copyWith(
-                      color: _activeTripDestination != null
+                      color: mapContext.locationName != null
                           ? colors.primary
                           : colors.onSurfaceVariant,
-                      fontWeight: _activeTripDestination != null
+                      fontWeight: mapContext.locationName != null
                           ? FontWeight.w500
                           : null,
                     ),
@@ -501,10 +399,10 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                 controller: _tabController,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  _buildGymsTab(),
-                  _buildFoodTab(),
+                  _buildGymsTab(mapContext),
+                  _buildFoodTab(mapContext),
                   _buildEventsTab(),
-                  _buildTrailsTab(),
+                  _buildTrailsTab(mapContext),
                 ],
               ),
             ),
@@ -514,7 +412,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     );
   }
 
-  Widget _buildGymsTab() {
+  Widget _buildGymsTab(MapContextService mapContext) {
     if (_searchQuery.isNotEmpty) {
       if (_isSearching) {
         return const Center(child: CircularProgressIndicator());
@@ -535,23 +433,29 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           },
         );
       }
-      return _buildPlacesList(filteredResults);
+      return _buildPlacesList(filteredResults, mapContext);
     }
 
-    if (_isLoadingNearby) {
-      return _buildSkeletonList();
+    // Use places from MapContextService (synced from Map tab)
+    if (!mapContext.hasLoadedData) {
+      return EmptyStateWidget(
+        title: 'Explore the Map first',
+        description: 'Go to the Map tab and search or navigate to load places',
+        ctaLabel: 'Go to Map',
+        onCtaPressed: () => context.go('/map'),
+      );
     }
 
-    final filteredGyms = _filterPlaces(_nearbyGyms);
+    final filteredGyms = _filterPlaces(mapContext.gyms);
     if (filteredGyms.isEmpty) {
       return EmptyStateWidget(
-        title: _filterSavedOnly ? 'No saved gyms' : 'No gyms nearby',
+        title: _filterSavedOnly ? 'No saved gyms' : 'No gyms in this area',
         description: _filterSavedOnly
             ? 'Save gyms by tapping the bookmark icon on place details'
             : _hasActiveFilters()
-                ? 'Try adjusting your filters or enable location'
-                : 'Start a trip or enable location to discover gyms',
-        ctaLabel: _hasActiveFilters() ? 'Clear filters' : 'Enable location',
+                ? 'Try adjusting your filters'
+                : 'Try searching a different area on the Map',
+        ctaLabel: _hasActiveFilters() ? 'Clear filters' : 'Go to Map',
         onCtaPressed: () {
           if (_hasActiveFilters()) {
             setState(() {
@@ -561,16 +465,16 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               _filterPlaceHasPhotos = false;
             });
           } else {
-            _initLocation();
+            context.go('/map');
           }
         },
       );
     }
 
-    return _buildPlacesList(filteredGyms);
+    return _buildPlacesList(filteredGyms, mapContext);
   }
 
-  Widget _buildFoodTab() {
+  Widget _buildFoodTab(MapContextService mapContext) {
     if (_searchQuery.isNotEmpty) {
       if (_isSearching) {
         return const Center(child: CircularProgressIndicator());
@@ -591,24 +495,30 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           },
         );
       }
-      return _buildPlacesList(filteredResults);
+      return _buildPlacesList(filteredResults, mapContext);
     }
 
-    if (_isLoadingNearby) {
-      return _buildSkeletonList();
+    // Use places from MapContextService (synced from Map tab)
+    if (!mapContext.hasLoadedData) {
+      return EmptyStateWidget(
+        title: 'Explore the Map first',
+        description: 'Go to the Map tab and search or navigate to load places',
+        ctaLabel: 'Go to Map',
+        onCtaPressed: () => context.go('/map'),
+      );
     }
 
-    final filteredRestaurants = _filterPlaces(_nearbyRestaurants);
+    final filteredRestaurants = _filterPlaces(mapContext.restaurants);
     if (filteredRestaurants.isEmpty) {
       return EmptyStateWidget(
         title:
-            _filterSavedOnly ? 'No saved restaurants' : 'No restaurants nearby',
+            _filterSavedOnly ? 'No saved restaurants' : 'No restaurants in this area',
         description: _filterSavedOnly
             ? 'Save restaurants by tapping the bookmark icon on place details'
             : _hasActiveFilters()
-                ? 'Try adjusting your filters or enable location'
-                : 'Start a trip or enable location to discover restaurants',
-        ctaLabel: _hasActiveFilters() ? 'Clear filters' : 'Enable location',
+                ? 'Try adjusting your filters'
+                : 'Try searching a different area on the Map',
+        ctaLabel: _hasActiveFilters() ? 'Clear filters' : 'Go to Map',
         onCtaPressed: () {
           if (_hasActiveFilters()) {
             setState(() {
@@ -619,13 +529,13 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               _selectedDietaryFilters.clear();
             });
           } else {
-            _initLocation();
+            context.go('/map');
           }
         },
       );
     }
 
-    return _buildPlacesList(filteredRestaurants);
+    return _buildPlacesList(filteredRestaurants, mapContext);
   }
 
   Widget _buildEventsTab() {
@@ -665,7 +575,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     );
   }
 
-  Widget _buildTrailsTab() {
+  Widget _buildTrailsTab(MapContextService mapContext) {
     if (_searchQuery.isNotEmpty) {
       if (_isSearching) {
         return const Center(child: CircularProgressIndicator());
@@ -686,23 +596,29 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           },
         );
       }
-      return _buildPlacesList(filteredResults);
+      return _buildPlacesList(filteredResults, mapContext);
     }
 
-    if (_isLoadingNearby) {
-      return _buildSkeletonList();
+    // Use places from MapContextService (synced from Map tab)
+    if (!mapContext.hasLoadedData) {
+      return EmptyStateWidget(
+        title: 'Explore the Map first',
+        description: 'Go to the Map tab and search or navigate to load places',
+        ctaLabel: 'Go to Map',
+        onCtaPressed: () => context.go('/map'),
+      );
     }
 
-    final filteredTrails = _filterPlaces(_nearbyTrails);
+    final filteredTrails = _filterPlaces(mapContext.trails);
     if (filteredTrails.isEmpty) {
       return EmptyStateWidget(
-        title: _filterSavedOnly ? 'No saved trails' : 'No trails nearby',
+        title: _filterSavedOnly ? 'No saved trails' : 'No trails in this area',
         description: _filterSavedOnly
             ? 'Save trails by tapping the bookmark icon on place details'
             : _hasActiveFilters()
-                ? 'Try adjusting your filters or enable location'
-                : 'Start a trip or enable location to discover trails',
-        ctaLabel: _hasActiveFilters() ? 'Clear filters' : 'Enable location',
+                ? 'Try adjusting your filters'
+                : 'Try searching a different area on the Map',
+        ctaLabel: _hasActiveFilters() ? 'Clear filters' : 'Go to Map',
         onCtaPressed: () {
           if (_hasActiveFilters()) {
             setState(() {
@@ -712,36 +628,22 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               _filterPlaceHasPhotos = false;
             });
           } else {
-            _initLocation();
+            context.go('/map');
           }
         },
       );
     }
 
-    return _buildPlacesList(filteredTrails);
+    return _buildPlacesList(filteredTrails, mapContext);
   }
 
-  Widget _buildSkeletonList() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      itemCount: 5,
-      itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: const PlaceCardSkeleton(),
-        ).animate().fadeIn(
-            delay: Duration(milliseconds: 50 * index), duration: 300.ms);
-      },
-    );
-  }
-
-  Widget _buildPlacesList(List<PlaceModel> places) {
+  Widget _buildPlacesList(List<PlaceModel> places, MapContextService mapContext) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       itemCount: places.length,
       itemBuilder: (context, index) {
         final place = places[index];
-        return _buildPlaceCard(place, index);
+        return _buildPlaceCard(place, index, mapContext);
       },
     );
   }
@@ -757,7 +659,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     );
   }
 
-  Widget _buildPlaceCard(PlaceModel place, int index) {
+  Widget _buildPlaceCard(PlaceModel place, int index, MapContextService mapContext) {
     final textStyles = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
     final placeService = context.read<PlaceService>();
@@ -783,6 +685,9 @@ class _DiscoverScreenState extends State<DiscoverScreen>
         typeIcon = Icons.place;
         typeColor = AppColors.textSecondary;
     }
+
+    // Calculate actual distance using MapContextService
+    final distanceText = mapContext.formatDistance(place.latitude, place.longitude);
 
     return PressableScale(
       onPressed: () {
@@ -911,8 +816,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                                 ),
                               ),
                               // Distance badge (if available)
-                              if (place.latitude != null &&
-                                  place.longitude != null)
+                              if (distanceText.isNotEmpty)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
@@ -932,7 +836,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                                       ),
                                       const SizedBox(width: 2),
                                       Text(
-                                        '${(place.latitude! - 30.2672).abs().toStringAsFixed(1)}mi', // Placeholder distance
+                                        distanceText,
                                         style: textStyles.labelSmall?.copyWith(
                                           fontWeight: FontWeight.w600,
                                           color: typeColor,

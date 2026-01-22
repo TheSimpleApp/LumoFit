@@ -6,10 +6,12 @@ import 'package:fittravel/theme.dart';
 class LocationSearchBar extends StatefulWidget {
   final Function(double lat, double lng, String locationName)
       onLocationSelected;
+  final String? initialLocation;
 
   const LocationSearchBar({
     super.key,
     required this.onLocationSelected,
+    this.initialLocation,
   });
 
   @override
@@ -28,6 +30,10 @@ class _LocationSearchBarState extends State<LocationSearchBar> {
   @override
   void initState() {
     super.initState();
+    // Initialize with persisted location if available
+    if (widget.initialLocation != null) {
+      _searchController.text = widget.initialLocation!;
+    }
     _searchController.addListener(_onSearchChanged);
     _focusNode.addListener(_onFocusChanged);
   }
@@ -40,8 +46,11 @@ class _LocationSearchBarState extends State<LocationSearchBar> {
   }
 
   void _onFocusChanged() {
+    // Rebuild to update border styling on focus change
+    setState(() {});
+
     if (!_focusNode.hasFocus) {
-      // Hide suggestions when focus is lost
+      // Hide suggestions when focus is lost (with delay for tap to register)
       Future.delayed(const Duration(milliseconds: 200), () {
         if (mounted) {
           setState(() => _showSuggestions = false);
@@ -142,103 +151,96 @@ class _LocationSearchBarState extends State<LocationSearchBar> {
       mainAxisSize: MainAxisSize.min,
       children: [
         // Search input field
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: colors.surface.withValues(alpha: 0.95),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: _focusNode.hasFocus
-                  ? colors.primary
-                  : colors.outline.withValues(alpha: 0.3),
-              width: _focusNode.hasFocus ? 2 : 1,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: TextField(
+            controller: _searchController,
+            focusNode: _focusNode,
+            style: TextStyle(
+              color: colors.onSurface,
+              fontSize: 15,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+            decoration: InputDecoration(
+              hintText: 'Search location...',
+              hintStyle: TextStyle(
+                color: colors.onSurface.withValues(alpha: 0.5),
+                fontSize: 15,
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Icon(
-                  Icons.search,
-                  color: colors.onSurface.withValues(alpha: 0.6),
-                  size: 20,
+              prefixIcon: Icon(
+                Icons.search,
+                color: colors.onSurface.withValues(alpha: 0.6),
+                size: 20,
+              ),
+              suffixIcon: _isLoading
+                  ? Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colors.primary,
+                        ),
+                      ),
+                    )
+                  : _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(
+                            Icons.clear,
+                            color: colors.onSurface.withValues(alpha: 0.6),
+                            size: 20,
+                          ),
+                          onPressed: _clearSearch,
+                        )
+                      : null,
+              filled: true,
+              fillColor: colors.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: AppColors.borderGold.withValues(alpha: 0.6),
+                  width: 1,
                 ),
               ),
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  focusNode: _focusNode,
-                  style: TextStyle(
-                    color: colors.onSurface,
-                    fontSize: 15,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Search location...',
-                    hintStyle: TextStyle(
-                      color: colors.onSurface.withValues(alpha: 0.5),
-                      fontSize: 15,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 0,
-                      vertical: 12,
-                    ),
-                  ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: AppColors.borderGold.withValues(alpha: 0.6),
+                  width: 1,
                 ),
               ),
-              if (_isLoading)
-                Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: colors.primary,
-                    ),
-                  ),
-                )
-              else if (_searchController.text.isNotEmpty)
-                IconButton(
-                  icon: Icon(
-                    Icons.clear,
-                    color: colors.onSurface.withValues(alpha: 0.6),
-                    size: 20,
-                  ),
-                  onPressed: _clearSearch,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 40,
-                    minHeight: 40,
-                  ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: AppColors.primary,
+                  width: 1.5,
                 ),
-            ],
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+            ),
           ),
         ),
 
-        // Suggestions dropdown
+        // Suggestions dropdown with premium styling
         if (_showSuggestions && _suggestions.isNotEmpty)
           Container(
-            margin: const EdgeInsets.only(left: 16, right: 16, top: 4),
-            constraints: const BoxConstraints(maxHeight: 240),
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 8),
+            constraints: const BoxConstraints(maxHeight: 280),
             decoration: BoxDecoration(
               color: colors.surface,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: colors.outline.withValues(alpha: 0.3),
+                color: AppColors.borderGold,
+                width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
@@ -281,9 +283,9 @@ class _LocationSearchBarState extends State<LocationSearchBar> {
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                                if (suggestion.country != null)
+                                if (suggestion.subtitle != null)
                                   Text(
-                                    suggestion.country!,
+                                    suggestion.subtitle!,
                                     style: TextStyle(
                                       color: colors.onSurface
                                           .withValues(alpha: 0.6),

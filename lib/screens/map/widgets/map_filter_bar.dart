@@ -348,16 +348,23 @@ class _FilterChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (markerColor != null && isSelected) ...[
+              // Always show color dot for categories (helps users know pin colors)
+              if (markerColor != null) ...[
                 Container(
-                  width: 8,
-                  height: 8,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
                     color: markerColor,
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.white.withValues(alpha: 0.5)
+                          : Colors.black.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
               ],
               Icon(
                 icon,

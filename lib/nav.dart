@@ -216,9 +216,8 @@ class AppRouter {
     if (location.startsWith('/home')) return 0;
     if (location.startsWith('/map')) return 1;
     if (location.startsWith('/discover')) return 2;
-    // Trips tab hidden for D2D Con demo
-    // if (location.startsWith('/trips')) return 3;
-    if (location.startsWith('/profile')) return 3; // Was 4, now 3
+    if (location.startsWith('/trips')) return 3;
+    if (location.startsWith('/profile')) return 4;
     return 0;
   }
 
@@ -230,11 +229,10 @@ class AppRouter {
         return '/map';
       case 2:
         return '/discover';
-      // Trips tab hidden for D2D Con demo
-      // case 3:
-      //   return '/trips';
       case 3:
-        return '/profile'; // Was case 4, now case 3
+        return '/trips';
+      case 4:
+        return '/profile';
       default:
         return '/home';
     }

@@ -87,6 +87,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => StravaService()..initialize(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => MapContextService(),
+        ),
         Provider(
           create: (_) => AiGuideService(),
         ),

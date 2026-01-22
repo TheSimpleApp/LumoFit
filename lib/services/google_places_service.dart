@@ -6,19 +6,29 @@ import 'package:fittravel/config/app_config.dart';
 import 'package:uuid/uuid.dart';
 
 /// Suggestion model for city autocomplete
-/// Contains a friendly description, extracted city, and optional country
+/// Contains a friendly description, extracted city, state (for US), and country
 class CitySuggestion {
   final String description;
   final String? placeId;
   final String city;
+  final String? state; // For US locations
   final String? country;
 
   CitySuggestion({
     required this.description,
     required this.city,
     this.placeId,
+    this.state,
     this.country,
   });
+
+  /// Returns display subtitle: "State" for US, "Country" for others
+  String? get subtitle {
+    if (state != null && country == 'USA') {
+      return state;
+    }
+    return country;
+  }
 }
 
 /// Service for interacting with Google Places API (New)
@@ -73,7 +83,7 @@ class GooglePlacesService {
         // text: { text: 'City, Region, Country' }
         final textObj = pred?['text'] as Map<String, dynamic>?;
         final description = (textObj?['text'] as String?) ?? '';
-        // structuredFormat: { mainText: {text: 'City'}, secondaryText: {text: 'Region, Country'} }
+        // structuredFormat: { mainText: {text: 'City'}, secondaryText: {text: 'State, Country'} }
         final structured = pred?['structuredFormat'] as Map<String, dynamic>?;
         final mainText = (structured?['mainText']
             as Map<String, dynamic>?)?['text'] as String?;
@@ -81,14 +91,25 @@ class GooglePlacesService {
             as Map<String, dynamic>?)?['text'] as String?;
 
         String city = (mainText ?? description).trim();
+        String? state;
         String? country;
+
         if ((secondaryText ?? description).contains(',')) {
-          // Country is generally the last comma-separated part
+          // Parse "State, Country" or "Region, Country"
           final parts = (secondaryText ?? description)
               .split(',')
               .map((e) => e.trim())
               .toList();
-          if (parts.isNotEmpty) country = parts.last;
+          if (parts.length >= 2) {
+            country = parts.last;
+            // For US cities, first part is the state
+            if (country == 'USA' || country == 'United States') {
+              state = _expandUSState(parts[parts.length - 2]);
+              country = 'USA';
+            }
+          } else if (parts.isNotEmpty) {
+            country = parts.last;
+          }
         } else if ((secondaryText ?? '').isNotEmpty) {
           country = secondaryText;
         }
@@ -97,6 +118,7 @@ class GooglePlacesService {
           description: description.isEmpty ? city : description,
           placeId: placeId,
           city: city,
+          state: state,
           country: country,
         );
       }).toList();
@@ -284,6 +306,67 @@ class GooglePlacesService {
       debugPrint('GooglePlacesService.geocodeCity error: $e');
       return null;
     }
+  }
+
+  /// Expand US state abbreviation to full name
+  String _expandUSState(String abbr) {
+    const stateMap = {
+      'AL': 'Alabama',
+      'AK': 'Alaska',
+      'AZ': 'Arizona',
+      'AR': 'Arkansas',
+      'CA': 'California',
+      'CO': 'Colorado',
+      'CT': 'Connecticut',
+      'DE': 'Delaware',
+      'FL': 'Florida',
+      'GA': 'Georgia',
+      'HI': 'Hawaii',
+      'ID': 'Idaho',
+      'IL': 'Illinois',
+      'IN': 'Indiana',
+      'IA': 'Iowa',
+      'KS': 'Kansas',
+      'KY': 'Kentucky',
+      'LA': 'Louisiana',
+      'ME': 'Maine',
+      'MD': 'Maryland',
+      'MA': 'Massachusetts',
+      'MI': 'Michigan',
+      'MN': 'Minnesota',
+      'MS': 'Mississippi',
+      'MO': 'Missouri',
+      'MT': 'Montana',
+      'NE': 'Nebraska',
+      'NV': 'Nevada',
+      'NH': 'New Hampshire',
+      'NJ': 'New Jersey',
+      'NM': 'New Mexico',
+      'NY': 'New York',
+      'NC': 'North Carolina',
+      'ND': 'North Dakota',
+      'OH': 'Ohio',
+      'OK': 'Oklahoma',
+      'OR': 'Oregon',
+      'PA': 'Pennsylvania',
+      'RI': 'Rhode Island',
+      'SC': 'South Carolina',
+      'SD': 'South Dakota',
+      'TN': 'Tennessee',
+      'TX': 'Texas',
+      'UT': 'Utah',
+      'VT': 'Vermont',
+      'VA': 'Virginia',
+      'WA': 'Washington',
+      'WV': 'West Virginia',
+      'WI': 'Wisconsin',
+      'WY': 'Wyoming',
+      'DC': 'Washington D.C.',
+      'PR': 'Puerto Rico',
+      'VI': 'Virgin Islands',
+      'GU': 'Guam',
+    };
+    return stateMap[abbr.toUpperCase()] ?? abbr;
   }
 
   List<String> _getIncludedTypes(PlaceType type) {
