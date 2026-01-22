@@ -571,23 +571,170 @@ class _BadgeItem extends StatelessWidget {
   }
 
   void _showBadgeDetails(BuildContext context) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(badge.name,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(badge.description,
-                style: Theme.of(context).textTheme.bodyMedium),
-          ],
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 340),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Badge Icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: _getBadgeColor(badge.tier).withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _getBadgeColor(badge.tier).withValues(alpha: 0.3),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _getBadgeColor(badge.tier).withValues(alpha: 0.2),
+                      blurRadius: 16,
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  _getIconData(badge.iconName),
+                  color: _getBadgeColor(badge.tier),
+                  size: 40,
+                ),
+              )
+                  .animate()
+                  .scale(begin: const Offset(0.8, 0.8), duration: 300.ms)
+                  .fadeIn(),
+              const SizedBox(height: 20),
+              // Badge Name
+              Text(
+                badge.name,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                textAlign: TextAlign.center,
+              ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2),
+              const SizedBox(height: 8),
+              // Badge Description
+              Text(
+                badge.description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant,
+                    ),
+                textAlign: TextAlign.center,
+              ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.2),
+              const SizedBox(height: 20),
+              // XP Reward
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: AppColors.goldShimmer,
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star, size: 16, color: Colors.black),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Earn ${badge.xpReward} XP',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(delay: 200.ms).scale(),
+              const SizedBox(height: 20),
+              // Status Badge
+              if (isEarned)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    border: Border.all(
+                      color: AppColors.success.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle,
+                          size: 16, color: AppColors.success),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Earned',
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 250.ms).scale()
+              else
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.lock_outline,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Not Yet Earned',
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 250.ms).scale(),
+              const SizedBox(height: 20),
+              // Close Button
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                    ),
+                  ),
+                  child: const Text('Close'),
+                ),
+              ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2),
+            ],
+          ),
         ),
       ),
     );
