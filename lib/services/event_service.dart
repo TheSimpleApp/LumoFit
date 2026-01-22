@@ -15,9 +15,15 @@ class EventService extends ChangeNotifier {
   bool _isLoading = false;
   String? _currentCity;
 
+  // For webhook-based event discovery
+  bool _isDiscoveringEvents = false;
+  String? _lastDiscoveryError;
+
   EventService();
 
   bool get isLoading => _isLoading;
+  bool get isDiscoveringEvents => _isDiscoveringEvents;
+  String? get lastDiscoveryError => _lastDiscoveryError;
   List<EventModel> get all =>
       List.unmodifiable([..._destinationEvents, ..._events]);
 
@@ -29,14 +35,62 @@ class EventService extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      // Seed demo events as fallback
-      _seed();
+      // Try to load events from Supabase first
+      await _loadEventsFromSupabase();
+
+      // Seed demo events as fallback if no events in DB
+      if (_events.isEmpty && _destinationEvents.isEmpty) {
+        _seed();
+      }
     } catch (e) {
       debugPrint('EventService.initialize error: $e');
       _events = [];
     }
     _isLoading = false;
     notifyListeners();
+  }
+
+  /// Load all events from Supabase
+  Future<void> _loadEventsFromSupabase() async {
+    try {
+      final now = DateTime.now();
+      final response = await SupabaseConfig.client
+          .from('events')
+          .select()
+          .gte('start_date', now.toIso8601String())
+          .order('start_date', ascending: true)
+          .limit(100);
+
+      final List<dynamic> data = response as List<dynamic>;
+
+      _events = data.map((json) {
+        final map = json as Map<String, dynamic>;
+        return EventModel(
+          id: map['id'] as String,
+          title: map['title'] as String? ?? 'Untitled Event',
+          category:
+              eventCategoryFromString(map['category'] as String? ?? 'other'),
+          start: DateTime.parse(map['start_date'] as String),
+          end: map['end_date'] != null
+              ? DateTime.tryParse(map['end_date'] as String)
+              : null,
+          description: map['description'] as String?,
+          venueName: map['venue_name'] as String? ?? 'TBA',
+          address: map['address'] as String?,
+          latitude: (map['latitude'] as num?)?.toDouble(),
+          longitude: (map['longitude'] as num?)?.toDouble(),
+          websiteUrl: map['website_url'] as String?,
+          registrationUrl: map['registration_url'] as String?,
+          imageUrl: map['image_url'] as String?,
+          source: map['source'] as String?,
+        );
+      }).toList();
+
+      debugPrint('EventService: Loaded ${_events.length} events from Supabase');
+    } catch (e) {
+      debugPrint('EventService._loadEventsFromSupabase error: $e');
+      // Continue with empty events, will use seed data
+    }
   }
 
   /// Fetch events for a specific city from Supabase
@@ -419,4 +473,169 @@ class EventService extends ChangeNotifier {
   }
 
   double _deg2rad(double deg) => deg * (3.141592653589793 / 180.0);
+
+  /// Discover events for a location using the n8n webhook
+  /// This will fetch events and save them to Supabase
+  Future<void> discoverEventsForLocation({
+    required String locationName,
+    required double latitude,
+    required double longitude,
+  }) async {
+    _isDiscoveringEvents = true;
+    _lastDiscoveryError = null;
+    notifyListeners();
+
+    try {
+      debugPrint('EventService: Discovering events for $locationName...');
+
+      // Call n8n webhook
+      final response = await http.post(
+        Uri.parse('https://thesimpleapp.app.n8n.cloud/webhook/lifestyle-events'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'location': locationName,
+          'latitude': latitude,
+          'longitude': longitude,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        throw Exception('Webhook returned ${response.statusCode}: ${response.body}');
+      }
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final events = (data['events'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+
+      debugPrint('EventService: Received ${events.length} events from webhook');
+
+      if (events.isEmpty) {
+        _lastDiscoveryError = 'No events found for this location';
+        notifyListeners();
+        _isDiscoveringEvents = false;
+        return;
+      }
+
+      // Convert to EventModel objects and save to Supabase
+      await _saveDiscoveredEvents(events, locationName);
+
+      debugPrint('EventService: Successfully saved ${events.length} events');
+    } catch (e, st) {
+      debugPrint('EventService.discoverEventsForLocation error: $e');
+      debugPrint(st.toString());
+      _lastDiscoveryError = 'Failed to discover events: ${e.toString()}';
+    } finally {
+      _isDiscoveringEvents = false;
+      notifyListeners();
+    }
+  }
+
+  /// Save discovered events to Supabase with deduplication
+  Future<void> _saveDiscoveredEvents(
+    List<Map<String, dynamic>> events,
+    String locationName,
+  ) async {
+    final eventsToSave = <Map<String, dynamic>>[];
+
+    for (final eventData in events) {
+      try {
+        final title = eventData['title'] as String?;
+        if (title == null || title.isEmpty) continue;
+
+        // Parse date and time
+        final dateStr = eventData['details']?['date'] as String?;
+        final timeStr = eventData['details']?['time'] as String?;
+        if (dateStr == null) continue;
+
+        DateTime? startDateTime;
+        try {
+          // Parse date (format: YYYY-MM-DD)
+          final dateParts = dateStr.split('-');
+          final year = int.parse(dateParts[0]);
+          final month = int.parse(dateParts[1]);
+          final day = int.parse(dateParts[2]);
+
+          // Parse time if available (format: "6:00 PM")
+          int hour = 0;
+          int minute = 0;
+          if (timeStr != null && timeStr.isNotEmpty) {
+            final timeParts = timeStr.split(':');
+            if (timeParts.length >= 2) {
+              hour = int.parse(timeParts[0]);
+              final minuteAndPeriod = timeParts[1].split(' ');
+              minute = int.parse(minuteAndPeriod[0]);
+              if (minuteAndPeriod.length > 1 && minuteAndPeriod[1].toUpperCase() == 'PM' && hour != 12) {
+                hour += 12;
+              } else if (minuteAndPeriod.length > 1 && minuteAndPeriod[1].toUpperCase() == 'AM' && hour == 12) {
+                hour = 0;
+              }
+            }
+          }
+
+          startDateTime = DateTime(year, month, day, hour, minute);
+        } catch (e) {
+          debugPrint('EventService: Error parsing date/time for event $title: $e');
+          continue;
+        }
+
+        // Extract tags to determine category
+        final tags = (eventData['tags'] as List?)?.cast<String>() ?? [];
+        EventCategory category = EventCategory.other;
+        for (final tag in tags) {
+          category = eventCategoryFromString(tag);
+          if (category != EventCategory.other) break;
+        }
+
+        final location = eventData['details']?['location'] as String? ?? locationName;
+        final description = eventData['description'] as String?;
+        final sourceUrl = eventData['source_url'] as String?;
+        final price = eventData['details']?['price'] as String?;
+        final organizer = eventData['details']?['organizer'] as String?;
+
+        // Create a unique ID based on title, date, and location
+        final uniqueId = '${title.toLowerCase()}_${dateStr}_${location.toLowerCase()}'
+            .replaceAll(RegExp(r'[^a-z0-9_]'), '_');
+
+        eventsToSave.add({
+          'id': uniqueId,
+          'title': title,
+          'category': category.name,
+          'start_date': startDateTime.toIso8601String(),
+          'description': description ?? '$organizer - $price',
+          'venue_name': organizer ?? locationName,
+          'address': location,
+          'website_url': sourceUrl,
+          'source': 'n8n_lifestyle_discovery',
+          'city': locationName,
+        });
+      } catch (e) {
+        debugPrint('EventService: Error processing event: $e');
+        continue;
+      }
+    }
+
+    if (eventsToSave.isEmpty) {
+      debugPrint('EventService: No valid events to save');
+      return;
+    }
+
+    try {
+      // Use upsert to handle duplicates (insert or update if exists)
+      await SupabaseConfig.client
+          .from('events')
+          .upsert(eventsToSave, onConflict: 'id');
+
+      debugPrint('EventService: Successfully saved ${eventsToSave.length} events to Supabase');
+
+      // Reload all events from Supabase to get the latest
+      await _loadEventsFromSupabase();
+
+      // Also reload events for the current location if set
+      if (_currentCity != null) {
+        await fetchEventsForCity(city: _currentCity!);
+      }
+    } catch (e) {
+      debugPrint('EventService: Error saving events to Supabase: $e');
+      throw Exception('Failed to save events: $e');
+    }
+  }
 }

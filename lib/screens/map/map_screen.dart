@@ -479,6 +479,77 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  Future<void> _discoverEventsForCurrentLocation() async {
+    if (!mounted) return;
+
+    final mapContext = context.read<MapContextService>();
+    final eventService = context.read<EventService>();
+    final locationName = mapContext.locationName ?? 'this area';
+
+    try {
+      await eventService.discoverEventsForLocation(
+        locationName: locationName,
+        latitude: _center.latitude,
+        longitude: _center.longitude,
+      );
+
+      if (!mounted) return;
+
+      // Check for errors
+      if (eventService.lastDiscoveryError != null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(eventService.lastDiscoveryError!),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+
+      // Success - reload events and update markers
+      _eventMarkers.clear();
+      await _loadEvents();
+      _updateMarkersFromItems();
+
+      // Sync to map context
+      _syncPlacesToMapContext();
+
+      if (!mounted) return;
+
+      // Count new events
+      final eventCount = _eventMarkers.length;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Found $eventCount events in $locationName!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+          action: SnackBarAction(
+            label: 'View',
+            textColor: Colors.white,
+            onPressed: () {
+              // Switch to Events filter to show the new events
+              setState(() {
+                _activeFilters = {MapFilterType.events};
+                _updateMarkersFromItems();
+              });
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to discover events: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
   /// Calculate distance between two points in km using Haversine formula
   double _haversineDistance(
       double lat1, double lon1, double lat2, double lon2) {
@@ -713,6 +784,96 @@ class _MapScreenState extends State<MapScreen> {
                 ),
               ),
             ),
+
+          // Event discovery button
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: _selectedItem != null ? 220 : 100,
+            child: Center(
+              child: Consumer<EventService>(
+                builder: (context, eventService, _) {
+                  if (eventService.isDiscoveringEvents) {
+                    // Show loading indicator
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Discovering events...',
+                            style: TextStyle(
+                              color: colors.onSurface,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _discoverEventsForCurrentLocation,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.categoryEvent,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.event_available,
+                                size: 20, color: colors.onPrimary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Find Events Here',
+                              style: TextStyle(
+                                color: colors.onPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
 
           // My location FAB
           Positioned(
