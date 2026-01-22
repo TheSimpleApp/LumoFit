@@ -45,11 +45,12 @@ class TodayActivities extends StatelessWidget {
         const SizedBox(height: 12),
         if (todayActivities.isEmpty)
           EmptyStateWidget.activities(
-            streakMessage: 'Visit a gym or healthy spot to start earning XP!',
+            streakMessage: 'Start exploring to earn XP and level up!',
             ctaLabel: 'Discover Places',
             onCtaPressed: () {
               context.go('/discover');
             },
+            compact: true,
           )
         else
           ...todayActivities.map(

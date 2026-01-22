@@ -130,6 +130,17 @@ class _IllustrationContainer extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.primaryMuted,
         borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(
+          color: AppColors.borderGold,
+          width: 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.goldGlow.withValues(alpha: 0.15),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: CustomPaint(
         size: Size(size, size),

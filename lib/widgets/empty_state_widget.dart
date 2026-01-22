@@ -493,6 +493,8 @@ class EmptyStateWidget extends StatelessWidget {
   }
 
   Widget _buildCtaButton(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     if (useSecondaryCta) {
       return OutlinedButton(
         onPressed: onCtaPressed,
@@ -501,6 +503,7 @@ class EmptyStateWidget extends StatelessWidget {
             horizontal: compact ? AppSpacing.md : AppSpacing.lg,
             vertical: compact ? AppSpacing.sm : AppSpacing.md,
           ),
+          side: BorderSide(color: colors.primary, width: 1.5),
         ),
         child: Text(ctaLabel!),
       );
@@ -513,6 +516,8 @@ class EmptyStateWidget extends StatelessWidget {
           horizontal: compact ? AppSpacing.md : AppSpacing.lg,
           vertical: compact ? AppSpacing.sm : AppSpacing.md,
         ),
+        elevation: compact ? 2 : 4,
+        shadowColor: AppColors.goldGlow,
       ),
       child: Text(ctaLabel!),
     );

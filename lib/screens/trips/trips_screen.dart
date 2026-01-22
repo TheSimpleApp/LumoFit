@@ -468,9 +468,9 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
   // Submission state
   bool _isSubmitting = false;
 
-  // Date state variables
-  late DateTime _startDate;
-  late DateTime _endDate;
+  // Date state variables - nullable for range picker
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   @override
   void initState() {
@@ -479,10 +479,9 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
     _notesController = TextEditingController();
     _cityFocusNode = FocusNode();
 
-    // Default dates: start tomorrow, end in 7 days
-    final tomorrow = DateTime.now().add(const Duration(days: 1));
-    _startDate = DateTime(tomorrow.year, tomorrow.month, tomorrow.day);
-    _endDate = _startDate.add(const Duration(days: 7));
+    // Start with no dates selected (user will pick)
+    _startDate = null;
+    _endDate = null;
   }
 
   @override
@@ -497,11 +496,17 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
   /// Returns true if the city field has a valid selection
   bool get _isCityValid => _selectedCity != null && _selectedCity!.isNotEmpty;
 
+  /// Returns true if dates have been selected
+  bool get _areDatesSelected => _startDate != null && _endDate != null;
+
   /// Returns true if the form can be submitted (all required fields valid)
-  bool get _canSubmit => _isCityValid;
+  bool get _canSubmit => _isCityValid && _areDatesSelected;
 
   /// Returns true if dates are logically valid (end >= start)
-  bool get _areDatesValid => !_endDate.isBefore(_startDate);
+  bool get _areDatesValid =>
+      _startDate != null &&
+      _endDate != null &&
+      !_endDate!.isBefore(_startDate!);
 
   /// Validates the form and shows errors if invalid
   /// Returns true if the form is valid and ready to submit
@@ -520,8 +525,17 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
       isValid = false;
     }
 
-    // Validate dates (should already be enforced by date picker, but double-check)
-    if (!_areDatesValid) {
+    // Validate dates are selected
+    if (!_areDatesSelected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please select your trip dates'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      isValid = false;
+    } else if (!_areDatesValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('End date must be on or after start date'),
@@ -583,27 +597,80 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
     _cityFocusNode.unfocus();
   }
 
-  Future<void> _pickDate(bool isStart) async {
+  /// Handles date selection in the inline range picker
+  /// Airline-style: tap once for start, tap again for end (or same day)
+  void _onDateTapped(DateTime date) {
     HapticUtils.light();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: isStart ? _startDate : _endDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-    );
-    if (picked != null) {
-      setState(() {
-        if (isStart) {
-          _startDate = picked;
-          // Adjust end date if it's before start date
-          if (_endDate.isBefore(_startDate)) {
-            _endDate = _startDate.add(const Duration(days: 7));
-          }
+    setState(() {
+      if (_startDate == null) {
+        // First tap: set start date
+        _startDate = date;
+        _endDate = null;
+      } else if (_endDate == null) {
+        // Second tap: set end date
+        if (date.isBefore(_startDate!)) {
+          // If tapped date is before start, make it the new start
+          _endDate = _startDate;
+          _startDate = date;
         } else {
-          _endDate = picked;
+          // Normal case: set as end date (same day is valid for day trips)
+          _endDate = date;
         }
-      });
+      } else {
+        // Both dates set: start over with new start date
+        _startDate = date;
+        _endDate = null;
+      }
+    });
+  }
+
+  /// Clears the date selection
+  void _clearDates() {
+    HapticUtils.light();
+    setState(() {
+      _startDate = null;
+      _endDate = null;
+    });
+  }
+
+  /// Gets unique recent destinations from previous trips
+  List<_RecentDestination> _getRecentDestinations(TripService tripService) {
+    final seen = <String>{};
+    final destinations = <_RecentDestination>[];
+
+    // Get all trips sorted by most recent first
+    final allTrips = [...tripService.trips]
+      ..sort((a, b) => b.startDate.compareTo(a.startDate));
+
+    for (final trip in allTrips) {
+      final key = trip.destinationCity.toLowerCase();
+      if (!seen.contains(key)) {
+        seen.add(key);
+        destinations.add(_RecentDestination(
+          city: trip.destinationCity,
+          country: trip.destinationCountry,
+          // Check if it's a US state
+          state: trip.destinationCountry == 'USA' ? null : null,
+        ));
+      }
+      // Limit to 5 recent destinations
+      if (destinations.length >= 5) break;
     }
+
+    return destinations;
+  }
+
+  /// Selects a recent destination
+  void _selectRecentDestination(_RecentDestination dest) {
+    HapticUtils.light();
+    _cityController.text = dest.city;
+    setState(() {
+      _selectedCity = dest.city;
+      _selectedCountry = dest.country;
+      _citySuggestions = [];
+      _cityError = null;
+    });
+    _cityFocusNode.unfocus();
   }
 
   Future<void> _createTrip() async {
@@ -623,12 +690,12 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
     try {
       final tripService = context.read<TripService>();
 
-      // Create trip with all form data
+      // Create trip with all form data (dates validated as non-null in _validateForm)
       final newTrip = await tripService.createTrip(
         destinationCity: _selectedCity!,
         destinationCountry: _selectedCountry,
-        startDate: _startDate,
-        endDate: _endDate,
+        startDate: _startDate!,
+        endDate: _endDate!,
         notes: _notesController.text.trim().isNotEmpty
             ? _notesController.text.trim()
             : null,
@@ -677,274 +744,677 @@ class _CreateTripSheetState extends State<_CreateTripSheet> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
+    final mediaQuery = MediaQuery.of(context);
+    final maxSheetHeight = mediaQuery.size.height * 0.85;
 
     return Container(
+      // Constrain max height to 85% of screen to prevent overflow
+      constraints: BoxConstraints(maxHeight: maxSheetHeight),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          behavior: HitTestBehavior.opaque,
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-                20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Drag handle
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colors.outline.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            // Drag handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colors.outline.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const SizedBox(height: 16),
-                // Title
-                Text('New Trip', style: textStyles.titleLarge),
-                const SizedBox(height: 24),
-                // City input field
-                TextField(
-                  controller: _cityController,
-                  focusNode: _cityFocusNode,
-                  onChanged: _onCityChanged,
-                  decoration: InputDecoration(
-                    labelText: 'Where are you going?',
-                    hintText: 'Enter a city',
-                    errorText: _cityError,
-                    prefixIcon: const Icon(Icons.location_on_outlined),
-                    suffixIcon: _isLoadingSuggestions
-                        ? const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          )
-                        : _cityController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  HapticUtils.light();
-                                  _cityController.clear();
-                                  setState(() {
-                                    _citySuggestions = [];
-                                    _selectedCity = null;
-                                    _selectedCountry = null;
-                                    _cityError = null;
-                                  });
-                                },
-                              )
-                            : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text('New Trip', style: textStyles.titleLarge),
                   ),
-                  textInputAction: TextInputAction.next,
-                ),
-                // Autocomplete suggestions dropdown
-                if (_citySuggestions.isNotEmpty && _selectedCity == null)
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 200),
-                    decoration: BoxDecoration(
-                      color: colors.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      boxShadow: [
-                        BoxShadow(
-                          color: colors.shadow.withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        itemCount: _citySuggestions.length,
-                        itemBuilder: (context, index) {
-                          final suggestion = _citySuggestions[index];
-                          return InkWell(
-                            onTap: () => _onSuggestionSelected(suggestion),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Divider(height: 1, color: colors.outline.withValues(alpha: 0.1)),
+            Flexible(
+              child: GestureDetector(
+                onTap: () => FocusScope.of(context).unfocus(),
+                behavior: HitTestBehavior.opaque,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    16,
+                    20,
+                    mediaQuery.viewInsets.bottom + 20,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Previous destinations quick select
+                      Builder(
+                        builder: (context) {
+                          final tripService = context.watch<TripService>();
+                          final recentDestinations =
+                              _getRecentDestinations(tripService);
+                          if (recentDestinations.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Recent Destinations',
+                                style: textStyles.labelMedium?.copyWith(
+                                  color: colors.onSurfaceVariant,
+                                ),
                               ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.location_on_outlined,
-                                    size: 20,
-                                    color: colors.onSurfaceVariant,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: recentDestinations
+                                    .map((_RecentDestination dest) {
+                                  final isSelected = _selectedCity == dest.city;
+                                  return FilterChip(
+                                    selected: isSelected,
+                                    label: Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Text(
-                                          suggestion.city,
-                                          style:
-                                              textStyles.bodyMedium?.copyWith(
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        if (suggestion.country != null)
+                                        const Text('✈️ '),
+                                        Text(dest.city),
+                                        if (dest.state != null)
                                           Text(
-                                            suggestion.country!,
+                                            ', ${dest.state}',
                                             style:
                                                 textStyles.bodySmall?.copyWith(
-                                              color: colors.onSurfaceVariant,
+                                              color: isSelected
+                                                  ? colors.onPrimaryContainer
+                                                  : colors.onSurfaceVariant,
+                                            ),
+                                          )
+                                        else if (dest.country != null &&
+                                            dest.country != 'USA')
+                                          Text(
+                                            ', ${dest.country}',
+                                            style:
+                                                textStyles.bodySmall?.copyWith(
+                                              color: isSelected
+                                                  ? colors.onPrimaryContainer
+                                                  : colors.onSurfaceVariant,
                                             ),
                                           ),
                                       ],
                                     ),
-                                  ),
-                                ],
+                                    onSelected: (_) =>
+                                        _selectRecentDestination(dest),
+                                    selectedColor: colors.primaryContainer,
+                                    checkmarkColor: colors.primary,
+                                  );
+                                }).toList(),
                               ),
-                            ),
+                              const SizedBox(height: 16),
+                            ],
                           );
                         },
                       ),
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                // Date pickers
-                Row(
-                  children: [
-                    Expanded(
-                      child: _DateSelector(
-                        label: 'Start Date',
-                        date: _startDate,
-                        onTap: () => _pickDate(true),
+                      // City input field
+                      TextField(
+                        controller: _cityController,
+                        focusNode: _cityFocusNode,
+                        onChanged: _onCityChanged,
+                        decoration: InputDecoration(
+                          labelText: 'Where are you going?',
+                          hintText: 'Enter a city',
+                          errorText: _cityError,
+                          prefixIcon: const Icon(Icons.location_on_outlined),
+                          suffixIcon: _isLoadingSuggestions
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child:
+                                        CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              : _cityController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear),
+                                      onPressed: () {
+                                        HapticUtils.light();
+                                        _cityController.clear();
+                                        setState(() {
+                                          _citySuggestions = [];
+                                          _selectedCity = null;
+                                          _selectedCountry = null;
+                                          _cityError = null;
+                                        });
+                                      },
+                                    )
+                                  : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                        ),
+                        textInputAction: TextInputAction.next,
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _DateSelector(
-                        label: 'End Date',
-                        date: _endDate,
-                        onTap: () => _pickDate(false),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Notes field
-                TextField(
-                  controller: _notesController,
-                  maxLines: 4,
-                  minLines: 3,
-                  keyboardType: TextInputType.multiline,
-                  textInputAction: TextInputAction.newline,
-                  decoration: InputDecoration(
-                    labelText: 'Notes (optional)',
-                    hintText: 'Add any travel notes, reminders, or plans...',
-                    alignLabelWithHint: true,
-                    prefixIcon: const Padding(
-                      padding: EdgeInsets.only(bottom: 48),
-                      child: Icon(Icons.notes_outlined),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Create Trip button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed:
-                        (!_canSubmit || _isSubmitting) ? null : _createTrip,
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                      // Autocomplete suggestions dropdown
+                      if (_citySuggestions.isNotEmpty && _selectedCity == null)
+                        Container(
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          decoration: BoxDecoration(
+                            color: colors.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            boxShadow: [
+                              BoxShadow(
+                                color: colors.shadow.withValues(alpha: 0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              padding: EdgeInsets.zero,
+                              itemCount: _citySuggestions.length,
+                              itemBuilder: (context, index) {
+                                final suggestion = _citySuggestions[index];
+                                return InkWell(
+                                  onTap: () => _onSuggestionSelected(suggestion),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.location_on_outlined,
+                                          size: 20,
+                                          color: colors.onSurfaceVariant,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                suggestion.city,
+                                                style: textStyles.bodyMedium
+                                                    ?.copyWith(
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              // Show state for US, country for others
+                                              if (suggestion.subtitle != null)
+                                                Text(
+                                                  suggestion.subtitle!,
+                                                  style: textStyles.bodySmall
+                                                      ?.copyWith(
+                                                    color:
+                                                        colors.onSurfaceVariant,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          )
-                        : const Text('Create Trip'),
+                          ),
+                        ),
+                      const SizedBox(height: 20),
+                      // Inline Date Range Picker (airline-style)
+                      _InlineDateRangePicker(
+                        startDate: _startDate,
+                        endDate: _endDate,
+                        onDateTapped: _onDateTapped,
+                        onClear: _clearDates,
+                      ),
+                      const SizedBox(height: 20),
+                      // Notes field
+                      TextField(
+                        controller: _notesController,
+                        maxLines: 4,
+                        minLines: 3,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
+                        decoration: InputDecoration(
+                          labelText: 'Notes (optional)',
+                          hintText: 'Add any travel notes, reminders, or plans...',
+                          alignLabelWithHint: true,
+                          prefixIcon: const Padding(
+                            padding: EdgeInsets.only(bottom: 48),
+                            child: Icon(Icons.notes_outlined),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Create Trip button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: (!_canSubmit || _isSubmitting)
+                              ? null
+                              : _createTrip,
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                )
+                              : const Text('Create Trip'),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _DateSelector extends StatelessWidget {
-  final String label;
-  final DateTime date;
-  final VoidCallback onTap;
+/// Airline-style inline date range picker
+/// Tap once for start date, tap again for end date (or same day for single-day trips)
+class _InlineDateRangePicker extends StatefulWidget {
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final ValueChanged<DateTime> onDateTapped;
+  final VoidCallback onClear;
 
-  const _DateSelector({
-    required this.label,
-    required this.date,
-    required this.onTap,
+  const _InlineDateRangePicker({
+    required this.startDate,
+    required this.endDate,
+    required this.onDateTapped,
+    required this.onClear,
   });
+
+  @override
+  State<_InlineDateRangePicker> createState() => _InlineDateRangePickerState();
+}
+
+class _InlineDateRangePickerState extends State<_InlineDateRangePicker> {
+  late DateTime _displayedMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start with current month or the month of start date
+    _displayedMonth = widget.startDate ?? DateTime.now();
+    _displayedMonth = DateTime(_displayedMonth.year, _displayedMonth.month, 1);
+  }
+
+  void _previousMonth() {
+    setState(() {
+      _displayedMonth =
+          DateTime(_displayedMonth.year, _displayedMonth.month - 1, 1);
+    });
+  }
+
+  void _nextMonth() {
+    setState(() {
+      _displayedMonth =
+          DateTime(_displayedMonth.year, _displayedMonth.month + 1, 1);
+    });
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  bool _isInRange(DateTime date) {
+    if (widget.startDate == null || widget.endDate == null) return false;
+    return date.isAfter(widget.startDate!) && date.isBefore(widget.endDate!);
+  }
+
+  bool _isStartDate(DateTime date) =>
+      widget.startDate != null && _isSameDay(date, widget.startDate!);
+
+  bool _isEndDate(DateTime date) =>
+      widget.endDate != null && _isSameDay(date, widget.endDate!);
+
+  bool _isToday(DateTime date) => _isSameDay(date, DateTime.now());
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final textStyles = Theme.of(context).textTheme;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
-    return Material(
-      color: Colors.transparent,
-      clipBehavior: Clip.antiAlias,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Container(
-          padding: const EdgeInsets.all(12),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header with instructions
+        Row(
+          children: [
+            Icon(Icons.date_range, size: 20, color: colors.primary),
+            const SizedBox(width: 8),
+            Text(
+              'Select Dates',
+              style: textStyles.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            if (widget.startDate != null)
+              TextButton.icon(
+                onPressed: widget.onClear,
+                icon: const Icon(Icons.clear, size: 16),
+                label: const Text('Clear'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        // Instructions based on state
+        Text(
+          _getInstructionText(),
+          style: textStyles.bodySmall?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Selected range display
+        if (widget.startDate != null) ...[
+          _buildSelectedRangeDisplay(colors, textStyles),
+          const SizedBox(height: 12),
+        ],
+        // Calendar container
+        Container(
           decoration: BoxDecoration(
             color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(
-              color: colors.outline.withValues(alpha: 0.3),
+              color: colors.outline.withValues(alpha: 0.2),
             ),
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                label,
-                style: textStyles.labelSmall?.copyWith(
-                  color: colors.onSurfaceVariant,
+              // Month navigation header
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      onPressed: _previousMonth,
+                      icon: const Icon(Icons.chevron_left),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    Text(
+                      DateFormat('MMMM yyyy').format(_displayedMonth),
+                      style: textStyles.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _nextMonth,
+                      icon: const Icon(Icons.chevron_right),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
+              ),
+              // Day of week headers
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+                      .map((d) => SizedBox(
+                            width: 36,
+                            child: Center(
+                              child: Text(
+                                d,
+                                style: textStyles.labelSmall?.copyWith(
+                                  color: colors.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ))
+                      .toList(),
                 ),
               ),
               const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.calendar_today, size: 16, color: colors.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    DateFormat('MMM d, yyyy').format(date),
-                    style: textStyles.bodyMedium,
-                  ),
-                ],
+              // Calendar grid
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+                child: _buildCalendarGrid(colors, textStyles, today),
               ),
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  String _getInstructionText() {
+    if (widget.startDate == null) {
+      return 'Tap a date to set your departure';
+    } else if (widget.endDate == null) {
+      return 'Tap another date for return, or same date for a day trip';
+    } else {
+      return 'Tap any date to start over';
+    }
+  }
+
+  Widget _buildSelectedRangeDisplay(ColorScheme colors, TextTheme textStyles) {
+    final dateFormat = DateFormat('EEE, MMM d');
+    final isSameDay = widget.endDate != null &&
+        _isSameDay(widget.startDate!, widget.endDate!);
+    final tripDays = widget.endDate != null
+        ? widget.endDate!.difference(widget.startDate!).inDays + 1
+        : 1;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            colors.primaryContainer.withValues(alpha: 0.5),
+            colors.primaryContainer.withValues(alpha: 0.3),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: colors.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Start date
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'DEPART',
+                  style: textStyles.labelSmall?.copyWith(
+                    color: colors.primary,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  dateFormat.format(widget.startDate!),
+                  style: textStyles.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Arrow or day indicator
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: colors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppRadius.full),
+            ),
+            child: widget.endDate == null
+                ? Icon(Icons.arrow_forward, size: 16, color: colors.primary)
+                : Text(
+                    isSameDay ? '1 day' : '$tripDays days',
+                    style: textStyles.labelSmall?.copyWith(
+                      color: colors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+          ),
+          // End date
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'RETURN',
+                  style: textStyles.labelSmall?.copyWith(
+                    color: widget.endDate != null
+                        ? colors.primary
+                        : colors.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  widget.endDate != null
+                      ? dateFormat.format(widget.endDate!)
+                      : 'Select date',
+                  style: textStyles.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: widget.endDate != null
+                        ? colors.onSurface
+                        : colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  Widget _buildCalendarGrid(
+      ColorScheme colors, TextTheme textStyles, DateTime today) {
+    final firstDayOfMonth =
+        DateTime(_displayedMonth.year, _displayedMonth.month, 1);
+    final lastDayOfMonth =
+        DateTime(_displayedMonth.year, _displayedMonth.month + 1, 0);
+    final firstWeekday = firstDayOfMonth.weekday % 7; // Sunday = 0
+
+    final days = <Widget>[];
+
+    // Add empty cells for days before the first of the month
+    for (int i = 0; i < firstWeekday; i++) {
+      days.add(const SizedBox(width: 36, height: 36));
+    }
+
+    // Add day cells
+    for (int day = 1; day <= lastDayOfMonth.day; day++) {
+      final date = DateTime(_displayedMonth.year, _displayedMonth.month, day);
+      final isPast = date.isBefore(today);
+      final isStart = _isStartDate(date);
+      final isEnd = _isEndDate(date);
+      final isInRange = _isInRange(date);
+      final isTodayDate = _isToday(date);
+
+      days.add(
+        GestureDetector(
+          onTap: isPast ? null : () => widget.onDateTapped(date),
+          child: Container(
+            width: 36,
+            height: 36,
+            margin: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: isStart || isEnd
+                  ? colors.primary
+                  : isInRange
+                      ? colors.primary.withValues(alpha: 0.15)
+                      : null,
+              borderRadius: BorderRadius.horizontal(
+                left: isStart || (!isInRange && !isEnd)
+                    ? const Radius.circular(18)
+                    : Radius.zero,
+                right: isEnd || (!isInRange && !isStart)
+                    ? const Radius.circular(18)
+                    : Radius.zero,
+              ),
+              border: isTodayDate && !isStart && !isEnd
+                  ? Border.all(color: colors.primary, width: 2)
+                  : null,
+            ),
+            child: Center(
+              child: Text(
+                '$day',
+                style: textStyles.bodyMedium?.copyWith(
+                  color: isPast
+                      ? colors.onSurface.withValues(alpha: 0.3)
+                      : isStart || isEnd
+                          ? colors.onPrimary
+                          : colors.onSurface,
+                  fontWeight:
+                      isStart || isEnd || isTodayDate ? FontWeight.bold : null,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Wrap(
+      alignment: WrapAlignment.start,
+      children: days,
+    );
+  }
+}
+
+/// Simple model for recent destination quick select
+class _RecentDestination {
+  final String city;
+  final String? state;
+  final String? country;
+
+  const _RecentDestination({
+    required this.city,
+    this.state,
+    this.country,
+  });
 }

@@ -1,13 +1,14 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(supabase secrets set:*)",
+      "Bash(dart analyze:*)"
+    ]
+  },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "suppx",
     "supabase abc",
     "lumofit-supabase"
-  ],
-  "permissions": {
-    "allow": [
-      "Bash(supabase secrets set:*)"
-    ]
-  }
+  ]
 }
